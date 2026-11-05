@@ -1,5 +1,8 @@
 ﻿; <COMPILER: v1.1.37.02>
 #SingleInstance Force
+SetTitleMatchMode, 2
+SetTitleMatchMode, Fast
+CheckAdmin()
 #NoEnv
 #MaxThreadsPerHotkey 2
 SetWorkingDir %A_ScriptDir%
@@ -10,6 +13,10 @@ GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
 GroupAdd, ProvinceGameGroup, ahk_exe gta_sa.exe
 GroupAdd, ProvinceGameGroup, ahk_exe proxy_sa.exe
 GroupAdd, ProvinceGameGroup, ahk_class Grand theft auto San Andreas
+GroupAdd, ProvinceGameGroup, ahk_exe MTA.exe
+GroupAdd, ProvinceGameGroup, ahk_class GTA:SA:MP
+GroupAdd, ProvinceGameGroup, MTA: Province
+GroupAdd, ProvinceGameGroup, GTA:SA
 
 ; Автораспаковка ресурсов при первом запуске (Standalone EXE режим)
 if (!FileExist(A_ScriptDir . "\1.mp3")) {
@@ -2229,7 +2236,7 @@ LoadUserConfig() {
     IniRead, CheckMB, %IniPath%, User, CheckMB, ОР/СР
     IniRead, Post, %IniPath%, User, Post, 1
     IniRead, ProvLogPath, %IniPath%, User, ProvLogPath, AUTO
-    IniRead, OnlyInGameMode, %IniPath%, User, OnlyInGameMode, 1
+    IniRead, OnlyInGameMode, %IniPath%, User, OnlyInGameMode, 0
     IniRead, AutoScreenMode, %IniPath%, User, AutoScreenMode, 1
     IniRead, ChaseTargetText, %IniPath%, User, ChaseTargetText, ТС нарушителя
     if (Prop1 = "ERROR" || Prop1 = "")
@@ -2237,7 +2244,7 @@ LoadUserConfig() {
     if (Post = "ERROR" || Post = "")
         Post := "1"
     if (OnlyInGameMode = "ERROR" || OnlyInGameMode = "")
-        OnlyInGameMode := 1
+        OnlyInGameMode := 0
 }
 
 ; =================================================================================================
