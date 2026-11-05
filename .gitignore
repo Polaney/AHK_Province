@@ -1,0 +1,10 @@
+# AutoHotkey backup and temporary files
+*.bak
+*.bak.*
+*.tmp
+*.7z
+scratch/
+
+# Local cache / user logs
+*.log
+gibdd.egl
