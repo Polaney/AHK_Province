@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Обсуждения и идеи (GitHub Discussions)
+    url: https://github.com/Polaney/AHK_Province/discussions
+    about: Задайте вопрос, обсудите идеи для будущих версий или поделитесь своими кастомными биндами.
+  - name: 🚔 Официальный форум МВД Провинции
+    url: https://forum.gtaprovince.ru
+    about: Официальный раздел Министерства Внутренних Дел Республики Провинция.

@@ -1,0 +1,53 @@
+name: 📝 Предложить новый RP-бинд или лекцию
+description: Предложите новую RP-отыгровку, лекцию для строя или процедуру оформления
+title: "[Бинд]: "
+labels: ["bind-request", "content"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 📋 Предложение нового RP-бинда или лекции
+        Поделитесь полезной отыгровкой, которой не хватает сотрудникам в повседневной службе.
+
+  - type: input
+    id: bind_name
+    attributes:
+      label: Название бинда / отыгровки
+      placeholder: "Например: Проверка алкотестером / Досмотр капота на запрещённые модификации"
+    validations:
+      required: true
+
+  - type: input
+    id: suggested_trigger
+    attributes:
+      label: Предлагаемая команда или горячая клавиша
+      placeholder: "Например: /алко или Alt+F3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: bind_text
+    attributes:
+      label: Полный текст RP-отыгровки (со строками /do, /me, /try, фразами)
+      description: Вставьте текст по строкам так, как он должен отправляться в игру.
+      placeholder: |
+        /do В бардачке патрульного автомобиля лежит сертифицированный алкотестер.
+        /me открыл бардачок, достал прибор и новую стерильную насадку
+        /me распечатал мундштук и установил его в гнездо прибора
+        /do Прибор готов к проведению освидетельствования.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bind_section
+    attributes:
+      label: Раздел биндера
+      options:
+        - Основное и проверка документов
+        - Задержание и розыск
+        - Оформление ДТП и протоколов
+        - СС, Лекции и Академия
+        - ПМП (Первая помощь)
+        - Спецрота и погоня
+    validations:
+      required: true

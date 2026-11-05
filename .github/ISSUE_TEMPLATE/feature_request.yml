@@ -1,0 +1,52 @@
+name: 💡 Предложить идею / Улучшение (Feature Request)
+description: Предложите новую крутую функцию, модуль или доработку для АХК
+title: "[Идея]: "
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🚀 Предложение новой функциональности
+        Мы постоянно развиваем АХК УГИБДД, чтобы сделать его самым удобным и полезным инструментом на Провинции. Расскажите о вашей задумке!
+
+  - type: input
+    id: feature_title
+    attributes:
+      label: Краткое название идеи
+      placeholder: "Например: Автоматический радар скорости / Интеграция с дискордом"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает это предложение?
+      description: С какой сложностью или рутиной вы сталкиваетесь во время службы?
+      placeholder: "Сейчас во время патрулирования приходится вручную..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Подробное описание предлагаемого решения
+      description: Как именно эта функция должна работать в интерфейсе и в игре?
+      placeholder: "Было бы здорово добавить на HUD ещё один таймер, который..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Категория нововведения
+      options:
+        - 🚨 Погоня и СГУ
+        - 📊 Журнал нормы и статистика
+        - 📸 Автоскриншоты и фиксация
+        - ➕ Кастомные бинды и команды
+        - ⚖️ Калькулятор статей и ФЗоП
+        - 🖥️ GUI-интерфейс и темы оформления
+        - 🔊 Звуки и оповещения
+        - 🛠️ Другое
+    validations:
+      required: true
