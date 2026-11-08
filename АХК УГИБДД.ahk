@@ -348,7 +348,7 @@ ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.3.2ж
+    Vers = 2.3.3ж
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -365,7 +365,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.3.2м
+    Vers = 2.3.3м
     Ok1 =
     Ok2 =
     Ok2 =
@@ -3805,15 +3805,13 @@ Return
 
 EnsureHudShown() {
     global HudVisible, HudPosX, HudPosY, HudHwnd
-    ; HUD отображается исключительно когда пользователь включил его через Alt+H
-    ; Принудительный показ прозрачного окна поверх эксклюзивного полноэкранного D3D9 вызывает сброс устройства и краш игры!
-    if (HudVisible) {
-        if (HudPosX = "" || HudPosX <= 0)
-            HudPosX := A_ScreenWidth - 395
-        if (HudPosY = "" || HudPosY <= 0)
-            HudPosY := 25
-        Gui, 6:Show, x%HudPosX% y%HudPosY% w380 h115 NoActivate, UGIBDD_HUD_OVERLAY
-    }
+    HudVisible := 1
+    if (HudPosX = "" || HudPosX <= 0)
+        HudPosX := A_ScreenWidth - 395
+    if (HudPosY = "" || HudPosY <= 0)
+        HudPosY := 25
+    Gui, 6:Show, x%HudPosX% y%HudPosY% w380 h118 NoActivate, UGIBDD_HUD_OVERLAY
+    Gosub, UpdateHudTick
 }
 
 ToggleHudEditMode:
@@ -10364,8 +10362,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion := "2.3.2"
-global AppVersionCode    := 232
+global AppNumericVersion := "2.3.3"
+global AppVersionCode    := 233
 global UpdateCheckUrl    := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateMirrorUrl   := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
 global PendingUpdateUrl  := ""
