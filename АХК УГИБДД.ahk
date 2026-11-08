@@ -10931,6 +10931,30 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         }
         Return
     }
+    if (action = "save_hotkey_web") {
+        parts := StrSplit(arg1, "|")
+        targetHk := parts[1]
+        rawKey := parts[2]
+        if (targetHk != "" && HotkeyById.HasKey(targetHk) && rawKey != "") {
+            SelectedHkId := targetHk
+            ApplySingleHotkeyUpdate(targetHk, rawKey)
+            RefreshFluentWebData()
+            SoundBeep, 900, 120
+            TrayTip, ⌨️ Клавиша обновлена!, % HotkeyById[targetHk].Name . ": [" . FormatHotkeyReadable(rawKey) . "]", 2, 1
+        }
+        Return
+    }
+    if (action = "reset_hotkey_web") {
+        targetHk := arg1
+        if (targetHk != "" && HotkeyById.HasKey(targetHk)) {
+            SelectedHkId := targetHk
+            Gosub, ResetSingleHotkeyBtn
+            RefreshFluentWebData()
+            SoundBeep, 800, 100
+            TrayTip, 🔄 Клавиша сброшена, % HotkeyById[targetHk].Name . " возвращена по умолчанию", 2, 1
+        }
+        Return
+    }
     if (action = "reset_all_hotkeys") {
         Gosub, ResetAllHotkeysBtn
         RefreshFluentWebData()
@@ -11076,3 +11100,31 @@ CloseQuickRemapBtn:
 10GuiEscape:
 Gui, 10:Destroy
 Return
+
+ApplySingleHotkeyUpdate(hkId, newKey) {
+    global HotkeyById, HotkeyDefs
+    if (!HotkeyById.HasKey(hkId))
+        Return
+    oldKey := HotkeyById[hkId].CurrentKey
+    if (oldKey != "") {
+        try {
+            Hotkey, %oldKey%, Off, UseErrorLevel
+        }
+    }
+    HotkeyById[hkId].CurrentKey := newKey
+    for idx, hk in HotkeyDefs {
+        if (hk.Id = hkId) {
+            HotkeyDefs[idx].CurrentKey := newKey
+            break
+        }
+    }
+    targetFn := HotkeyById[hkId].Fn
+    if (newKey != "" && targetFn != "") {
+        try {
+            Hotkey, %newKey%, %targetFn%, On, UseErrorLevel
+        }
+    }
+    for idx, iniPath in [A_Temp . "gibdd.egl", A_ScriptDir . "gibdd_profile.ini"] {
+        IniWrite, %newKey%, %iniPath%, Hotkeys, %hkId%
+    }
+}
