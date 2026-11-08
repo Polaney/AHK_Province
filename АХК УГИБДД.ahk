@@ -211,6 +211,7 @@ RefreshTray()
     Menu, Tray, Add, ⚖️ Калькулятор КоАП / УК, OpenCalc
     Menu, Tray, Add, ⌨️ Настройка клавиш, SwitchToHotkeysTab
     Menu, Tray, Add, ⏱️ Показать / скрыть HUD, ToggleHud
+    Menu, Tray, Add, 🎯 Переместить HUD (Drag&Drop), ToggleHudEditMode
     Menu, Tray, Add
     Menu, Tray, Add, VKowner
     Menu, Tray, Rename, VKowner, Goldcherry (ВК)
@@ -355,7 +356,7 @@ ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.2.0ж
+    Vers = 2.3.0ж
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -372,7 +373,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.2.0м
+    Vers = 2.3.0м
     Ok1 =
     Ok2 =
     Ok2 =
@@ -446,12 +447,13 @@ Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn9 gSelectTab9, ➕ Свои бин�
 Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
 Gui, 1:Add, Text, x12 y438 w184 h16, 🛠️ БЫСТРЫЕ ДЕЙСТВИЯ:
 Gui, 1:Font, S8 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Button, x8 y456 w192 h26 gOpenCalc, ⚖️ Калькулятор (Alt+F1)
-Gui, 1:Add, Button, x8 yp+28 w192 h26 gOpenFzopGuide, 📘 База статей ФЗоП
-Gui, 1:Add, Button, x8 yp+28 w192 h26 gToggleHud, ⏱️ HUD таймеров (Alt+H)
-Gui, 1:Add, Button, x8 yp+28 w192 h26 gManualCheckUpdates, 🚀 Проверить обновления
-Gui, 1:Add, Button, x8 yp+28 w192 h26 gReload, 🔄 Перезапуск (F11)
-Gui, 1:Add, Button, x8 yp+28 w192 h26 gGuiClose, ❌ Свернуть в трей
+Gui, 1:Add, Button, x8 y456 w192 h25 gOpenCalc, ⚖️ Калькулятор (Alt+F1)
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gOpenFzopGuide, 📘 База статей ФЗоП
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gToggleHud, ⏱️ HUD таймеров (Alt+H)
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gToggleHudEditMode, 🎯 Двигать HUD (Alt+Shift+H)
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gManualCheckUpdates, 🚀 Проверить обновления
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gReload, 🔄 Перезапуск (F11)
+Gui, 1:Add, Button, x8 yp+27 w192 h25 gGuiClose, ❌ Свернуть в трей
 Gui, 1:Font, S8 C8B949E Norm, Segoe UI
 Gui, 1:Add, Text, x10 y654 w188 h18, % "Версия v" . Vers
 
@@ -2086,6 +2088,7 @@ InitHotkeysManager() {
     AddHkDef("HK_KnockWindow",    "Постучать в окно автомобиля",                "Дополнения",   "^sc29",        "Bind_KnockWindow",    0, "Disp_HK_KnockWindow","")
     AddHkDef("HK_OpenCalc",       "Открыть Калькулятор КоАП / УКРП",            "Утилиты АХК",  "!F1",          "OpenCalc",            0, "",                   "")
     AddHkDef("HK_ToggleHud",      "Показать / скрыть игровой HUD таймеров",     "Утилиты АХК",  "!h",           "ToggleHud",           0, "",                   "")
+    AddHkDef("HK_HudDrag",        "Режим перемещения HUD мышкой (Drag&Drop)",   "Утилиты АХК",  "!+h",          "ToggleHudEditMode",   0, "",                   "")
     AddHkDef("HK_ResetChase",     "Сбросить таймер погони СГУ",                 "Утилиты АХК",  "!BS",          "Bind_ResetChase",     0, "",                   "")
     AddHkDef("HK_Pause",          "Поставить АХК на паузу",                     "Система",      "end",          "Bind_Pause",          0, "",                   "")
     AddHkDef("HK_Reload",         "Перезапустить АХК",                          "Система",      "!R",           "Bind_Reload",         0, "",                   "")
@@ -3068,26 +3071,42 @@ TriggerSmartScreenshot("Выписка штрафа")
 Return
 
 ; =================================================================================================
-; ПУНКТ 3: ИГРОВОЙ HUD-ОВЕРЛЕЙ ТАЙМЕРОВ (ПАТРУЛЬ / ПОСТ / ПОГОНЯ СГУ) + МОНИТОР CONSOLE.LOG (GUI 6)
+; ПУНКТ 3: ТАКТИЧЕСКИЙ HUD-ОВЕРЛЕЙ (ТАЙМЕРЫ ПОГОНИ/МЕГАФОНОВ, ДОКЛАДЫ, СМЕНА/БАЛЛЫ, DRAG&DROP) (GUI 6)
 ; =================================================================================================
+global HudHwnd          := 0
+global HudVisible       := 0
+global HudEditMode      := 0
+global HudPosX          := 0
+global HudPosY          := 0
+global DutyTotalSec     := 900
+global ShiftStartTick   := 0
+
 Bind_ResetChase:
 StopChaseTimer()
 Return
 
 InitTimersAndLogReader() {
-    global HudVisible, DutyType, DutyRemainSec, ChaseActive, ChaseTotalSec, ChaseCooldownSec
+    global HudVisible, DutyType, DutyRemainSec, DutyTotalSec, ChaseActive, ChaseTotalSec, ChaseCooldownSec
     global LastTargetID, LastTryResult, LastTryTime, LastRadioAlert, LogLastSize
+    global ShiftStartTick, HudEditMode
     HudVisible := 0
+    HudEditMode := 0
     DutyType := "Нет"
     DutyRemainSec := 0
+    DutyTotalSec := 900
     ChaseActive := 0
-    ChaseTotalSec := 0
+    ChaseStage := 0
     ChaseCooldownSec := 0
+    ChaseTotalSec := 0
     LastTargetID := ""
     LastTryResult := "—"
     LastTryTime := 0
-    LastRadioAlert := "Спокойно"
+    LastRadioAlert := "Рация: ОК"
     LogLastSize := -1
+    ShiftStartTick := A_TickCount
+
+    ; Регистрация перемещения мыши для редактора HUD (Drag & Drop)
+    OnMessage(0x0201, "WM_LBUTTONDOWN_HudDrag")
 
     CreateHudGui()
     SetTimer, UpdateHudTick, 1000
@@ -3095,19 +3114,51 @@ InitTimersAndLogReader() {
 }
 
 CreateHudGui() {
-    global HudLine1, HudLine2, HudLine3, HudLine4, Teg, Prop2
+    global HudHwnd, HudPosX, HudPosY, HudEditMode
+    global HudTitle, HudDutyTxt, HudDutyBar, HudChaseTxt, HudChaseBar, HudStatsTxt, HudLogTxt
+    global Teg, Prop2
+
+    iniPath := A_Temp . "\gibdd.egl"
+    if (!FileExist(iniPath))
+        iniPath := A_ScriptDir . "\gibdd_profile.ini"
+    IniRead, savedX, %iniPath%, Settings, HudPosX, ERROR
+    IniRead, savedY, %iniPath%, Settings, HudPosY, ERROR
+    if (savedX = "ERROR" || savedX = "" || savedX < 0 || savedX > A_ScreenWidth - 50)
+        HudPosX := A_ScreenWidth - 395
+    else
+        HudPosX := savedX + 0
+    if (savedY = "ERROR" || savedY = "" || savedY < 0 || savedY > A_ScreenHeight - 50)
+        HudPosY := 25
+    else
+        HudPosY := savedY + 0
+
     Gui, 6:Destroy
-    Gui, 6:+AlwaysOnTop -Caption +ToolWindow +LastFound +E0x20
+    Gui, 6:+AlwaysOnTop -Caption +ToolWindow +LastFound +HwndHudHwnd +E0x20
     Gui, 6:Color, 0E131F
-    WinSet, Transparent, 215
+    WinSet, Transparent, 225
+
+    ; 1. Шапка HUD и позывной
     Gui, 6:Font, S9 C58A6FF Bold, Consolas
-    Gui, 6:Add, Text, x10 y6 w330 h18 vHudLine1, % "🚔 УГИБДД HUD [" . GetKeyDisp("HK_ToggleHud") . "] | Позывной: " . Teg . "-" . Prop2
-    Gui, 6:Font, S9 CE6EDF3 Bold, Consolas
-    Gui, 6:Add, Text, x10 y26 w330 h18 vHudLine2, ⏱ Дежурство: не активно (/п1 | /пост1)
-    Gui, 6:Font, S9 CFFB84D Bold, Consolas
-    Gui, 6:Add, Text, x10 y46 w330 h18 vHudLine3, 🚨 Погоня СГУ: нет (Alt+0 / Alt+- / Alt+=)
-    Gui, 6:Font, S9 C79C0FF Norm, Consolas
-    Gui, 6:Add, Text, x10 y66 w330 h18 vHudLine4, 📡 Лог: ID [—] | TRY: [—] | Рация: ОК
+    callsignDisp := (Teg != "" ? Teg : "ДПС") . "-" . (Prop2 != "" ? Prop2 : "01")
+    Gui, 6:Add, Text, x10 y6 w360 h16 vHudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | Alt+Shift+H: Двигать"
+
+    ; 2. Шкала погони и мегафонов (Pursuit Tactical Bar)
+    Gui, 6:Font, S8 CFFB84D Bold, Consolas
+    Gui, 6:Add, Text, x10 y24 w360 h15 vHudChaseTxt, 🚨 Погоня: нет | Мегафон готов (^Space)
+    Gui, 6:Add, Progress, x10 y41 w360 h6 Background161D2E c3FB950 Range0-15 vHudChaseBar, 15
+
+    ; 3. Прогресс-бар дежурства / поста (Duty Progress HUD)
+    Gui, 6:Font, S8 CE6EDF3 Bold, Consolas
+    Gui, 6:Add, Text, x10 y50 w360 h15 vHudDutyTxt, ⏱ Дежурство: не активно (/п1 | /пост1)
+    Gui, 6:Add, Progress, x10 y67 w360 h6 Background161D2E c58A6FF Range0-100 vHudDutyBar, 0
+
+    ; 4. Смена и баллы нормы на форум (Shift & Forum Points OSD)
+    Gui, 6:Font, S8 C7EE787 Bold, Consolas
+    Gui, 6:Add, Text, x10 y76 w360 h15 vHudStatsTxt, ⭐ Смена: 00:00 | Штр: 0 | КПЗ: 0 | Лиш: 0 | Баллы: 0 / 20
+
+    ; 5. Оперлог и захват цели
+    Gui, 6:Font, S8 C79C0FF Norm, Consolas
+    Gui, 6:Add, Text, x10 y93 w360 h15 vHudLogTxt, 📡 ID: [—] | TRY: [—] | Рация: ОК
 }
 
 ToggleHud:
@@ -3115,33 +3166,75 @@ if (HudVisible) {
     Gui, 6:Hide
     HudVisible := 0
 } else {
-    HudX := A_ScreenWidth - 360
-    Gui, 6:Show, x%HudX% y18 w346 h90 NoActivate, UGIBDD_HUD_OVERLAY
-    HudVisible := 1
+    EnsureHudShown()
 }
 Return
 
 EnsureHudShown() {
-    global HudVisible
+    global HudVisible, HudPosX, HudPosY, HudHwnd
     if (!HudVisible) {
-        HudX := A_ScreenWidth - 360
-        Gui, 6:Show, x%HudX% y18 w346 h90 NoActivate, UGIBDD_HUD_OVERLAY
+        if (HudPosX = "" || HudPosX <= 0)
+            HudPosX := A_ScreenWidth - 395
+        if (HudPosY = "" || HudPosY <= 0)
+            HudPosY := 25
+        Gui, 6:Show, x%HudPosX% y%HudPosY% w380 h115 NoActivate, UGIBDD_HUD_OVERLAY
         HudVisible := 1
     }
 }
 
+ToggleHudEditMode:
+HudEditMode := !HudEditMode
+EnsureHudShown()
+if (HudEditMode) {
+    ; В режиме редактирования снимаем сквозной клик и меняем фон
+    Gui, 6:-E0x20
+    Gui, 6:Color, 182642
+    WinSet, Transparent, 245, ahk_id %HudHwnd%
+    GuiControl, 6:, HudTitle, 🎯 [РЕДАКТОР] Зажмите ЛКМ и перетащите HUD
+    SoundBeep, 850, 120
+    TrayTip, 🎯 Режим перемещения HUD, Зажмите ЛКМ на панели HUD и перетащите её мышкой.`nПовторите Alt+Shift+H для сохранения., 4, 1
+} else {
+    ; Сохраняем координаты и возвращаем сквозной клик (+E0x20)
+    Gui, 6:+E0x20
+    Gui, 6:Color, 0E131F
+    WinSet, Transparent, 225, ahk_id %HudHwnd%
+    WinGetPos, curX, curY,,, ahk_id %HudHwnd%
+    if (curX != "" && curY != "") {
+        HudPosX := curX
+        HudPosY := curY
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            IniWrite, %HudPosX%, %iniPath%, Settings, HudPosX
+            IniWrite, %HudPosY%, %iniPath%, Settings, HudPosY
+        }
+    }
+    callsignDisp := (Teg != "" ? Teg : "ДПС") . "-" . (Prop2 != "" ? Prop2 : "01")
+    GuiControl, 6:, HudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | Alt+Shift+H: Двигать"
+    SoundBeep, 1200, 150
+    TrayTip, 📍 Положение HUD сохранено, % "Координаты: X=" . HudPosX . ", Y=" . HudPosY, 3, 1
+}
+Return
+
+WM_LBUTTONDOWN_HudDrag(wParam, lParam, msg, hwnd) {
+    global HudHwnd, HudEditMode
+    if (HudEditMode && hwnd = HudHwnd) {
+        PostMessage, 0xA1, 2,,, ahk_id %hwnd% ; WM_NCLBUTTONDOWN, HTCAPTION
+    }
+}
+
 StartDutyTimer(ModeName, DurationSec) {
-    global DutyType, DutyRemainSec
+    global DutyType, DutyRemainSec, DutyTotalSec
     DutyType := ModeName
     DutyRemainSec := DurationSec
+    DutyTotalSec := (DurationSec > 0) ? DurationSec : 900
     EnsureHudShown()
     Gosub, UpdateHudTick
 }
 
 StopDutyTimer() {
-    global DutyType, DutyRemainSec
+    global DutyType, DutyRemainSec, DutyTotalSec
     DutyType := "Нет"
     DutyRemainSec := 0
+    DutyTotalSec := 900
     Gosub, UpdateHudTick
 }
 
@@ -3174,14 +3267,19 @@ FormatMMSS(Seconds) {
 }
 
 UpdateHudTick:
+; 1. Доклад / Патруль
 if (DutyType != "Нет") {
     if (DutyRemainSec > 0) {
         DutyRemainSec--
-        if (DutyRemainSec = 60) {
+        if (DutyRemainSec = 120) {
+            SoundBeep, 800, 120
+            TrayTip, ⏱️ Доклад через 2 минуты, % "Внимание: пора подготовиться к докладу (" . DutyType . ")!", 2, 1
+        } else if (DutyRemainSec = 60) {
             SoundBeep, 900, 150
         } else if (DutyRemainSec = 0) {
             SoundBeep, 1200, 250
             SoundBeep, 1400, 250
+            TrayTip, ⚠️ ВРЕМЯ ДОКЛАДА!, % "Пора сделать доклад в рацию (/п2 или /пост2)!", 4, 2
         }
     }
     if (DutyRemainSec > 0) {
@@ -3189,10 +3287,27 @@ if (DutyType != "Нет") {
     } else {
         dutyTxt := "⚠️ " . DutyType . ": ПОРА ДОЛОЖИТЬ (/п2 | /пост2)!"
     }
+    if (DutyTotalSec > 0) {
+        elapsedSec := DutyTotalSec - DutyRemainSec
+        dutyPct := Floor((elapsedSec / DutyTotalSec) * 100)
+        if (dutyPct < 0)
+            dutyPct := 0
+        if (dutyPct > 100)
+            dutyPct := 100
+        GuiControl, 6:, HudDutyBar, %dutyPct%
+        if (DutyRemainSec <= 120 && DutyRemainSec > 0)
+            GuiControl, 6:+cFFB84D, HudDutyBar
+        else if (DutyRemainSec = 0)
+            GuiControl, 6:+cE74C3C, HudDutyBar
+        else
+            GuiControl, 6:+c58A6FF, HudDutyBar
+    }
 } else {
     dutyTxt := "⏱ Дежурство: не активно (/п1 | /пост1)"
+    GuiControl, 6:, HudDutyBar, 0
 }
 
+; 2. Погоня и Мегафоны
 if (ChaseActive) {
     if (ChaseCooldownSec > 0) {
         ChaseCooldownSec--
@@ -3203,21 +3318,57 @@ if (ChaseActive) {
         ChaseTotalSec--
         if (ChaseTotalSec = 0) {
             SoundBeep, 1500, 300
+            TrayTip, 🔥 ЖЁЛТЫЙ СТАТУС ПОГОНИ!, % "3 минуты погони истекли! Разрешён огонь по колёсам ТС (ст. 15 ФЗоП)!", 4, 2
         }
     }
-    cdStr := (ChaseCooldownSec > 0) ? ("КД СГУ: " . ChaseCooldownSec . "с [ЖДИ]") : "СГУ: МОЖНО ПРЕД!"
-    stStr := (ChaseTotalSec > 0) ? ("Белый " . FormatMMSS(ChaseTotalSec)) : "🔥 ЖЁЛТЫЙ СТАТУС!"
-    chaseTxt := "🚨 Пред " . ChaseStage . " | " . cdStr . " | " . stStr
+    cdStr := (ChaseCooldownSec > 0) ? ("КД: " . ChaseCooldownSec . "с [ЖДИ]") : "ГОТОВ К ВЫДАЧЕ!"
+    stStr := (ChaseTotalSec > 0) ? ("Белый " . FormatMMSS(ChaseTotalSec)) : "🔥 ЖЁЛТЫЙ (ОГОНЬ)!"
+    chaseTxt := "🚨 Пред " . ChaseStage . "/3 | " . cdStr . " | " . stStr
+
+    if (ChaseCooldownSec > 0) {
+        GuiControl, 6:+cE74C3C, HudChaseBar
+        GuiControl, 6:, HudChaseBar, % 15 - ChaseCooldownSec
+    } else {
+        GuiControl, 6:+c3FB950, HudChaseBar
+        GuiControl, 6:, HudChaseBar, 15
+    }
 } else {
-    chaseTxt := "🚨 Погоня СГУ: нет (" . GetKeyDisp("HK_ResetChase") . " сброс)"
+    chaseTxt := "🚨 Погоня: нет | Мегафон готов (^Space | Alt+0)"
+    GuiControl, 6:+c3FB950, HudChaseBar
+    GuiControl, 6:, HudChaseBar, 15
 }
 
+; 3. Смена и баллы нормы OSD
+shiftElapsed := Floor((A_TickCount - ShiftStartTick) / 1000)
+shiftHours := Floor(shiftElapsed / 3600)
+shiftMins := Floor(Mod(shiftElapsed, 3600) / 60)
+shiftFmt := Format("{:02}:{:02}", shiftHours, shiftMins)
+
+fCount := 0
+aCount := 0
+lCount := 0
+rCount := 0
+for idx, item in JournalEntries {
+    if (InStr(item.Type, "Штраф"))
+        fCount++
+    else if (InStr(item.Type, "Арест"))
+        aCount++
+    else if (InStr(item.Type, "Лишение"))
+        lCount++
+    else if (InStr(item.Type, "Доклад") || InStr(item.Type, "Рация") || InStr(item.Type, "Пост") || InStr(item.Type, "Патруль"))
+        rCount++
+}
+forumPoints := (fCount * 1) + (aCount * 3) + (lCount * 2) + (rCount * 1)
+statsTxt := "⭐ Смена: " . shiftFmt . " | Штр: " . fCount . " | КПЗ: " . aCount . " | Лиш: " . lCount . " | Баллы: " . forumPoints . " / 20"
+
+; 4. Оперлог и цель
 idDisp := (LastTargetID != "") ? LastTargetID : "—"
 logTxt := "📡 ID: [" . idDisp . "] | TRY: " . LastTryResult . " | " . LastRadioAlert
 
-GuiControl, 6:, HudLine2, %dutyTxt%
-GuiControl, 6:, HudLine3, %chaseTxt%
-GuiControl, 6:, HudLine4, %logTxt%
+GuiControl, 6:, HudDutyTxt, %dutyTxt%
+GuiControl, 6:, HudChaseTxt, %chaseTxt%
+GuiControl, 6:, HudStatsTxt, %statsTxt%
+GuiControl, 6:, HudLogTxt, %logTxt%
 Return
 
 ResolveConsoleLogPath() {
@@ -9573,9 +9724,10 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion := "2.2.0"
-global AppVersionCode    := 220
+global AppNumericVersion := "2.3.0"
+global AppVersionCode    := 230
 global UpdateCheckUrl    := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
+global UpdateMirrorUrl   := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
 global PendingUpdateUrl  := ""
 global PendingUpdateVer  := ""
 
@@ -9593,11 +9745,30 @@ CheckForUpdates(0) ; 0 = Интерактивный режим по кнопке
 Return
 
 CheckForUpdates(IsSilent := 1) {
-    global UpdateCheckUrl, AppVersionCode, AppNumericVersion, PendingUpdateUrl, PendingUpdateVer
+    global UpdateCheckUrl, UpdateMirrorUrl, AppVersionCode, AppNumericVersion, PendingUpdateUrl, PendingUpdateVer
     if (!IsSilent)
         TrayTip, AHK УГИБДД, Проверка наличия обновлений на сервере..., 2, 1
 
-    jsonStr := FetchUrlText(UpdateCheckUrl, 5)
+    ; Шаг 1: Пробуем прямой адрес GitHub Raw с увеличенным таймаутом (6 сек)
+    jsonStr := FetchUrlText(UpdateCheckUrl, 6)
+    ; Шаг 2: Если GitHub замедлен или блокируется провайдером в РФ, пробуем сверхбыстрое CDN-зеркало jsDelivr
+    if (jsonStr = "")
+        jsonStr := FetchUrlText(UpdateMirrorUrl, 6)
+
+    ; Шаг 3: Если COM-объект не сработал, делаем fallback через UrlDownloadToFile во временный файл
+    if (jsonStr = "") {
+        tmpJson := A_Temp . "\ahk_ver_" . A_TickCount . ".json"
+        try {
+            UrlDownloadToFile, %UpdateCheckUrl%, %tmpJson%
+            if (!FileExist(tmpJson))
+                UrlDownloadToFile, %UpdateMirrorUrl%, %tmpJson%
+            if (FileExist(tmpJson)) {
+                FileRead, jsonStr, %tmpJson%
+                FileDelete, %tmpJson%
+            }
+        }
+    }
+
     if (jsonStr = "") {
         if (!IsSilent)
             MsgBox, 48, AHK УГИБДД, Не удалось связаться с сервером обновлений GitHub.`nПроверьте подключение к интернету или доступность репозитория.
@@ -9709,17 +9880,28 @@ PerformDownloadAndUpdate() {
     }
 }
 
-FetchUrlText(Url, TimeoutSec := 5) {
+FetchUrlText(Url, TimeoutSec := 6) {
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(2000, 2000, TimeoutSec * 1000, TimeoutSec * 1000)
-        ; Включаем TLS 1.2 (0x0800)
-        whr.Option(9) := 0x0800
+        ; Таймауты: Resolve 5s, Connect 5s, Send 10s, Receive 10s
+        whr.SetTimeouts(5000, 5000, TimeoutSec * 1000, TimeoutSec * 1000)
+        ; Включаем TLS 1.2 (0x0800) и TLS 1.3 (0x2000)
+        whr.Option(9) := 0x2800
         whr.Open("GET", Url . "?t=" . A_TickCount, false)
-        whr.SetRequestHeader("User-Agent", "AHK-GIBDD-Updater")
+        whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
         whr.Send()
-        if (whr.Status = 200)
-            return whr.ResponseText
+        if (whr.Status = 200) {
+            ado := ComObjCreate("ADODB.Stream")
+            ado.Type := 1 ; adTypeBinary
+            ado.Open()
+            ado.Write(whr.ResponseBody)
+            ado.Position := 0
+            ado.Type := 2 ; adTypeText
+            ado.Charset := "utf-8"
+            resText := ado.ReadText()
+            ado.Close()
+            return resText
+        }
     }
     return ""
 }
