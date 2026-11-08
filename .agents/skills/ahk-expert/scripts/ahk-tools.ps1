@@ -108,7 +108,7 @@ switch ($Action) {
     "compile" {
         Repair-Utf8Bom -FilePath $File
         $outExe = [System.IO.Path]::ChangeExtension($File, ".exe")
-        $argsList = @("/in", "`"$File`"", "/out", "`"$outExe`"", "/bin", "`"$AhkBin64`"")
+        $argsList = @("/in", "`"$File`"", "/out", "`"$outExe`"", "/bin", "`"$AhkBin64`"", "/silent")
         if (Test-Path -LiteralPath $Icon) {
             $argsList += @("/icon", "`"$Icon`"")
         }

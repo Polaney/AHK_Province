@@ -1,0 +1,9 @@
+{
+  "version": "2.2.0",
+  "version_code": 220,
+  "release_date": "2026-11-08",
+  "title": "Крупное обновление: Новый сайдбар, Win 11 24H2+, Автообновление",
+  "changelog": "- Стильный боковой сайдбар (боковое меню слева) с карточкой офицера\n- Полная поддержка Windows 11 24H2+ (DirectX SendEvent) и 23H2 (SendPlay)\n- Умный мегафон погони (Ctrl+Space)\n- Встроенная система автообновления биндера прямо из приложения\n- Исправлены отображения и отыгровки первой помощи (ПМП)",
+  "download_url": "https://github.com/Polaney/AHK_Province/releases/latest/download/АХК_УГИБДД.exe",
+  "ahk_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/АХК%20УГИБДД.ahk"
+}

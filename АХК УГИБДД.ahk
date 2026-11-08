@@ -5,6 +5,10 @@ SetTitleMatchMode, Fast
 CheckAdmin()
 #NoEnv
 #MaxThreadsPerHotkey 2
+Process, Priority,, High
+#InstallKeybdHook
+#UseHook, On
+SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
 
@@ -33,6 +37,75 @@ if (!FileExist(A_ScriptDir . "\ahkgibdd.ico")) {
 AbortBindFlag := 0
 RefreshTray()
 Gosub, AHK
+Return
+
+InitDpiAwareness() {
+    try {
+        DllCall("SetThreadDpiAwarenessContext", "ptr", -3, "ptr")
+    }
+}
+
+DetectWindowsVersion() {
+    global OSBuildNumber, IsWin11_24H2_OrNewer, WinVerDescription
+    RegRead, OSBuildNumber, HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion, CurrentBuild
+    if (OSBuildNumber = "" || ErrorLevel)
+        RegRead, OSBuildNumber, HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion, CurrentBuildNumber
+    OSBuildNumber += 0
+    if (OSBuildNumber >= 26100) {
+        IsWin11_24H2_OrNewer := 1
+        WinVerDescription := "Win 11 (24H2+ Build " . OSBuildNumber . ")"
+    } else if (OSBuildNumber >= 22621) {
+        IsWin11_24H2_OrNewer := 0
+        WinVerDescription := "Win 11 (22H2/23H2 Build " . OSBuildNumber . ")"
+    } else if (OSBuildNumber >= 22000) {
+        IsWin11_24H2_OrNewer := 0
+        WinVerDescription := "Win 11 (21H2 Build " . OSBuildNumber . ")"
+    } else {
+        IsWin11_24H2_OrNewer := 0
+        WinVerDescription := "Win 10 / Legacy (Build " . OSBuildNumber . ")" 
+    }
+}
+
+ApplySendEngineMode(ModeStr := "AUTO") {
+    global IsWin11_24H2_OrNewer, ActiveSendEngine
+    if (ModeStr = "SendPlay") {
+        SendMode, Play
+        ActiveSendEngine := "SendPlay (23H2)"
+    } else if (ModeStr = "SendEvent") {
+        SendMode, Event
+        SetKeyDelay, 0, 10
+        ActiveSendEngine := "SendEvent (24H2+)"
+    } else if (ModeStr = "SendInput") {
+        SendMode, Input
+        ActiveSendEngine := "SendInput"
+    } else {
+        if (IsWin11_24H2_OrNewer) {
+            SendMode, Event
+            SetKeyDelay, 0, 10
+            ActiveSendEngine := "SendEvent (Авто 24H2+)"
+        } else {
+            SendMode, Play
+            ActiveSendEngine := "SendPlay (Авто 23H2)"
+        }
+    }
+    SetKeyDelay, 0, 10, Play
+}
+
+ChangeSendEngine:
+Gui, 1:Submit, NoHide
+if InStr(SendEngineDDL, "SendPlay")
+    chosenEngine := "SendPlay"
+else if InStr(SendEngineDDL, "SendEvent")
+    chosenEngine := "SendEvent"
+else if InStr(SendEngineDDL, "SendInput")
+    chosenEngine := "SendInput"
+else
+    chosenEngine := "AUTO"
+ApplySendEngineMode(chosenEngine)
+for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+    IniWrite, %chosenEngine%, %targetIni%, Settings, SendMethod
+}
+TrayTip, Движок ввода обновлён, % "Активен режим: " . ActiveSendEngine, 2, 1
 Return
 
 CheckAdmin()
@@ -144,6 +217,7 @@ RefreshTray()
     Menu, Tray, Add, VKmemo
     Menu, Tray, Rename, VKmemo, Памятка
     Menu, Tray, Add
+    Menu, Tray, Add, 🚀 Проверить обновления, ManualCheckUpdates
     Menu, Tray, Add, ReloadMenu
     Menu, Tray, Rename, ReloadMenu, Перезапуск
     Menu, Tray, Add, ExitMenu
@@ -196,7 +270,7 @@ SendChat(TextBind, SleepBind)
     SetLocaleRu()
     SetCapsOff()
     TextBind := Encoded(TextBind)
-    SendPlay {F8}^A{Delete}%TextBind%{Enter}{F8}
+    Send {F8}^A{Delete}%TextBind%{Enter}{F8}
     SmartSleep(SleepBind)
 }
 
@@ -211,9 +285,9 @@ GetInput(Target, GUIText, ConsoleText)
         else if %Target% =
             Return
     } else {
-        SendPlay {F8}%ConsoleText%{Space}
+        Send {F8}%ConsoleText%{Space}
         Input %Target%, V, {Enter} 
-        SendPlay {F8}
+        Send {F8}
     }
 }
 
@@ -246,9 +320,9 @@ GetTryRes()
         IfMsgBox, No
             Return False
     } else {
-        SendPlay {F8}Удачно? введите "да" или "нет" (в любой раскладке):{Space}
+        Send {F8}Удачно? введите "да" или "нет" (в любой раскладке):{Space}
         Input TryRes, V, {Enter} 
-        SendPlay {F8}
+        Send {F8}
         if(TryRes=="да")||(TryRes=="lf")||(TryRes=="ДА")||(TryRes=="LF")
             Return True
         if(TryRes=="нет")||(TryRes=="ytn")||(TryRes=="НЕТ")||(TryRes=="YTN")
@@ -265,7 +339,7 @@ ReadComFile(FileName){
 
 GetArgsForHotstring(Hotstring, Target)
 {
-    SendPlay ^A{Delete}/%Hotstring%{Space}
+    Send ^A{Delete}/%Hotstring%{Space}
     Input %Target%, V, {Enter}
 }
 
@@ -273,12 +347,15 @@ GetArgsForHotstring(Hotstring, Target)
 ; ИНИЦИАЛИЗАЦИЯ ДАННЫХ, МЕНЕДЖЕРА КЛАВИШ, БАЗЫ СТАТЕЙ, КАТАЛОГА БИНДОВ, ТАЙМЕРОВ И GUI
 ; =================================================================================================
 AHK:
+InitDpiAwareness()
+DetectWindowsVersion()
 EnsureDefaultConfig()
 LoadUserConfig()
+ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.1.0ж
+    Vers = 2.2.0ж
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -295,7 +372,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.1.0м
+    Vers = 2.2.0м
     Ok1 =
     Ok2 =
     Ok2 =
@@ -326,667 +403,732 @@ InitHotkeysManager()
 InitArticlesDB()
 InitBindsCatalog()
 InitTimersAndLogReader()
+InitAutoUpdater()
 
 ; -------------------------------------------------------------------------------------------------
 ; ГЛАВНОЕ ОКНО (GUI 1) — ТЁМНАЯ ТЕМА МВД / УГИБДД + ПОИСК + НАСТРОЙКА КЛАВИШ
 ; -------------------------------------------------------------------------------------------------
 Gui, 1:Destroy
 Gui, 1:Color, 121622, 1B2234
-Gui, 1:Font, S10 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x8 y6 w924 h24 +0x200 vHeaderBannerText, % " 🚔 " . Gibdd . " (" . Frak . ")  |  " . Rank . " " . Fio1 . "  |  Отдел: " . Otdel . "  |  Знак: " . Znak . "  |  Позывной: " . Teg . "-" . Prop2
-Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Tab2, x6 y34 w928 h572 Buttons -Wrap vMainTabControl, Основное|Доклады|Задержание|СС и Лекции|ПМП|🔍 Поиск биндов|⌨️ Клавиши|📊 Журнал нормы|➕ Свои бинды
 
-; --- НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ (ВНЕ ВКЛАДОК) ---
-Gui, 1:Tab
-Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Button, x8 y614 w100 h32 gData, 📋 Анкета
-Gui, 1:Add, Button, x112 y614 w105 h32 gSwitchToHotkeysTab, ⌨️ Клавиши
-Gui, 1:Add, Button, x221 y614 w125 h32 gSwitchToJournalTab, 📊 Норма/Отчёт
-Gui, 1:Add, Button, x350 y614 w115 h32 gSwitchToCustomBindsTab, ➕ Свои бинды
-Gui, 1:Add, Button, x469 y614 w145 h32 gOpenCalc, ⚖️ Калькулятор
-Gui, 1:Add, Button, x618 y614 w95 h32 gOpenFzopGuide, 📘 ФЗоП
-Gui, 1:Add, Button, x717 y614 w115 h32 gToggleHud, ⏱️ HUD
-Gui, 1:Add, Button, x836 y614 w96 h32 gReload, 🔄 Рестарт
+; =================================================================================================
+; ЛЕВЫЙ БОКОВОЙ САЙДБАР (СОВРЕМЕННОЕ БОКОВОЕ МЕНЮ)
+; =================================================================================================
+Gui, 1:Font, S11 C58A6FF Bold, Segoe UI
+Gui, 1:Add, Text, x10 y8 w188 h22, 🚔 УГИБДД МВД
+Gui, 1:Font, S8 C8B949E Bold, Segoe UI
+Gui, 1:Add, Text, x10 y30 w188 h16, MTA PROVINCE • RP BINDER
 
+; Виджет профиля офицера
+Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
+Gui, 1:Add, GroupBox, x8 y48 w192 h90, [ 👤 Мой профиль ]
+Gui, 1:Font, S9 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Text, x14 y65 w180 h17 vSidebarOfficerFio, % Rank . " " . Fio1
+Gui, 1:Font, S8 C8B949E Norm, Segoe UI
+Gui, 1:Add, Text, x14 y82 w180 h15 vSidebarOfficerDetails, % "Отдел: " . Otdel . " | Знак: " . Znak
+Gui, 1:Add, Text, x14 y97 w180 h15 vSidebarOfficerCallsign, % "Позывной: " . Teg . "-" . Prop2
+Gui, 1:Font, S8 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Button, x14 y113 w180 h22 gData, ⚙️ Изменить анкету
+
+; Кнопки навигации по разделам
+Gui, 1:Font, S9 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Button, x8 y144 w192 h30 vNavBtn1 gSelectTab1, 🚔 Патруль и СГУ
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn2 gSelectTab2, 📻 Доклады в рацию
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn3 gSelectTab3, ⛓️ Задержание и КПЗ
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn4 gSelectTab4, 📚 Лекции и Устав
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn5 gSelectTab5, 🩹 Первая помощь
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn6 gSelectTab6, 🔍 Поиск биндов
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn7 gSelectTab7, ⌨️ Клавиши и ОС
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn8 gSelectTab8, 📊 Журнал нормы
+Gui, 1:Add, Button, x8 yp+32 w192 h30 vNavBtn9 gSelectTab9, ➕ Свои бинды
+
+; Быстрые действия внизу сайдбара
+Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
+Gui, 1:Add, Text, x12 y438 w184 h16, 🛠️ БЫСТРЫЕ ДЕЙСТВИЯ:
+Gui, 1:Font, S8 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Button, x8 y456 w192 h26 gOpenCalc, ⚖️ Калькулятор (Alt+F1)
+Gui, 1:Add, Button, x8 yp+28 w192 h26 gOpenFzopGuide, 📘 База статей ФЗоП
+Gui, 1:Add, Button, x8 yp+28 w192 h26 gToggleHud, ⏱️ HUD таймеров (Alt+H)
+Gui, 1:Add, Button, x8 yp+28 w192 h26 gManualCheckUpdates, 🚀 Проверить обновления
+Gui, 1:Add, Button, x8 yp+28 w192 h26 gReload, 🔄 Перезапуск (F11)
+Gui, 1:Add, Button, x8 yp+28 w192 h26 gGuiClose, ❌ Свернуть в трей
+Gui, 1:Font, S8 C8B949E Norm, Segoe UI
+Gui, 1:Add, Text, x10 y654 w188 h18, % "Версия v" . Vers
+
+; =================================================================================================
+; ШАПКА ОСНОВНОЙ РАБОЧЕЙ ОБЛАСТИ
+; =================================================================================================
+Gui, 1:Font, S11 C58A6FF Bold, Segoe UI
+Gui, 1:Add, Text, x218 y8 w510 h24 vMainSectionTitle, 🚔 ПАТРУЛЬ И ОПЕРАТИВНЫЕ ДЕЙСТВИЯ
 Gui, 1:Font, S9 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x10 y652 w480 h18 vBottomFooterKeys, % "Версия v" . Vers . "  |  Пауза: [" . GetKeyDisp("HK_Pause") . "]  |  Рестарт: [" . GetKeyDisp("HK_Reload") . "]  |  Клик по клавише = изменить!"
-Gui, 1:Add, Text, x530 y652 w400 h18 +Right, % "Последний ID из лога: " . (LastTargetID != "" ? LastTargetID : "ожидание...") . "  |  УГИБДД Province"
+Gui, 1:Add, Text, x730 y8 w396 h24 +Right vMainRightStatus, % "🎯 ID: " . (LastTargetID != "" ? LastTargetID : "ожидание...") . "  |  🛡️ " . WinVerDescription . " • " . ActiveSendEngine
 
-; ======================= ВКЛАДКА 1: ОСНОВНОЕ =======================
+; БЕСШОВНЫЙ TAB-КОНТРОЛ (кнопки вкладок вынесены за пределы экрана вверх)
+Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Tab2, x208 y-28 w930 h675 -Wrap vMainTabControl, 1|2|3|4|5|6|7|8|9
+
+; ======================= ВКЛАДКА 1: ПАТРУЛЬ И СГУ =======================
 Gui, 1:Tab, 1
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y68 w302 h285, [ Основное (клик по клавише = изменить) ]
+Gui, 1:Add, GroupBox, x214 y44 w302 h285, [ Основное (клик по клавише = изменить) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y88 h20 w155, Приветствие гражд
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Просить документы
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Взять документы
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Вернуть документы
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Передача конвоиру
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Выд.розыск (быстро)
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Fines (штрафы)
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Wanted (розыск)
-Gui, 1:Add, Text, x20 yp+20 h20 w155, КПК достать
-Gui, 1:Add, Text, x20 yp+20 h20 w155, КПК (ВУ)
-Gui, 1:Add, Text, x20 yp+20 h20 w155, КПК убрать
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Посадить в авто
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Вытащ из патрульки
+Gui, 1:Add, Text, x222 y64 h20 w155, Приветствие гражд
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Просить документы
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Взять документы
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Вернуть документы
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Передача конвоиру
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Выд.розыск (быстро)
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Fines (штрафы)
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Wanted (розыск)
+Gui, 1:Add, Text, x222 yp+20 h20 w155, КПК достать
+Gui, 1:Add, Text, x222 yp+20 h20 w155, КПК (ВУ)
+Gui, 1:Add, Text, x222 yp+20 h20 w155, КПК убрать
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Посадить в авто
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Вытащ из патрульки
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x180 y88 h20 w125 vDisp_HK_Greeting gQuickClickKey, % GetKeyDisp("HK_Greeting")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_AskDocs gQuickClickKey, % GetKeyDisp("HK_AskDocs")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_TakeDocs gQuickClickKey, % GetKeyDisp("HK_TakeDocs")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_ReturnDocs gQuickClickKey, % GetKeyDisp("HK_ReturnDocs")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_Arrest gQuickClickKey, % GetKeyDisp("HK_Arrest")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_SuFast gQuickClickKey, % GetKeyDisp("HK_SuFast")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_Fines gQuickClickKey, % GetKeyDisp("HK_Fines")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_Wanted gQuickClickKey, % GetKeyDisp("HK_Wanted")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_KpkOpen gQuickClickKey, % GetKeyDisp("HK_KpkOpen")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_KpkVu gQuickClickKey, % GetKeyDisp("HK_KpkVu")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_KpkClose gQuickClickKey, % GetKeyDisp("HK_KpkClose")
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_Putpl gQuickClickKey, % GetKeyDisp("HK_Putpl")
-Gui, 1:Add, Text, x180 yp+20 h20 w125, /вытащить
+Gui, 1:Add, Text, x382 y64 h20 w125 vDisp_HK_Greeting gQuickClickKey, % GetKeyDisp("HK_Greeting")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_AskDocs gQuickClickKey, % GetKeyDisp("HK_AskDocs")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_TakeDocs gQuickClickKey, % GetKeyDisp("HK_TakeDocs")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_ReturnDocs gQuickClickKey, % GetKeyDisp("HK_ReturnDocs")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_Arrest gQuickClickKey, % GetKeyDisp("HK_Arrest")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_SuFast gQuickClickKey, % GetKeyDisp("HK_SuFast")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_Fines gQuickClickKey, % GetKeyDisp("HK_Fines")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_Wanted gQuickClickKey, % GetKeyDisp("HK_Wanted")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_KpkOpen gQuickClickKey, % GetKeyDisp("HK_KpkOpen")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_KpkVu gQuickClickKey, % GetKeyDisp("HK_KpkVu")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_KpkClose gQuickClickKey, % GetKeyDisp("HK_KpkClose")
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_Putpl gQuickClickKey, % GetKeyDisp("HK_Putpl")
+Gui, 1:Add, Text, x382 yp+20 h20 w125, /вытащить
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y358 w302 h85, [ Автомобиль ]
+Gui, 1:Add, GroupBox, x214 y334 w302 h85, [ Автомобиль ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y378 h20 w155, Выдать розыск авто
-Gui, 1:Add, Text, x20 yp+20 h20 w155, База розыска авто
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Пробить авто
+Gui, 1:Add, Text, x222 y354 h20 w155, Выдать розыск авто
+Gui, 1:Add, Text, x222 yp+20 h20 w155, База розыска авто
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Пробить авто
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x180 y378 h20 w125 vDisp_HK_Wcar1 gQuickClickKey, % GetKeyDisp("HK_Wcar") . " (1)"
-Gui, 1:Add, Text, x180 yp+20 h20 w125 vDisp_HK_Wcar2 gQuickClickKey, % GetKeyDisp("HK_Wcar") . " (2)"
-Gui, 1:Add, Text, x180 yp+20 h20 w125, /фкар
+Gui, 1:Add, Text, x382 y354 h20 w125 vDisp_HK_Wcar1 gQuickClickKey, % GetKeyDisp("HK_Wcar") . " (1)"
+Gui, 1:Add, Text, x382 yp+20 h20 w125 vDisp_HK_Wcar2 gQuickClickKey, % GetKeyDisp("HK_Wcar") . " (2)"
+Gui, 1:Add, Text, x382 yp+20 h20 w125, /фкар
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y448 w302 h85, [ Удары (/try) и Оружие ]
+Gui, 1:Add, GroupBox, x214 y424 w302 h85, [ Удары (/try) и Оружие ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y468 h20 w155, Приклад АК-74М
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Рукоять Пистолета
-Gui, 1:Add, Text, x20 yp+20 h20 w155, Сборка/Разб АК-74М
+Gui, 1:Add, Text, x222 y444 h20 w155, Приклад АК-74М
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Рукоять Пистолета
+Gui, 1:Add, Text, x222 yp+20 h20 w155, Сборка/Разб АК-74М
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x180 y468 h20 w125, /ударкалаш
-Gui, 1:Add, Text, x180 yp+20 h20 w125, /ударпистолет
-Gui, 1:Add, Text, x180 yp+20 h20 w125, /разбор(1-2)
+Gui, 1:Add, Text, x382 y444 h20 w125, /ударкалаш
+Gui, 1:Add, Text, x382 yp+20 h20 w125, /ударпистолет
+Gui, 1:Add, Text, x382 yp+20 h20 w125, /разбор(1-2)
 
 Gui, 1:Font, S9 C79C0FF Bold, Segoe UI
-Gui, 1:Add, Text, x18 y540 w290 h18 g43, ℹ️ Нажмите сюда (подробности по * и нажатиям)
-Gui, 1:Add, Text, x18 y560 w140 h18 g41, * Одно нажатие (1)
-Gui, 1:Add, Text, x165 y560 w140 h18 g42, * Два нажатия (2)
+Gui, 1:Add, Text, x220 y516 w290 h18 g43, ℹ️ Нажмите сюда (подробности по * и нажатиям)
+Gui, 1:Add, Text, x220 y536 w140 h18 g41, * Одно нажатие (1)
+Gui, 1:Add, Text, x367 y536 w140 h18 g42, * Два нажатия (2)
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y68 w302 h185, [ Оформление ]
+Gui, 1:Add, GroupBox, x522 y44 w302 h185, [ Оформление ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y88 h20 w165, Составить протокол
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Перед на подпись
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Забрать протокол
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Выд.розыск (с РП)
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Вып.штраф (/tsu)
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Лишить ВУ
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Открыть наручники
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Закрыть наручники
+Gui, 1:Add, Text, x530 y64 h20 w165, Составить протокол
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Перед на подпись
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Забрать протокол
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Выд.розыск (с РП)
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Вып.штраф (/tsu)
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Лишить ВУ
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Открыть наручники
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Закрыть наручники
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y88 h20 w120 vDisp_HK_AdminProt gQuickClickKey, % GetKeyDisp("HK_AdminProt")
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_ProtSign1 gQuickClickKey, % GetKeyDisp("HK_ProtocolSign") . " (1)"
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_ProtSign2 gQuickClickKey, % GetKeyDisp("HK_ProtocolSign") . " (2)"
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_SuSound gQuickClickKey, % GetKeyDisp("HK_SuSound")
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_Tsu gQuickClickKey, % GetKeyDisp("HK_Tsu")
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_TakeLic gQuickClickKey, % GetKeyDisp("HK_TakeLic")
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_CuffsOpen gQuickClickKey, % GetKeyDisp("HK_CuffsOpen")
-Gui, 1:Add, Text, x495 yp+20 h20 w120 vDisp_HK_CuffsClose gQuickClickKey, % GetKeyDisp("HK_CuffsClose")
+Gui, 1:Add, Text, x697 y64 h20 w120 vDisp_HK_AdminProt gQuickClickKey, % GetKeyDisp("HK_AdminProt")
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_ProtSign1 gQuickClickKey, % GetKeyDisp("HK_ProtocolSign") . " (1)"
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_ProtSign2 gQuickClickKey, % GetKeyDisp("HK_ProtocolSign") . " (2)"
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_SuSound gQuickClickKey, % GetKeyDisp("HK_SuSound")
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_Tsu gQuickClickKey, % GetKeyDisp("HK_Tsu")
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_TakeLic gQuickClickKey, % GetKeyDisp("HK_TakeLic")
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_CuffsOpen gQuickClickKey, % GetKeyDisp("HK_CuffsOpen")
+Gui, 1:Add, Text, x697 yp+20 h20 w120 vDisp_HK_CuffsClose gQuickClickKey, % GetKeyDisp("HK_CuffsClose")
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y256 w302 h342, [ Дополнения ]
+Gui, 1:Add, GroupBox, x522 y232 w302 h342, [ Дополнения ]
 Gui, 1:Font, S9 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y274 h18 w165, Часы (timestamp)
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Дернуть ручку авто
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Удар по стеклу
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Откр дверь изнутри
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Достать из авто
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Рация вкл (голос)
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Рация прослуш
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Приветствие коллег
-Gui, 1:Add, Text, x328 yp+17 h18 w165, База сотрудников
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Дверь открыта
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Дверь заперта
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Кнопка SOS
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Оформление ДТП
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Камеры ДТП
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Метка о несогласии
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Метка о невозможн.
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Вырвать копию
-Gui, 1:Add, Text, x328 yp+17 h18 w165, Боди-камера DOZOR
+Gui, 1:Add, Text, x530 y250 h18 w165, Часы (timestamp)
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Дернуть ручку авто
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Удар по стеклу
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Откр дверь изнутри
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Достать из авто
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Рация вкл (голос)
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Рация прослуш
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Приветствие коллег
+Gui, 1:Add, Text, x530 yp+17 h18 w165, База сотрудников
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Дверь открыта
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Дверь заперта
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Кнопка SOS
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Оформление ДТП
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Камеры ДТП
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Метка о несогласии
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Метка о невозможн.
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Вырвать копию
+Gui, 1:Add, Text, x530 yp+17 h18 w165, Боди-камера DOZOR
 Gui, 1:Font, S9 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y274 h18 w120 vDisp_HK_Clock gQuickClickKey, % GetKeyDisp("HK_Clock")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_TryDoor gQuickClickKey, % GetKeyDisp("HK_TryDoor")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_TryGlass gQuickClickKey, % GetKeyDisp("HK_TryGlass")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_UnlockIn gQuickClickKey, % GetKeyDisp("HK_UnlockIn")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_PullOutTry gQuickClickKey, % GetKeyDisp("HK_PullOutTry")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_VoiceOn gQuickClickKey, % GetKeyDisp("HK_VoiceOn")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_VoiceOff gQuickClickKey, % GetKeyDisp("HK_VoiceOff")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_GreetColleague gQuickClickKey, % GetKeyDisp("HK_GreetColleague")
-Gui, 1:Add, Text, x495 yp+17 h18 w120 vDisp_HK_FindEmp gQuickClickKey, % GetKeyDisp("HK_FindEmp")
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /дверь+
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /дверь-
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /sos
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /дтп(1-3)
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /дтпкам
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /метка1
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /метка2
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /копия
-Gui, 1:Add, Text, x495 yp+17 h18 w120, /камера
+Gui, 1:Add, Text, x697 y250 h18 w120 vDisp_HK_Clock gQuickClickKey, % GetKeyDisp("HK_Clock")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_TryDoor gQuickClickKey, % GetKeyDisp("HK_TryDoor")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_TryGlass gQuickClickKey, % GetKeyDisp("HK_TryGlass")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_UnlockIn gQuickClickKey, % GetKeyDisp("HK_UnlockIn")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_PullOutTry gQuickClickKey, % GetKeyDisp("HK_PullOutTry")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_VoiceOn gQuickClickKey, % GetKeyDisp("HK_VoiceOn")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_VoiceOff gQuickClickKey, % GetKeyDisp("HK_VoiceOff")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_GreetColleague gQuickClickKey, % GetKeyDisp("HK_GreetColleague")
+Gui, 1:Add, Text, x697 yp+17 h18 w120 vDisp_HK_FindEmp gQuickClickKey, % GetKeyDisp("HK_FindEmp")
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /дверь+
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /дверь-
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /sos
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /дтп(1-3)
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /дтпкам
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /метка1
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /метка2
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /копия
+Gui, 1:Add, Text, x697 yp+17 h18 w120, /камера
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y68 w298 h125, [ СГУ и Погоня (Таймер 15с) ]
+Gui, 1:Add, GroupBox, x830 y44 w298 h165, [ СГУ и Умная Погоня (15с) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 y88 h20 w160, Пред 1 (Зелёный)
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Пред 2 (Жёлтый)
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Пред 3 (Огонь!)
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Уступите дорогу
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Пешая погоня
+Gui, 1:Add, Text, x838 y64 h20 w160, 🚨 Умный мегафон (1-3)
+Gui, 1:Add, Text, x838 yp+20 h20 w160, 🛑 Сброс погони
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 1 (Зелёный)
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 2 (Жёлтый)
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 3 (Огонь!)
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Уступите дорогу
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Пешая погоня
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x800 y88 h20 w120 vDisp_HK_Megaphone1 gQuickClickKey, % GetKeyDisp("HK_Megaphone1")
-Gui, 1:Add, Text, x800 yp+20 h20 w120 vDisp_HK_Megaphone2 gQuickClickKey, % GetKeyDisp("HK_Megaphone2")
-Gui, 1:Add, Text, x800 yp+20 h20 w120 vDisp_HK_Megaphone3 gQuickClickKey, % GetKeyDisp("HK_Megaphone3")
-Gui, 1:Add, Text, x800 yp+20 h20 w120 vDisp_HK_MegaphoneWay gQuickClickKey, % GetKeyDisp("HK_MegaphoneWay")
-Gui, 1:Add, Text, x800 yp+20 h20 w120 vDisp_HK_FootChase gQuickClickKey, % GetKeyDisp("HK_FootChase")
+Gui, 1:Add, Text, x1002 y64 h20 w120 vDisp_HK_SmartMegaphone gQuickClickKey, % GetKeyDisp("HK_SmartMegaphone")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_ChaseStop gQuickClickKey, % GetKeyDisp("HK_ChaseStop")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone1 gQuickClickKey, % GetKeyDisp("HK_Megaphone1")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone2 gQuickClickKey, % GetKeyDisp("HK_Megaphone2")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone3 gQuickClickKey, % GetKeyDisp("HK_Megaphone3")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_MegaphoneWay gQuickClickKey, % GetKeyDisp("HK_MegaphoneWay")
+Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_FootChase gQuickClickKey, % GetKeyDisp("HK_FootChase")
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y198 w298 h105, [ Окно автомобиля ]
+Gui, 1:Add, GroupBox, x830 y215 w298 h102, [ Окно автомобиля ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 y218 h20 w160, Окно разбито
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Окно цело
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Постучать в окно
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Окно открыто?
+Gui, 1:Add, Text, x838 y233 h20 w160, Окно разбито
+Gui, 1:Add, Text, x838 yp+19 h20 w160, Окно цело
+Gui, 1:Add, Text, x838 yp+19 h20 w160, Постучать в окно
+Gui, 1:Add, Text, x838 yp+19 h20 w160, Окно открыто?
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x800 y218 h20 w120, /окно+
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /окно-
-Gui, 1:Add, Text, x800 yp+20 h20 w120 vDisp_HK_KnockWindow gQuickClickKey, % "/стук|" . GetKeyDisp("HK_KnockWindow")
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /окно?
+Gui, 1:Add, Text, x1002 y233 h20 w120, /окно+
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /окно-
+Gui, 1:Add, Text, x1002 yp+19 h20 w120 vDisp_HK_KnockWindow gQuickClickKey, % "/стук|" . GetKeyDisp("HK_KnockWindow")
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /окно?
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y308 w298 h135, [ Приборы: Тауметр / Рег / Алко ]
+Gui, 1:Add, GroupBox, x830 y323 w298 h120, [ Приборы: Тауметр / Рег / Алко ]
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
-Gui, 1:Add, Text, x636 y328 h20 w160 g44, * Тауметр (инфо)
-Gui, 1:Add, Text, x636 yp+20 h20 w160 g44, * Доки тауметр
-Gui, 1:Add, Text, x636 yp+20 h20 w160 g45, * Видеорегистратор
+Gui, 1:Add, Text, x838 y341 h20 w160 g44, * Тауметр (инфо)
+Gui, 1:Add, Text, x838 yp+19 h20 w160 g44, * Доки тауметр
+Gui, 1:Add, Text, x838 yp+19 h20 w160 g45, * Видеорегистратор
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Алкотестер
+Gui, 1:Add, Text, x838 yp+19 h20 w160, Алкотестер
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
-Gui, 1:Add, Text, x636 yp+20 h20 w160 g46, * Доки алкотестер
+Gui, 1:Add, Text, x838 yp+19 h20 w160 g46, * Доки алкотестер
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x800 y328 h20 w120, /таум(1-6)
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /доктаум(1-4)
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /рег(1-4)
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /алко(1-5,+,-)
-Gui, 1:Add, Text, x800 yp+20 h20 w120, /докалко(1-4)
+Gui, 1:Add, Text, x1002 y341 h20 w120, /таум(1-6)
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /доктаум(1-4)
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /рег(1-4)
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /алко(1-5,+,-)
+Gui, 1:Add, Text, x1002 yp+19 h20 w120, /докалко(1-4)
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y448 w298 h150, [ Статьи КоАП / УК / ПДД ]
+Gui, 1:Add, GroupBox, x830 y449 w298 h127, [ Статьи КоАП / УК / ПДД ]
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, Text, x638 y468 w280 h36, Откройте чат [T] и введите /коап, /укрп, /пдд или /фзоп + номер статьи:
+Gui, 1:Add, Text, x840 y466 w280 h32, Откройте чат [T] и введите /коап, /укрп, /пдд или /фзоп:
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x638 y506 w280 h20, Пример: /коап5.2 (или /пдд211)
+Gui, 1:Add, Text, x840 y500 w280 h18, Пример: /коап5.2, /пдд211, /укрп5.8
 Gui, 1:Font, S9 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x638 y528 w280 h20, Статьи выше x.9 без точки: 1711, 1712, 1715
+Gui, 1:Add, Text, x840 y520 w280 h18, Статьи выше x.9 без точки: 1711, 1712, 1715
 Gui, 1:Font, S9 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x638 y552 w280 h36 gOpenCalc, 👉 Или нажмите Alt+F1 (/штраф) для открытия Умного Калькулятора!
+Gui, 1:Add, Text, x840 y542 w280 h28 gOpenCalc, 👉 Или нажмите Alt+F1 для Умного Калькулятора!
+
 
 ; ======================= ВКЛАДКА 2: ДОКЛАДЫ =======================
 Gui, 1:Tab, 2
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y68 w302 h150, [ Патруль (Таймер 15 мин) ]
+Gui, 1:Add, GroupBox, x214 y44 w302 h150, [ Патруль (Таймер 15 мин) ]
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
-Gui, 1:Add, Text, x20 y88 h20 w165 g24, * Выехал в патруль
-Gui, 1:Add, Text, x20 yp+20 h20 w165 g24, * Продолжаю патруль
-Gui, 1:Add, Text, x20 yp+20 h20 w165 g24, * Закончил патруль
-Gui, 1:Add, Text, x20 yp+20 h20 w165 g25, * Вылетел в патруль
-Gui, 1:Add, Text, x20 yp+20 h20 w165 g25, * Продолжаю воздушн.
-Gui, 1:Add, Text, x20 yp+20 h20 w165 g25, * Закончил воздушн.
+Gui, 1:Add, Text, x222 y64 h20 w165 g24, * Выехал в патруль
+Gui, 1:Add, Text, x222 yp+20 h20 w165 g24, * Продолжаю патруль
+Gui, 1:Add, Text, x222 yp+20 h20 w165 g24, * Закончил патруль
+Gui, 1:Add, Text, x222 yp+20 h20 w165 g25, * Вылетел в патруль
+Gui, 1:Add, Text, x222 yp+20 h20 w165 g25, * Продолжаю воздушн.
+Gui, 1:Add, Text, x222 yp+20 h20 w165 g25, * Закончил воздушн.
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x190 y88 h20 w115, /п1
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /п2
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /п3
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /вп1
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /вп2
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /вп3
+Gui, 1:Add, Text, x392 y64 h20 w115, /п1
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /п2
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /п3
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /вп1
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /вп2
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /вп3
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y224 w302 h90, [ Стационарный пост (20 мин) ]
+Gui, 1:Add, GroupBox, x214 y200 w302 h90, [ Стационарный пост (20 мин) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y244 h20 w165, Заступил на пост
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Продолжаю пост
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Сдал пост
+Gui, 1:Add, Text, x222 y220 h20 w165, Заступил на пост
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Продолжаю пост
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Сдал пост
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x190 y244 h20 w115, /пост1
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /пост2
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /пост3
+Gui, 1:Add, Text, x392 y220 h20 w115, /пост1
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /пост2
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /пост3
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y320 w302 h110, [ Доклады оформления ]
+Gui, 1:Add, GroupBox, x214 y296 w302 h110, [ Доклады оформления ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y340 h20 w165, Оформляю ДТП
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Закончил оформ ДТП
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Оформляю наруш
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Законч оформ наруш
+Gui, 1:Add, Text, x222 y316 h20 w165, Оформляю ДТП
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Закончил оформ ДТП
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Оформляю наруш
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Законч оформ наруш
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x190 y340 h20 w115, /дттп1
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /дттп2
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /он1
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /он2
+Gui, 1:Add, Text, x392 y316 h20 w115, /дттп1
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /дттп2
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /он1
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /он2
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y68 w302 h110, [ Вызов ]
+Gui, 1:Add, GroupBox, x522 y44 w302 h110, [ Вызов ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y88 h20 w165, Выехал на вызов
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Прибыл на вызов
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Вызов обработан
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Вызов ложный
+Gui, 1:Add, Text, x530 y64 h20 w165, Выехал на вызов
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Прибыл на вызов
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Вызов обработан
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Вызов ложный
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y88 h20 w115, /в1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /в2
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /в+
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /в-
+Gui, 1:Add, Text, x697 y64 h20 w115, /в1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /в2
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /в+
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /в-
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y184 w302 h90, [ Проведение рейда ]
+Gui, 1:Add, GroupBox, x522 y160 w302 h90, [ Проведение рейда ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y204 h20 w165, Начало рейда
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Продолжаем рейд
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Закончили рейд
+Gui, 1:Add, Text, x530 y180 h20 w165, Начало рейда
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Продолжаем рейд
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Закончили рейд
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y204 h20 w115, /рейд1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /рейд2
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /рейд3
+Gui, 1:Add, Text, x697 y180 h20 w115, /рейд1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /рейд2
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /рейд3
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y280 w302 h170, [ Запросы МВД ]
+Gui, 1:Add, GroupBox, x522 y256 w302 h170, [ Запросы МВД ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y300 h20 w165, Кто примет наруш
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 ГУМВД-П
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 ГУМВД-М
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 ГУМВД-Н
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 УГИБДД-П
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 УГИБДД-М
-Gui, 1:Add, Text, x328 yp+20 h20 w165, 10-13 УГИБДД-Н
+Gui, 1:Add, Text, x530 y276 h20 w165, Кто примет наруш
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 ГУМВД-П
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 ГУМВД-М
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 ГУМВД-Н
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 УГИБДД-П
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 УГИБДД-М
+Gui, 1:Add, Text, x530 yp+20 h20 w165, 10-13 УГИБДД-Н
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y300 h20 w115, /гун
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13п
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13м
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13н
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13уп
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13ум
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /13ун
+Gui, 1:Add, Text, x697 y276 h20 w115, /гун
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13п
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13м
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13н
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13уп
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13ум
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /13ун
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y456 w302 h90, [ Областной патруль ]
+Gui, 1:Add, GroupBox, x522 y432 w302 h90, [ Областной патруль ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y476 h20 w165, Выехал в обл
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Продолжаю обл
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Закончил обл
+Gui, 1:Add, Text, x530 y452 h20 w165, Выехал в обл
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Продолжаю обл
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Закончил обл
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y476 h20 w115, /обл1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /обл2
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /обл3
+Gui, 1:Add, Text, x697 y452 h20 w115, /обл1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /обл2
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /обл3
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y68 w298 h435, [ Вызов гос. структур (/ro) ]
+Gui, 1:Add, GroupBox, x830 y44 w298 h435, [ Вызов гос. структур (/ro) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 y88 h20 w160, Код-0
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Код-1
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Принял
-Gui, 1:Add, Text, x636 yp+20 h20 w160, МВД
-Gui, 1:Add, Text, x636 yp+20 h20 w160, УГИБДД
-Gui, 1:Add, Text, x636 yp+20 h20 w160, РЖД
-Gui, 1:Add, Text, x636 yp+20 h20 w160, МЗ
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Армия
-Gui, 1:Add, Text, x636 yp+20 h20 w160, УГИБДД-П
-Gui, 1:Add, Text, x636 yp+20 h20 w160, УГИБДД-М
-Gui, 1:Add, Text, x636 yp+20 h20 w160, УГИБДД-Н
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ГУМВД-П
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ГУМВД-М
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ГУМВД-Н
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ЦГБ-П
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ОКБ-М
-Gui, 1:Add, Text, x636 yp+20 h20 w160, ЦГБ-Н
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Запрос от ОСН
+Gui, 1:Add, Text, x838 y64 h20 w160, Код-0
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Код-1
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Принял
+Gui, 1:Add, Text, x838 yp+20 h20 w160, МВД
+Gui, 1:Add, Text, x838 yp+20 h20 w160, УГИБДД
+Gui, 1:Add, Text, x838 yp+20 h20 w160, РЖД
+Gui, 1:Add, Text, x838 yp+20 h20 w160, МЗ
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Армия
+Gui, 1:Add, Text, x838 yp+20 h20 w160, УГИБДД-П
+Gui, 1:Add, Text, x838 yp+20 h20 w160, УГИБДД-М
+Gui, 1:Add, Text, x838 yp+20 h20 w160, УГИБДД-Н
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ГУМВД-П
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ГУМВД-М
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ГУМВД-Н
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ЦГБ-П
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ОКБ-М
+Gui, 1:Add, Text, x838 yp+20 h20 w160, ЦГБ-Н
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Запрос от ОСН
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
-Gui, 1:Add, Text, x636 yp+20 h20 w160 g47, * Проверка розыск
+Gui, 1:Add, Text, x838 yp+20 h20 w160 g47, * Проверка розыск
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 yp+20 h20 w160, Запрос на медкарту
+Gui, 1:Add, Text, x838 yp+20 h20 w160, Запрос на медкарту
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x800 y88 h20 w115, /код0
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /код1
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /пр1
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /мвд
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /угибдд
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /ржд
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /мз
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /мо
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /угибддп
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /угибддм
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /угибддн
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /гумвдп
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /гумвдм
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /гумвдн
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /цгбп
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /окбм
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /цгбн
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /зосн
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /прозыск
-Gui, 1:Add, Text, x800 yp+20 h20 w115, /пмедкарта
+Gui, 1:Add, Text, x1002 y64 h20 w115, /код0
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /код1
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /пр1
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /мвд
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /угибдд
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /ржд
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /мз
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /мо
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /угибддп
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /угибддм
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /угибддн
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /гумвдп
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /гумвдм
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /гумвдн
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /цгбп
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /окбм
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /цгбн
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /зосн
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /прозыск
+Gui, 1:Add, Text, x1002 yp+20 h20 w115, /пмедкарта
 
 ; ======================= ВКЛАДКА 3: ЗАДЕРЖАНИЕ =======================
 Gui, 1:Tab, 3
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y68 w302 h330, [ Задержание — Основное ]
+Gui, 1:Add, GroupBox, x214 y44 w302 h330, [ Задержание — Основное ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y88 h20 w165, Приветствие гражд
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Просить документы
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Взять документы
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Вернуть документы
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Протокол задержания
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Передача конвоиру
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Выд.розыск
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Fines (штрафы)
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Wanted (розыск)
-Gui, 1:Add, Text, x20 yp+20 h20 w165, КПК достать
-Gui, 1:Add, Text, x20 yp+20 h20 w165, КПК (ВУ)
-Gui, 1:Add, Text, x20 yp+20 h20 w165, КПК убрать
-Gui, 1:Add, Text, x20 yp+20 h20 w165, КПК (фоторобот)
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Посадить в авто
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Вытащ из патрульки
+Gui, 1:Add, Text, x222 y64 h20 w165, Приветствие гражд
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Просить документы
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Взять документы
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Вернуть документы
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Протокол задержания
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Передача конвоиру
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Выд.розыск
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Fines (штрафы)
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Wanted (розыск)
+Gui, 1:Add, Text, x222 yp+20 h20 w165, КПК достать
+Gui, 1:Add, Text, x222 yp+20 h20 w165, КПК (ВУ)
+Gui, 1:Add, Text, x222 yp+20 h20 w165, КПК убрать
+Gui, 1:Add, Text, x222 yp+20 h20 w165, КПК (фоторобот)
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Посадить в авто
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Вытащ из патрульки
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x190 y88 h20 w115 vDisp3_HK_Greeting gQuickClickKey, % GetKeyDisp("HK_Greeting")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_AskDocs gQuickClickKey, % GetKeyDisp("HK_AskDocs")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_TakeDocs gQuickClickKey, % GetKeyDisp("HK_TakeDocs")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_ReturnDocs gQuickClickKey, % GetKeyDisp("HK_ReturnDocs")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp_HK_DetainProt gQuickClickKey, % GetKeyDisp("HK_DetainProt")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_Arrest gQuickClickKey, % GetKeyDisp("HK_Arrest")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_SuFast gQuickClickKey, % GetKeyDisp("HK_SuFast")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_Fines gQuickClickKey, % GetKeyDisp("HK_Fines")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_Wanted gQuickClickKey, % GetKeyDisp("HK_Wanted")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_KpkOpen gQuickClickKey, % GetKeyDisp("HK_KpkOpen")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_KpkVu gQuickClickKey, % GetKeyDisp("HK_KpkVu")
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_KpkClose gQuickClickKey, % GetKeyDisp("HK_KpkClose")
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /кпкфото
-Gui, 1:Add, Text, x190 yp+20 h20 w115 vDisp3_HK_Putpl gQuickClickKey, % GetKeyDisp("HK_Putpl")
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /вытащить
+Gui, 1:Add, Text, x392 y64 h20 w115 vDisp3_HK_Greeting gQuickClickKey, % GetKeyDisp("HK_Greeting")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_AskDocs gQuickClickKey, % GetKeyDisp("HK_AskDocs")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_TakeDocs gQuickClickKey, % GetKeyDisp("HK_TakeDocs")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_ReturnDocs gQuickClickKey, % GetKeyDisp("HK_ReturnDocs")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp_HK_DetainProt gQuickClickKey, % GetKeyDisp("HK_DetainProt")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_Arrest gQuickClickKey, % GetKeyDisp("HK_Arrest")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_SuFast gQuickClickKey, % GetKeyDisp("HK_SuFast")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_Fines gQuickClickKey, % GetKeyDisp("HK_Fines")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_Wanted gQuickClickKey, % GetKeyDisp("HK_Wanted")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_KpkOpen gQuickClickKey, % GetKeyDisp("HK_KpkOpen")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_KpkVu gQuickClickKey, % GetKeyDisp("HK_KpkVu")
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_KpkClose gQuickClickKey, % GetKeyDisp("HK_KpkClose")
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /кпкфото
+Gui, 1:Add, Text, x392 yp+20 h20 w115 vDisp3_HK_Putpl gQuickClickKey, % GetKeyDisp("HK_Putpl")
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /вытащить
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y405 w302 h110, [ Аксессуары задержанного ]
+Gui, 1:Add, GroupBox, x214 y381 w302 h110, [ Аксессуары задержанного ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y425 h20 w165, Снять маску
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Снять голов. убор
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Снять очки
-Gui, 1:Add, Text, x20 yp+20 h20 w165, Снять шлем
+Gui, 1:Add, Text, x222 y401 h20 w165, Снять маску
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Снять голов. убор
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Снять очки
+Gui, 1:Add, Text, x222 yp+20 h20 w165, Снять шлем
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x190 y425 h20 w115, /маска
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /убор
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /очки
-Gui, 1:Add, Text, x190 yp+20 h20 w115, /шлем
+Gui, 1:Add, Text, x392 y401 h20 w115, /маска
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /убор
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /очки
+Gui, 1:Add, Text, x392 yp+20 h20 w115, /шлем
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y68 w302 h130, [ Оформление задержанного ]
+Gui, 1:Add, GroupBox, x522 y44 w302 h130, [ Оформление задержанного ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y88 h20 w165, Открыть наручники
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Закрыть наручники
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Метка о несогласии
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Вырвать копию
+Gui, 1:Add, Text, x530 y64 h20 w165, Открыть наручники
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Закрыть наручники
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Метка о несогласии
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Вырвать копию
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y88 h20 w115 vDisp3_HK_CuffsOpen gQuickClickKey, % GetKeyDisp("HK_CuffsOpen")
-Gui, 1:Add, Text, x495 yp+20 h20 w115 vDisp3_HK_CuffsClose gQuickClickKey, % GetKeyDisp("HK_CuffsClose")
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /метка1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /зкопия
+Gui, 1:Add, Text, x697 y64 h20 w115 vDisp3_HK_CuffsOpen gQuickClickKey, % GetKeyDisp("HK_CuffsOpen")
+Gui, 1:Add, Text, x697 yp+20 h20 w115 vDisp3_HK_CuffsClose gQuickClickKey, % GetKeyDisp("HK_CuffsClose")
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /метка1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /зкопия
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y206 w302 h170, [ Статьи УК РП ]
+Gui, 1:Add, GroupBox, x522 y182 w302 h170, [ Статьи УК РП ]
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, Text, x330 y228 w280 h36, Чтобы статья автоматически появилась в чате, откройте чат [T] и напишите /укрп + номер статьи:
+Gui, 1:Add, Text, x532 y204 w280 h36, Чтобы статья автоматически появилась в чате, откройте чат [T] и напишите /укрп + номер статьи:
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x330 y268 w280 h20, Например: /укрп5.8 (или 581, 582, 610)
+Gui, 1:Add, Text, x532 y244 w280 h20, Например: /укрп5.8 (или 581, 582, 610)
 Gui, 1:Font, S9 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x330 y300 w280 h40 gOpenCalc, 👉 Нажмите здесь или Alt+F1 для поиска статей УК РП и КоАП по ключевым словам!
+Gui, 1:Add, Text, x532 y276 w280 h40 gOpenCalc, 👉 Нажмите здесь или Alt+F1 для поиска статей УК РП и КоАП по ключевым словам!
 
 ; ======================= ВКЛАДКА 4: СС И ЛЕКЦИИ =======================
 Gui, 1:Tab, 4
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y68 w302 h495, [ Лекции (1–23) ]
+Gui, 1:Add, GroupBox, x214 y44 w302 h495, [ Лекции (1–23) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y88 h20 w180, 1. Рация
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 2. Субординация
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 3. Патрулирование
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 4. Сирена и маячок
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 5. Построение
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 6. Тен-коды
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 7. Погоня
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 8. Протокол
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 9. Общение
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 10. Табельное оружие
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 11. Обработка вызова
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 12. Заступление в патруль
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 13. Заступление на пост
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 14. Правила после РД
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 15. Выписка штрафа
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 16. Конвоирование
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 17. Обыск
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 18. Вытаскивание из ТС
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 19. Оружие/Средства
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 20. Терроризм угроза
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 21. Если вы заложник
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 22. Оформление ДТП
-Gui, 1:Add, Text, x20 yp+20 h20 w180, 23. Основания
+Gui, 1:Add, Text, x222 y64 h20 w180, 1. Рация
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 2. Субординация
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 3. Патрулирование
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 4. Сирена и маячок
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 5. Построение
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 6. Тен-коды
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 7. Погоня
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 8. Протокол
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 9. Общение
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 10. Табельное оружие
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 11. Обработка вызова
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 12. Заступление в патруль
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 13. Заступление на пост
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 14. Правила после РД
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 15. Выписка штрафа
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 16. Конвоирование
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 17. Обыск
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 18. Вытаскивание из ТС
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 19. Оружие/Средства
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 20. Терроризм угроза
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 21. Если вы заложник
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 22. Оформление ДТП
+Gui, 1:Add, Text, x222 yp+20 h20 w180, 23. Основания
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x205 y88 h20 w100, /лекция1
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция2
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция3
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция4
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция5
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция6
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция7
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция8
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция9
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция10
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция11
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция12
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция13
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция14
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция15
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция16
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция17
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция18
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция19
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция20
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция21
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция22
-Gui, 1:Add, Text, x205 yp+20 h20 w100, /лекция23
+Gui, 1:Add, Text, x407 y64 h20 w100, /лекция1
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция2
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция3
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция4
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция5
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция6
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция7
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция8
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция9
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция10
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция11
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция12
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция13
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция14
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция15
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция16
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция17
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция18
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция19
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция20
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция21
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция22
+Gui, 1:Add, Text, x407 yp+20 h20 w100, /лекция23
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y68 w302 h150, [ Проверка документов (РП) ]
+Gui, 1:Add, GroupBox, x522 y44 w302 h150, [ Проверка документов (РП) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y88 h20 w165, Паспорт
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Трудовая книга
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Диплом
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Водительское удост.
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Мед. карта
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Военный билет
+Gui, 1:Add, Text, x530 y64 h20 w165, Паспорт
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Трудовая книга
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Диплом
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Водительское удост.
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Мед. карта
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Военный билет
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y88 h20 w115, /пасс1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /труд1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /диплом1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /ву1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /карта1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /вб1
+Gui, 1:Add, Text, x697 y64 h20 w115, /пасс1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /труд1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /диплом1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /ву1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /карта1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /вб1
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y224 w302 h110, [ Собеседование ]
+Gui, 1:Add, GroupBox, x522 y200 w302 h110, [ Собеседование ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y244 h20 w165, Помощь на собесе
+Gui, 1:Add, Text, x530 y220 h20 w165, Помощь на собесе
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
-Gui, 1:Add, Text, x328 yp+20 h20 w165 g39, * I этап (инфо):
-Gui, 1:Add, Text, x328 yp+20 h20 w165 g40, * II этап (инфо):
+Gui, 1:Add, Text, x530 yp+20 h20 w165 g39, * I этап (инфо):
+Gui, 1:Add, Text, x530 yp+20 h20 w165 g40, * II этап (инфо):
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Отказано:
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Отказано:
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y244 h20 w115, /помощьсобес
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /собес(1-8)
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /собес(9-18)
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /отказ
+Gui, 1:Add, Text, x697 y220 h20 w115, /помощьсобес
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /собес(1-8)
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /собес(9-18)
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /отказ
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x320 y340 w302 h70, [ Папка ]
+Gui, 1:Add, GroupBox, x522 y316 w302 h70, [ Папка ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x328 y360 h20 w165, Взять папку
-Gui, 1:Add, Text, x328 yp+20 h20 w165, Вернуть папку
+Gui, 1:Add, Text, x530 y336 h20 w165, Взять папку
+Gui, 1:Add, Text, x530 yp+20 h20 w165, Вернуть папку
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x495 y360 h20 w115, /папка1
-Gui, 1:Add, Text, x495 yp+20 h20 w115, /папка2
+Gui, 1:Add, Text, x697 y336 h20 w115, /папка1
+Gui, 1:Add, Text, x697 yp+20 h20 w115, /папка2
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x628 y68 w298 h150, [ Старший Состав ]
+Gui, 1:Add, GroupBox, x830 y44 w298 h150, [ Старший Состав ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x636 y88 h20 w155, Выдать форму
-Gui, 1:Add, Text, x636 yp+20 h20 w155, Выдать погоны
-Gui, 1:Add, Text, x636 yp+20 h20 w155, Принятие (КПК)
-Gui, 1:Add, Text, x636 yp+20 h20 w155, Повышение (КПК)
-Gui, 1:Add, Text, x636 yp+20 h20 w155, Понижение (КПК)
-Gui, 1:Add, Text, x636 yp+20 h20 w155, Увольнение (КПК)
+Gui, 1:Add, Text, x838 y64 h20 w155, Выдать форму
+Gui, 1:Add, Text, x838 yp+20 h20 w155, Выдать погоны
+Gui, 1:Add, Text, x838 yp+20 h20 w155, Принятие (КПК)
+Gui, 1:Add, Text, x838 yp+20 h20 w155, Повышение (КПК)
+Gui, 1:Add, Text, x838 yp+20 h20 w155, Понижение (КПК)
+Gui, 1:Add, Text, x838 yp+20 h20 w155, Увольнение (КПК)
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x795 y88 h20 w125, /выдформу
-Gui, 1:Add, Text, x795 yp+20 h20 w125, /выдпогоны
-Gui, 1:Add, Text, x795 yp+20 h20 w125, /кпкпринятие
-Gui, 1:Add, Text, x795 yp+20 h20 w125, /кпкповышение
-Gui, 1:Add, Text, x795 yp+20 h20 w125, /кпкпонижение
-Gui, 1:Add, Text, x795 yp+20 h20 w125, /кпкувал
+Gui, 1:Add, Text, x997 y64 h20 w125, /выдформу
+Gui, 1:Add, Text, x997 yp+20 h20 w125, /выдпогоны
+Gui, 1:Add, Text, x997 yp+20 h20 w125, /кпкпринятие
+Gui, 1:Add, Text, x997 yp+20 h20 w125, /кпкповышение
+Gui, 1:Add, Text, x997 yp+20 h20 w125, /кпкпонижение
+Gui, 1:Add, Text, x997 yp+20 h20 w125, /кпкувал
 
 ; ======================= ВКЛАДКА 5: ПМП =======================
 Gui, 1:Tab, 5
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x12 y68 w350 h335, [ Первая Медицинская Помощь ]
+Gui, 1:Add, GroupBox, x214 y44 w350 h335, [ Первая Медицинская Помощь ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x20 y88 h20 w195, Достать аптечку
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Осмотр пострадавшего
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Проверка пульса
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Открыть аптечку
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Достать нашатырь
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Убрать аптечку
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Непрямой массаж сердца
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Проверка на травмы
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Пулевое ранение
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Закрытый перелом
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Открытый перелом
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Ушиб
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Кровотечение
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Нет пульса (реанимация)
-Gui, 1:Add, Text, x20 yp+20 h20 w195, Ожоги
+Gui, 1:Add, Text, x222 y64 h20 w195, Достать аптечку
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Осмотр пострадавшего
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Проверка пульса
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Открыть аптечку
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Достать нашатырь
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Убрать аптечку
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Непрямой массаж сердца
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Проверка на травмы
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Пулевое ранение
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Закрытый перелом
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Открытый перелом
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Ушиб
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Кровотечение
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Нет пульса (реанимация)
+Gui, 1:Add, Text, x222 yp+20 h20 w195, Ожоги
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x225 y88 h20 w125, /пмп1
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пмп2
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пмп3
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пмп4
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пмп5
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пмп6
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /массаж
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /оранения
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пулевое
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /переломз
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /переломо
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /ушиб
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /кровь
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /пульс-
-Gui, 1:Add, Text, x225 yp+20 h20 w125, /ожог
+Gui, 1:Add, Text, x427 y64 h20 w125, /пмп1
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пмп2
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пмп3
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пмп4
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пмп5
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пмп6
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /массаж
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /оранения
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пулевое
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /переломз
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /переломо
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /ушиб
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /кровь
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /пульс-
+Gui, 1:Add, Text, x427 yp+20 h20 w125, /ожог
+
+Gui, 1:Font, S10 C58A6FF Bold, Consolas
+Gui, 1:Add, GroupBox, x580 y44 w546 h335, [ Памятка оказания ПМП сотрудником УГИБДД ]
+Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
+Gui, 1:Add, Text, x596 y70 w514 h22, ⚠️ Первоочередные действия при вызове / ранении / ДТП:
+Gui, 1:Font, S9 CFFB84D Bold, Segoe UI
+Gui, 1:Add, Text, x596 y98 w514 h20, 1. Оценить обстановку и безопасность вокруг (/me, /do).
+Gui, 1:Add, Text, x596 yp+22 w514 h20, 2. Проверить сознание и пульс на сонной артерии (/пульс- или /пмп3).
+Gui, 1:Add, Text, x596 yp+22 w514 h20, 3. При кровотечении — немедленно наложить жгут/повязку (/кровь).
+Gui, 1:Add, Text, x596 yp+22 w514 h20, 4. При переломе — зафиксировать шиной конечность (/переломз, /переломо).
+Gui, 1:Add, Text, x596 yp+22 w514 h20, 5. При отсутствии пульса — СЛР (непрямой массаж сердца 30:2) (/массаж).
+Gui, 1:Font, S9 C58A6FF Bold, Segoe UI
+Gui, 1:Add, Text, x596 y224 w514 h24 gToggleHud, 👉 Подсказка: отслеживать время докладов можно через игровой HUD (Alt+H)
 
 ; ======================= ВКЛАДКА 6: 🔍 ПОИСК БИНДОВ =======================
 Gui, 1:Tab, 6
 Gui, 1:Font, S10 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x16 y72 w70 h24 +0x200, 🔎 Поиск:
+Gui, 1:Add, Text, x218 y48 w70 h24 +0x200, 🔎 Поиск:
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, Edit, x88 y72 w430 h26 vBindSearchQuery gFilterBindsList
+Gui, 1:Add, Edit, x290 y48 w430 h26 vBindSearchQuery gFilterBindsList
 Gui, 1:Font, S10 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x530 y72 w85 h24 +0x200, Категория:
+Gui, 1:Add, Text, x732 y48 w85 h24 +0x200, Категория:
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, DropDownList, x618 y72 w300 r8 vBindCatFilter gFilterBindsList Choose1, Все категории|Основное|Доклады и Рация|Задержание и Розыск|СС, Лекции и Собес|ПМП|Статьи КоАП/УКРП/ПДД/ФЗоП
+Gui, 1:Add, DropDownList, x820 y48 w300 r8 vBindCatFilter gFilterBindsList Choose1, Все категории|Основное|Доклады и Рация|Задержание и Розыск|СС, Лекции и Собес|ПМП|Статьи КоАП/УКРП/ПДД/ФЗоП
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, ListView, x16 y106 w904 h458 +Grid -Multi Background1B2234 cE6EDF3 vBindsLV gBindsLVAction, Команда / Хоткей|Категория|Описание и назначение
+Gui, 1:Add, ListView, x218 y82 w904 h458 +Grid -Multi Background1B2234 cE6EDF3 vBindsLV gBindsLVAction, Команда / Хоткей|Категория|Описание и назначение
 Gui, 1:Font, S9 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x16 y570 w904 h22 vBindsSearchStatus, 💡 Введите любое слово (например: «протокол», «тонировка», «пост», «кпк», «аптечка», «5.2») — двойной клик копирует команду!
+Gui, 1:Add, Text, x218 y546 w904 h22 vBindsSearchStatus, 💡 Введите любое слово (например: «протокол», «тонировка», «пост», «кпк», «аптечка», «5.2») — двойной клик копирует команду!
 
 ; ======================= ВКЛАДКА 7: ⌨️ КЛАВИШИ БИНДОВ (РЕДАКТОР ХОТКЕЕВ) =======================
 Gui, 1:Tab, 7
 Gui, 1:Font, S10 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x16 y72 w135 h24 +0x200, 🔎 Фильтр клавиш:
+Gui, 1:Add, Text, x218 y48 w110 h24 +0x200, 🔎 Фильтр:
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, Edit, x155 y72 w295 h26 vHkFilterQuery gFilterHotkeysLV
+Gui, 1:Add, Edit, x332 y48 w165 h26 vHkFilterQuery gFilterHotkeysLV
 Gui, 1:Font, S9 CFFB84D Bold, Segoe UI
-Gui, 1:Add, CheckBox, x465 y73 w455 h24 vOnlyInGameChk gToggleOnlyInGameMode Checked%OnlyInGameMode%, 🛡️ Только в MTA / GTA SA
-Gui, 1:Add, CheckBox, x660 y73 w260 h24 vAutoScreenChk gToggleAutoScreenMode Checked%AutoScreenMode%, 📸 Автоскриншот (/timestamp + F12)
+Gui, 1:Add, CheckBox, x507 y49 w170 h24 vOnlyInGameChk gToggleOnlyInGameMode Checked%OnlyInGameMode%, 🛡️ Только в игре
+Gui, 1:Add, CheckBox, x682 y49 w185 h24 vAutoScreenChk gToggleAutoScreenMode Checked%AutoScreenMode%, 📸 Автоскрин (/timestamp)
+Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
+Gui, 1:Add, DropDownList, x872 y48 w250 r4 vSendEngineDDL gChangeSendEngine, Авто (23H2: Play / 24H2: Event)|SendPlay (Классика 23H2)|SendEvent (DirectX 24H2+)|SendInput (Быстрый)
 
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, ListView, x16 y104 w904 h335 +Grid -Multi Background1B2234 cE6EDF3 vHotkeysLV gHotkeysLVSelect AltSubmit, Код|Действие / Отыгровка|Текущая клавиша|По умолчанию|Категория
+Gui, 1:Add, ListView, x218 y80 w904 h335 +Grid -Multi Background1B2234 cE6EDF3 vHotkeysLV gHotkeysLVSelect AltSubmit, Код|Действие / Отыгровка|Текущая клавиша|По умолчанию|Категория
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x16 y444 w904 h152, [ ⌨️ Назначение новой клавиши для выбранного бинда ]
+Gui, 1:Add, GroupBox, x218 y420 w904 h152, [ ⌨️ Назначение новой клавиши для выбранного бинда ]
 Gui, 1:Font, S10 CFFB84D Bold, Segoe UI
-Gui, 1:Add, Text, x28 y466 w880 h22 vSelectedHkTitle, 👉 Выберите любую строку в таблице выше (или кликните по клавише на вкладке «Основное»)...
+Gui, 1:Add, Text, x230 y442 w880 h22 vSelectedHkTitle, 👉 Выберите любую строку в таблице выше (или кликните по клавише на вкладке «Основное»)...
 
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Text, x28 y496 w190 h24 +0x200, Способ 1 (нажать клавишу):
+Gui, 1:Add, Text, x230 y472 w190 h24 +0x200, Способ 1 (нажать клавишу):
 Gui, 1:Font, S10 C000000 Norm, Segoe UI
-Gui, 1:Add, Hotkey, x222 y496 w195 h26 vHkBoxCtrl
+Gui, 1:Add, Hotkey, x424 y472 w195 h26 vHkBoxCtrl
 
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Text, x435 y496 w165 h24 +0x200, Способ 2 (спецклавиша):
+Gui, 1:Add, Text, x637 y472 w165 h24 +0x200, Способ 2 (спецклавиша):
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, CheckBox, x602 y498 w48 h22 vHkModCtrl, Ctrl
-Gui, 1:Add, CheckBox, x654 y498 w45 h22 vHkModAlt, Alt
-Gui, 1:Add, CheckBox, x702 y498 w55 h22 vHkModShift, Shift
-Gui, 1:Add, DropDownList, x762 y495 w145 r12 vHkSpecialDDL Choose1, (Не выбрано)|PrintScreen|ScrollLock|Delete|Insert|Home|End|Backspace|sc29 (Ё/~)|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Space|Tab|=|-|1|2|3|4|5|6|7|8|9|0
+Gui, 1:Add, CheckBox, x804 y474 w48 h22 vHkModCtrl, Ctrl
+Gui, 1:Add, CheckBox, x856 y474 w45 h22 vHkModAlt, Alt
+Gui, 1:Add, CheckBox, x904 y474 w55 h22 vHkModShift, Shift
+Gui, 1:Add, DropDownList, x964 y471 w145 r12 vHkSpecialDDL Choose1, (Не выбрано)|PrintScreen|ScrollLock|Delete|Insert|Home|End|Backspace|sc29 (Ё/~)|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Space|Tab|=|-|1|2|3|4|5|6|7|8|9|0
 
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Button, x28 y534 w240 h34 gApplyNewHotkeyBtn, ✅ Применить новую клавишу
-Gui, 1:Add, Button, x280 y534 w225 h34 gResetSingleHotkeyBtn, 🔄 Сбросить выбранную
-Gui, 1:Add, Button, x517 y534 w235 h34 gResetAllHotkeysBtn, ⚠️ Сбросить ВСЕ по умолчанию
+Gui, 1:Add, Button, x230 y510 w240 h34 gApplyNewHotkeyBtn, ✅ Применить новую клавишу
+Gui, 1:Add, Button, x482 y510 w225 h34 gResetSingleHotkeyBtn, 🔄 Сбросить выбранную
+Gui, 1:Add, Button, x719 y510 w235 h34 gResetAllHotkeysBtn, ⚠️ Сбросить ВСЕ по умолчанию
 Gui, 1:Font, S9 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x28 y573 w880 h18, 💡 РљРЅРѕРїРєР° СЌРєСЃС‚СЂРµРЅРЅРѕР№ РѕС‚РјРµРЅС‹ РґР»РёРЅРЅРѕР№ РѕС‚С‹РіСЂРѕРІРєРё/Р»РµРєС†РёРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ: [F12] (РјРѕР¶РЅРѕ РёР·РјРµРЅРёС‚СЊ РІ СЃРїРёСЃРєРµ РІС‹С€Рµ).
+Gui, 1:Add, Text, x230 y549 w880 h18, 💡 Кнопка экстренной отмены длинной отыгровки/лекции по умолчанию: [F12] (можно изменить в списке выше).
 
 ; ======================= ВКЛАДКА 8: 📊 ЖУРНАЛ НОРМЫ И ОНЛАЙН-ПРОТОКОЛ =======================
 Gui, 1:Tab, 8
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x16 y68 w904 h74, [ 📊 Статистика смены и нормы сотрудника (ст. 20 ФЗоП) ]
+Gui, 1:Add, GroupBox, x218 y44 w904 h74, [ 📊 Статистика смены и нормы сотрудника (ст. 20 ФЗоП) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Text, x28 y92 w200 h22 vJournalStatFines, Штрафы: 0 шт. (0 руб.)
-Gui, 1:Add, Text, x240 y92 w160 h22 vJournalStatArrests, Аресты (КПЗ): 0 чел.
-Gui, 1:Add, Text, x410 y92 w170 h22 vJournalStatLic, Лишения ВУ: 0 шт.
-Gui, 1:Add, Text, x590 y92 w150 h22 vJournalStatReports, Доклады: 0 шт.
+Gui, 1:Add, Text, x230 y68 w200 h22 vJournalStatFines, Штрафы: 0 шт. (0 руб.)
+Gui, 1:Add, Text, x442 y68 w160 h22 vJournalStatArrests, Аресты (КПЗ): 0 чел.
+Gui, 1:Add, Text, x612 y68 w170 h22 vJournalStatLic, Лишения ВУ: 0 шт.
+Gui, 1:Add, Text, x792 y68 w150 h22 vJournalStatReports, Доклады: 0 шт.
 Gui, 1:Font, S9 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x28 y116 w880 h18, 💡 Все штрафы, аресты, лишения прав и доклады фиксируются автоматически с /timestamp.
+Gui, 1:Add, Text, x230 y92 w880 h18, 💡 Все штрафы, аресты, лишения прав и доклады фиксируются автоматически с /timestamp.
 
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, ListView, x16 y148 w904 h398 +Grid -Multi Background1B2234 cE6EDF3 vJournalLV, Время|Тип фиксации|Нарушитель / Цель|Детали / Статьи / Срок|Сумма (руб)
+Gui, 1:Add, ListView, x218 y124 w904 h398 +Grid -Multi Background1B2234 cE6EDF3 vJournalLV, Время|Тип фиксации|Нарушитель / Цель|Детали / Статьи / Срок|Сумма (руб)
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Button, x16 y554 w240 h38 gCopyJournalReportBtn, 📋 Скопировать отчёт для форума
-Gui, 1:Add, Button, x266 y554 w200 h38 gExportJournalCsvBtn, 📁 Экспорт журнала (CSV)
-Gui, 1:Add, Button, x476 y554 w180 h38 gAddManualJournalBtn, ➕ Добавить запись
-Gui, 1:Add, Button, x666 y554 w150 h38 gClearJournalDataBtn, 🗑️ Очистить смену
-Gui, 1:Add, Button, x826 y554 w94 h38 gRefreshJournalBtn, 🔄 Обновить
+Gui, 1:Add, Button, x218 y530 w240 h38 gCopyJournalReportBtn, 📋 Скопировать отчёт для форума
+Gui, 1:Add, Button, x468 y530 w200 h38 gExportJournalCsvBtn, 📁 Экспорт журнала (CSV)
+Gui, 1:Add, Button, x678 y530 w180 h38 gAddManualJournalBtn, ➕ Добавить запись
+Gui, 1:Add, Button, x868 y530 w150 h38 gClearJournalDataBtn, 🗑️ Очистить смену
+Gui, 1:Add, Button, x1028 y530 w94 h38 gRefreshJournalBtn, 🔄 Обновить
 
 ; ======================= ВКЛАДКА 9: ➕ СВОИ БИНДЫ (КОНСТРУКТОР БИНДОВ) =======================
 Gui, 1:Tab, 9
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x16 y68 w904 h74, [ ➕ Конструктор персональных отыгровок и команд ]
+Gui, 1:Add, GroupBox, x218 y44 w904 h74, [ ➕ Конструктор персональных отыгровок и команд ]
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, Text, x28 y92 w880 h42, Создавайте собственные уникальные команды и отыгровки прямо в GUI!`nПеременные: {Fio} — ФИО, {Rank} — Звание, {Znak} — Жетон, {Otdel} — Отдел, {Id} — ID нарушителя.
+Gui, 1:Add, Text, x230 y68 w880 h42, Создавайте собственные уникальные команды и отыгровки прямо в GUI!`nПеременные: {Fio} — ФИО, {Rank} — Звание, {Znak} — Жетон, {Otdel} — Отдел, {Id} — ID нарушителя.
 
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, ListView, x16 y148 w904 h398 +Grid -Multi Background1B2234 cE6EDF3 vCustomBindsLV gCustomBindsLVAction, #|Название бинда|Триггер (Команда / Хоткей)|Строк|Задержка|Статус
+Gui, 1:Add, ListView, x218 y124 w904 h398 +Grid -Multi Background1B2234 cE6EDF3 vCustomBindsLV gCustomBindsLVAction, #|Название бинда|Триггер (Команда / Хоткей)|Строк|Задержка|Статус
 Gui, 1:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 1:Add, Button, x16 y554 w190 h38 gOpenAddCustomBindDialog, ➕ Создать новый бинд
-Gui, 1:Add, Button, x216 y554 w170 h38 gEditCustomBindBtn, ✏️ Редактировать
-Gui, 1:Add, Button, x396 y554 w180 h38 gTestCustomBindBtn, ▶️ Проверить бинд (Тест)
-Gui, 1:Add, Button, x586 y554 w150 h38 gToggleCustomBindBtn, ⚡ Вкл / Выкл
-Gui, 1:Add, Button, x746 y554 w174 h38 gDeleteCustomBindBtn, 🗑️ Удалить бинд
+Gui, 1:Add, Button, x218 y530 w190 h38 gOpenAddCustomBindDialog, ➕ Создать новый бинд
+Gui, 1:Add, Button, x418 y530 w170 h38 gEditCustomBindBtn, ✏️ Редактировать
+Gui, 1:Add, Button, x598 y530 w180 h38 gTestCustomBindBtn, ▶️ Проверить бинд (Тест)
+Gui, 1:Add, Button, x788 y530 w150 h38 gToggleCustomBindBtn, ⚡ Вкл / Выкл
+Gui, 1:Add, Button, x948 y530 w174 h38 gDeleteCustomBindBtn, 🗑️ Удалить бинд
 
 
 Gui, 1:Tab
+
+; =================================================================================================
+; ПОДВАЛ (ФУТЕР ОСНОВНОЙ ОБЛАСТИ)
+; =================================================================================================
+Gui, 1:Tab
+Gui, 1:Font, S9 C8B949E Norm, Segoe UI
+Gui, 1:Add, Text, x218 y652 w908 h20 vBottomFooterKeys, % "Пауза: [" . GetKeyDisp("HK_Pause") . "]  |  Отмена лекции: [F12]  |  Клик по клавише в таблице = изменить"
+
 PopulateBindsListView()
 PopulateHotkeysListView()
 LoadJournalFromIni()
@@ -995,8 +1137,72 @@ LoadCustomBindsFromIni()
 PopulateCustomBindsLV()
 RegisterAllCustomBinds()
 
-Gui, 1:Show, h678 w940, % TextArray[Var]
+if (SendMethodConfig = "SendPlay")
+    GuiControl, 1:Choose, SendEngineDDL, 2
+else if (SendMethodConfig = "SendEvent")
+    GuiControl, 1:Choose, SendEngineDDL, 3
+else if (SendMethodConfig = "SendInput")
+    GuiControl, 1:Choose, SendEngineDDL, 4
+else
+    GuiControl, 1:Choose, SendEngineDDL, 1
+
+Gui, 1:Show, h678 w1145, % TextArray[Var]
 Return
+
+; =================================================================================================
+; НАВИГАЦИЯ БОКОВОГО МЕНЮ (САЙДБАРА)
+; =================================================================================================
+SelectTab1:
+SetSidebarActive(1, "🚔 ПАТРУЛЬ И ОПЕРАТИВНЫЕ ДЕЙСТВИЯ")
+Return
+
+SelectTab2:
+SetSidebarActive(2, "📻 СЛУЖЕБНЫЕ ДОКЛАДЫ И РАЦИЯ")
+Return
+
+SelectTab3:
+SetSidebarActive(3, "⛓️ ЗАДЕРЖАНИЕ И ДОСТАВЛЕНИЕ В КПЗ")
+Return
+
+SelectTab4:
+SetSidebarActive(4, "📚 ЛЕКЦИИ, УСТАВ И СОБЕСЕДОВАНИЯ")
+Return
+
+SelectTab5:
+SetSidebarActive(5, "🩹 ПЕРВАЯ МЕДИЦИНСКАЯ ПОМОЩЬ (ПМП)")
+Return
+
+SelectTab6:
+SetSidebarActive(6, "🔍 УМНЫЙ ПОИСК БИНДОВ И СТАТЕЙ")
+Return
+
+SelectTab7:
+SetSidebarActive(7, "⌨️ НАСТРОЙКА КЛАВИШ И ДВИЖОК ВВОДА")
+Return
+
+SelectTab8:
+SetSidebarActive(8, "📊 ЖУРНАЛ СМЕНЫ И НОРМА ОФИЦЕРА")
+PopulateJournalLV()
+Return
+
+SelectTab9:
+SetSidebarActive(9, "➕ КОНСТРУКТОР ПЕРСОНАЛЬНЫХ БИНДОВ")
+PopulateCustomBindsLV()
+Return
+
+SetSidebarActive(TabNum, TitleText) {
+    global CurrentActiveNavTab
+    CurrentActiveNavTab := TabNum
+    GuiControl, 1:, MainSectionTitle, %TitleText%
+    GuiControl, 1:Choose, MainTabControl, %TabNum%
+}
+
+UpdateSidebarOfficerCard() {
+    global Rank, Fio1, Otdel, Znak, Teg, Prop2
+    GuiControl, 1:, SidebarOfficerFio, % Rank . " " . Fio1
+    GuiControl, 1:, SidebarOfficerDetails, % "Отдел: " . Otdel . " | Знак: " . Znak
+    GuiControl, 1:, SidebarOfficerCallsign, % "Позывной: " . Teg . "-" . Prop2
+}
 
 GuiClose:
 Gui, 1:Hide
@@ -1010,7 +1216,7 @@ if (HIDDEN_NOW) {
     Gui, 1:Show
     HIDDEN_NOW := 0
 }
-GuiControl, 1:Choose, MainTabControl, 7
+SetSidebarActive(7, "⌨️ НАСТРОЙКА КЛАВИШ И ДВИЖОК ВВОДА")
 Return
 
 ; =================================================================================================
@@ -1022,7 +1228,7 @@ if (HIDDEN_NOW) {
     Gui, 1:Show
     HIDDEN_NOW := 0
 }
-GuiControl, 1:Choose, MainTabControl, 8
+SetSidebarActive(8, "📊 ЖУРНАЛ СМЕНЫ И НОРМА ОФИЦЕРА")
 PopulateJournalLV()
 Return
 
@@ -1032,7 +1238,7 @@ if (HIDDEN_NOW) {
     Gui, 1:Show
     HIDDEN_NOW := 0
 }
-GuiControl, 1:Choose, MainTabControl, 9
+SetSidebarActive(9, "➕ КОНСТРУКТОР ПЕРСОНАЛЬНЫХ БИНДОВ")
 PopulateCustomBindsLV()
 Return
 
@@ -1057,13 +1263,13 @@ ExecuteSmartMegaphoneStep() {
         SetCapsOff()
         SetLocaleRu()
         SmartSleep(100)
-        SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+        Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+        Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
+        Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+        Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 800, 150
         TrayTip, 🚔 Мегафон 1/3 отправлен, До 2-го мегафона: 15 секунд по ст. 15 ФЗоП., 3, 1
         LogJournalAction("Погоня", "Мегафон №1", "Требование об остановке ТС (1/3)", 0)
@@ -1081,13 +1287,13 @@ ExecuteSmartMegaphoneStep() {
         SetCapsOff()
         SetLocaleRu()
         SmartSleep(100)
-        SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+        Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+        Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
+        Send, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+        Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 950, 150
         TrayTip, 🚔 Мегафон 2/3 отправлен, До финального предупреждения: 15 сек., 3, 1
         LogJournalAction("Погоня", "Мегафон №2", "Повторное требование об остановке (2/3)", 0)
@@ -1105,13 +1311,13 @@ ExecuteSmartMegaphoneStep() {
         SetCapsOff()
         SetLocaleRu()
         SmartSleep(100)
-        SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+        Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+        Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
+        Send, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
         SmartSleep(10)
-        SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+        Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 1100, 200
         TrayTip, ⚠️ Мегафон 3/3 отправлен!, ТРЕБОВАНИЯ ВЫПОЛНЕНЫ! ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП)!, 4, 2
         LogJournalAction("Погоня", "Мегафон №3", "Финальное требование (3/3) - Огонь санкционирован", 0)
@@ -1162,7 +1368,7 @@ TriggerSmartScreenshot(ReasonStr) {
         Return
 
     SetCapsOff()
-    SendPlay, {F8}^A{Delete}timestamp{Enter}{F8}
+    Send, {F8}^A{Delete}timestamp{Enter}{F8}
     Sleep, 150
 
     stopKey := (HK_StopBind != "") ? HK_StopBind : "F12"
@@ -1516,16 +1722,16 @@ ExecuteCustomBind(BindIdx) {
             Continue
 
         if (idx = 1) {
-            SendPlay, {F6}
+            Send, {F6}
             SmartSleep(350)
-            SendPlay, %textToSend%{Enter}
+            Send, %textToSend%{Enter}
         } else {
             SmartSleep(delayMs)
             if (AbortBindFlag)
                 Return
-            SendPlay, {F6}
+            Send, {F6}
             SmartSleep(350)
-            SendPlay, %textToSend%{Enter}
+            Send, %textToSend%{Enter}
         }
     }
     TriggerSmartScreenshot("Свой бинд: " . b.Name)
@@ -1883,8 +2089,8 @@ InitHotkeysManager() {
     AddHkDef("HK_ResetChase",     "Сбросить таймер погони СГУ",                 "Утилиты АХК",  "!BS",          "Bind_ResetChase",     0, "",                   "")
     AddHkDef("HK_Pause",          "Поставить АХК на паузу",                     "Система",      "end",          "Bind_Pause",          0, "",                   "")
     AddHkDef("HK_Reload",         "Перезапустить АХК",                          "Система",      "!R",           "Bind_Reload",         0, "",                   "")
-    AddHkDef("HK_SmartMegaphone", "Умный мегафон погони (1->2->3->Огонь)", "СГУ и Погоня", "^Space", "ExecuteSmartMegaphoneStep", 0, "", "")
-    AddHkDef("HK_ChaseStop",      "Сбросить статус погони / мегафонов",   "СГУ и Погоня", "!Space", "StopChaseModeLabel",          0, "", "")
+    AddHkDef("HK_SmartMegaphone", "Умный мегафон погони (1->2->3->Огонь)", "СГУ и Погоня", "^Space", "ExecuteSmartMegaphoneStep", 0, "Disp_HK_SmartMegaphone", "")
+    AddHkDef("HK_ChaseStop",      "Сбросить статус погони / мегафонов",   "СГУ и Погоня", "!Space", "StopChaseModeLabel",          0, "Disp_HK_ChaseStop", "")
 
     IniPath := A_Temp . "\gibdd.egl"
     for idx, hk in HotkeyDefs {
@@ -2001,7 +2207,7 @@ RefreshAllHotkeyGuiLabels() {
                 GuiControl, 1:, % hk.Ctrl2, % disp
         }
     }
-    GuiControl, 1:, BottomFooterKeys, % "Версия v" . Vers . "  |  Пауза: [" . GetKeyDisp("HK_Pause") . "]  |  Рестарт: [" . GetKeyDisp("HK_Reload") . "]  |  Клик по клавише = изменить!"
+    GuiControl, 1:, BottomFooterKeys, % "Версия v" . Vers . " (" . WinVerDescription . ")  |  Пауза: [" . GetKeyDisp("HK_Pause") . "]  |  Клик по клавише в таблице = изменить"
 }
 
 QuickClickKey:
@@ -2013,7 +2219,7 @@ for idx, hk in HotkeyDefs {
         break
     }
 }
-GuiControl, 1:Choose, MainTabControl, 7
+SetSidebarActive(7, "⌨️ НАСТРОЙКА КЛАВИШ И ДВИЖОК ВВОДА")
 if (targetId != "") {
     SelectHotkeyInLV(targetId)
 }
@@ -2752,9 +2958,9 @@ Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, %CalcReadyOverflowCmd%{Space}
+Send, %CalcReadyOverflowCmd%{Space}
 Return
 
 CalcClearChecks:
@@ -2785,17 +2991,17 @@ Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"{Enter}{F6}
+Send, /me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Информация о недействительности ВУ внесена в базу данных.{Enter}{F6}
+Send, /do Информация о недействительности ВУ внесена в базу данных.{Enter}{F6}
 SmartSleep(500)
-SendPlay, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
 SmartSleep(350)
-SendPlay, %CalcReadyLicCmd%{Space}
+Send, %CalcReadyLicCmd%{Space}
 LogJournalAction("Лишение ВУ", tid, "Срок: " . licYears . " г.", 0)
 TriggerSmartScreenshot("Аннулирование ВУ")
 Return
@@ -2830,9 +3036,9 @@ SetCapsOff()
 for idx, art in toSpeak {
     parts := StrSplit(art.RawLines, "||")
     for pIdx, lineText in parts {
-        SendPlay, {F6}
+        Send, {F6}
         SmartSleep(350)
-        SendPlay, %lineText%{Enter}
+        Send, %lineText%{Enter}
         SmartSleep(1800)
     }
 }
@@ -2848,15 +3054,15 @@ Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
-SendPlay, {F6}
+Send, {F6}
 Sleep 250
-SendPlay, /me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"{Enter}{F6}
+Send, /me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"{Enter}{F6}
 Sleep 500
-SendPlay, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
 Sleep 300
-SendPlay, /do Информация о штрафах введена в базу данных.{Enter}{F6}
+Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
 Sleep 250
-SendPlay, %CalcReadyCmd%{Space}
+Send, %CalcReadyCmd%{Space}
 LogJournalAction("Штраф", tid, artList, cappedFine)
 TriggerSmartScreenshot("Выписка штрафа")
 Return
@@ -3439,13 +3645,13 @@ SendMessage, 0x50,, 0x4190419,, A
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(500)
-SendPlay, {F8}animarmy 3{ENTER}{F8}
+Send, {F8}animarmy 3{ENTER}{F8}
 SmartSleep(500)
-SendPlay, {F8} say Здравия желаю, %Otdel% %Okr%.{Enter}{F8}
+Send, {F8} say Здравия желаю, %Otdel% %Okr%.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} say %Rank% полиции, %Fio1%.{Enter}{F8}
+Send, {F8} say %Rank% полиции, %Fio1%.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do На груди закреплен полицейский знак с личным номером: %Znak%.{Enter}{F8}
+Send, {F8} do На груди закреплен полицейский знак с личным номером: %Znak%.{Enter}{F8}
 SmartSleep(500)
 if (Rank = "Рядовой") {
     PogonDescription := "пустые погоны"
@@ -3493,7 +3699,7 @@ if (Rank = "Рядовой") {
 if PogonDescription
 {
 SmartSleep(500)
-SendPlay, {F8}do На плечах %PogonDescription%.{Enter}{F8}
+Send, {F8}do На плечах %PogonDescription%.{Enter}{F8}
 }
 SmartSleep(500)
 Return
@@ -3501,108 +3707,108 @@ Bind_AskDocs:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} say Уважаемый(ая), будьте добры предоставить Ваши документы{Enter}{F8}
+Send,{F8} say Уважаемый(ая), будьте добры предоставить Ваши документы{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8} b /me передал(-а) ВУ{Enter}{F8}
+Send,{F8} b /me передал(-а) ВУ{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8} b /lic id (id = цифры после ника){Enter}{F8}
+Send,{F8} b /lic id (id = цифры после ника){Enter}{F8}
 Return
 Bind_TakeDocs:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8}me протянул%ok1% правую руку и взял%ok1% документы гражданина{Enter}{F8}
+Send,{F8}me протянул%ok1% правую руку и взял%ok1% документы гражданина{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8}me детально изучил%ok1% документы гражданина, затем убрал%ok1% их в нагрудный карман{Enter}{F8}
+Send,{F8}me детально изучил%ok1% документы гражданина, затем убрал%ok1% их в нагрудный карман{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8}do Документы в нагрудном кармане.{Enter}{F8}
+Send,{F8}do Документы в нагрудном кармане.{Enter}{F8}
 Return
 Bind_ReturnDocs:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} do Документы в нагрудном кармане.{Enter}{F8}
+Send,{F8} do Документы в нагрудном кармане.{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8} me достал%ok1% документы из нагрудного кармана, затем протянул%ok1% гражданину {Enter}{F8}
+Send,{F8} me достал%ok1% документы из нагрудного кармана, затем протянул%ok1% гражданину {Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8} say Уважаемый(ая), держите ваши документы.{Enter}{F8}
+Send,{F8} say Уважаемый(ая), держите ваши документы.{Enter}{F8}
 SmartSleep(500)
-SendPlay,{F8} b /me забрал(-а) документы{Enter}{F8}
+Send,{F8} b /me забрал(-а) документы{Enter}{F8}
 Return
 Bind_AdminProt:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Бланки протокола с ручкой лежат в сумке на плече сотрудника.{Enter}{F6}
+Send, /do Бланки протокола с ручкой лежат в сумке на плече сотрудника.{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /me открыл%ok1% сумку и достал%ok1% бланк протокола с ручкой{Enter}{F6}
+Send, /me открыл%ok1% сумку и достал%ok1% бланк протокола с ручкой{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /e взял%ok1% ручку и начал%ok1% оформлять протокол{Enter}{F6}
+Send, /e взял%ok1% ручку и начал%ok1% оформлять протокол{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /me заполнил%ok1% личные данные водителя{Enter}{F6}
+Send, /me заполнил%ok1% личные данные водителя{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /me заполнил%ok1% статью нарушенную водителем{Enter}{F6}
+Send, /me заполнил%ok1% статью нарушенную водителем{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /me поставил%ok1% дату и подпись{Enter}{F6}
+Send, /me поставил%ok1% дату и подпись{Enter}{F6}
 SmartSleep(2500)
-SendPlay, /do Протокол составлен.{Enter}{F6}
+Send, /do Протокол составлен.{Enter}{F6}
 SmartSleep(2500)
-SendPlay, Гражданин, с нарушением согласны? Подписывать протокол будете?{Enter}
+Send, Гражданин, с нарушением согласны? Подписывать протокол будете?{Enter}
 Return
 #UseHook, Off
 #UseHook, On
 HK_ProtocolSign(1):
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me передал%ok1% протокол и ручку гражданину{Enter}{F6}
+Send, /me передал%ok1% протокол и ручку гражданину{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /todo Уважаемый(ая), вот здесь подпись поставьте*указав пальцем на место подписи{Enter}{F6}
+Send, /todo Уважаемый(ая), вот здесь подпись поставьте*указав пальцем на место подписи{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b /me расписался(ась) в протоколе{Enter}
+Send, /b /me расписался(ась) в протоколе{Enter}
 Return
 HK_ProtocolSign(2):
 AbortBindFlag := 0
 KeyWait, Alt
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /me взял%ok1% протокол и ручку у гражданина{Enter}
+Send, /me взял%ok1% протокол и ручку у гражданина{Enter}
 Return
 Bind_Arrest:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите ID гражданина которого хотите посадить ->{Space}
+Send, /Введите ID гражданина которого хотите посадить ->{Space}
 Input, Var1, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Пора Вас конвоиру передавать. Свои вещи заберете у конвоира. {Enter}{F6}
+Send, Пора Вас конвоиру передавать. Свои вещи заберете у конвоира. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, поднёс%ok2% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, поднёс%ok2% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вызвал%ok1% конвоира{Enter}{F6}
+Send, /me вызвал%ok1% конвоира{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Конвоир вызван.{Enter}{F6}
+Send, /do Конвоир вызван.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% дверь и передал%ok1% задержанного конвоиру{Enter}{F6}
+Send, /me открыл%ok1% дверь и передал%ok1% задержанного конвоиру{Enter}{F6}
 SmartSleep(500)
-SendPlay, /say Уведите задержанного.{Enter}{F6}
+Send, /say Уведите задержанного.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Конвоир увел задержанного.{Enter}{F6}
+Send, /do Конвоир увел задержанного.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /r Задержанный был передан конвоиру. Протокол задержания передан в канцелярию.{Enter}{F6}
+Send, /r Задержанный был передан конвоиру. Протокол задержания передан в канцелярию.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /arrest %Var1% {Enter}
+Send, /arrest %Var1% {Enter}
 LogJournalAction("Арест", Var1, "Передача задержанного конвоиру")
 TriggerSmartScreenshot("Арест гражданина")
 Return
@@ -3610,392 +3816,392 @@ Bind_SuFast:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
+Send,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
 SmartSleep(50)
-SendPlay,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
+Send,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
 SmartSleep(50)
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(100)
-SendPlay,/su{Space}
+Send,/su{Space}
 Return
 Bind_SuSound:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
+Send,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
 SmartSleep(250)
-SendPlay,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
+Send,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
 SmartSleep(250)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(50)
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(100)
-SendPlay, /su{Space}
+Send, /su{Space}
 Return
 Bind_Tsu:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(200)
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(500)
-SendPlay, /me отрыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений" {Enter}{F6}
+Send, /me отрыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений" {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
 SmartSleep(200)
-SendPlay, /do Информация о штрафах введена в базу данных.{Enter}{F6} 
+Send, /do Информация о штрафах введена в базу данных.{Enter}{F6} 
 SmartSleep(100)
-SendPlay, /tsu{Space}
+Send, /tsu{Space}
 Return
 Bind_TakeLic:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(250)
-SendPlay, /me отрыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ" {Enter}{F6}
+Send, /me отрыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ" {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Информация о недействительности ВУ внесена в базу данных. {Enter}{F6} 
+Send, /do Информация о недействительности ВУ внесена в базу данных. {Enter}{F6} 
 SmartSleep(500)
-SendPlay, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /takecarlic{Space}
+Send, /takecarlic{Space}
 Return
 #UseHook, Off
 #UseHook, On
 HK_Wcar(1):
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(300)
-SendPlay, /me внес%ok2% данные о транспорте в базу розыска{Enter}{F6}
+Send, /me внес%ok2% данные о транспорте в базу розыска{Enter}{F6}
 SmartSleep(300)
-SendPlay, /do Данные введены.{Enter}{F6} 
+Send, /do Данные введены.{Enter}{F6} 
 SmartSleep(300)
 SendMessage, 0x50,, 0x4090409,, A
-SendPlay, /wcar{Enter}
+Send, /wcar{Enter}
 Return
 HK_Wcar(2):
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(300)
-SendPlay, /me подключил%ok3% к базе данных{Enter}{F6}
+Send, /me подключил%ok3% к базе данных{Enter}{F6}
 SmartSleep(300)
-SendPlay, /me запросил%ok2% данные транспорта, находящегося в розыске{Enter}{F6}
+Send, /me запросил%ok2% данные транспорта, находящегося в розыске{Enter}{F6}
 SmartSleep(300)
-SendPlay, /do Данные получены в реальном времени.{Enter}{F6}
+Send, /do Данные получены в реальном времени.{Enter}{F6}
 SmartSleep(300)
-SendPlay, /wcar{Enter}
+Send, /wcar{Enter}
 Return
 :?:/фкар::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(200)
-SendPlay,{F6}
+Send,{F6}
 SmartSleep(300)
-SendPlay, /me открыл%ok2% базу данных автомобильных номеров{Enter}{F6}
+Send, /me открыл%ok2% базу данных автомобильных номеров{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me ввел%ok2% номер автомобиля в базу данных и узнал%ok2% данные владельца автомобиля{Enter}{F6}
+Send, /me ввел%ok2% номер автомобиля в базу данных и узнал%ok2% данные владельца автомобиля{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Информация о владельце автомобиля высветилась на экране.{Enter}{F6}
+Send, /do Информация о владельце автомобиля высветилась на экране.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /findcar{Space}
+Send, /findcar{Space}
 Return
 Bind_FindEmp:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8}me открыл%ok1% базу данных сотрудников управления{Enter}{F8}
+Send,{F8}me открыл%ok1% базу данных сотрудников управления{Enter}{F8}
 SmartSleep(100)
-SendPlay,{F8}do База данных сотрудников управления открыта.{Enter}{F8}
+Send,{F8}do База данных сотрудников управления открыта.{Enter}{F8}
 SmartSleep(100)
-SendPlay,{F8}find{Enter}{F8}
+Send,{F8}find{Enter}{F8}
 Return
 Bind_Wanted:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
+Send,{F8} me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
 SmartSleep(100)
-SendPlay,{F8} do Изображение с камер транслируются в реальном времени на служебный планшет.{Enter}{F8}
+Send,{F8} do Изображение с камер транслируются в реальном времени на служебный планшет.{Enter}{F8}
 SmartSleep(100)
-SendPlay,{F8}wanted{Enter}{F8}
+Send,{F8}wanted{Enter}{F8}
 Return
 Bind_Fines:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
+Send,{F8} me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
 SmartSleep(100)
-SendPlay,{F8} me подключил%ok3% к базе данных{ENTER}{F8}
+Send,{F8} me подключил%ok3% к базе данных{ENTER}{F8}
 SmartSleep(300)
-SendPlay,{F8} me запросил%ok1% данные гражданских с неоплаченными штрафами в реальном времени{ENTER}{F8}
+Send,{F8} me запросил%ok1% данные гражданских с неоплаченными штрафами в реальном времени{ENTER}{F8}
 SmartSleep(300)
-SendPlay,{F8} do Данные получены в реальном времени. {ENTER}{F8}
+Send,{F8} do Данные получены в реальном времени. {ENTER}{F8}
 SmartSleep(300)
-SendPlay,{F8}fines{Enter}{F8}
+Send,{F8}fines{Enter}{F8}
 Return
 Bind_CuffsOpen:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} do Ключи от наручников висят на поясном креплении.{Enter}{F8}
+Send,{F8} do Ключи от наручников висят на поясном креплении.{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} me взял%ok1% ключи и освободил%ok1% одну руку задержанного от наручников{Enter}{F8}
+Send,{F8} me взял%ok1% ключи и освободил%ok1% одну руку задержанного от наручников{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} me закрепил%ok1% наручники с рукой задержанного на двери патрульного автомобиля{Enter}{F8}
+Send,{F8} me закрепил%ok1% наручники с рукой задержанного на двери патрульного автомобиля{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} me протянул%ok1% протокол с ручкой задержанному{Enter}{F8}
+Send,{F8} me протянул%ok1% протокол с ручкой задержанному{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} todo Вот здесь подпись поставьте*указав пальцем место подписи{Enter}{F8}
+Send,{F8} todo Вот здесь подпись поставьте*указав пальцем место подписи{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} b /me расписался в протоколе{Enter}{F8}
+Send,{F8} b /me расписался в протоколе{Enter}{F8}
 Return
 Bind_CuffsClose:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(500)
-SendPlay,{F8} me открепил%ok1% руку с наручниками задержанного от двери патрульного автомобиля{Enter}{F8}
+Send,{F8} me открепил%ok1% руку с наручниками задержанного от двери патрульного автомобиля{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} me закрепил%ok1% наручники на обеих руках задержанного{Enter}{F8}
+Send,{F8} me закрепил%ok1% наручники на обеих руках задержанного{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} me вырвал%ok1% копию протокола и положил%ok1% в карман гражданина{Enter}{F8}
+Send,{F8} me вырвал%ok1% копию протокола и положил%ok1% в карман гражданина{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8} do Копия протокола в кармане.{Enter}{F8}
+Send,{F8} do Копия протокола в кармане.{Enter}{F8}
 Return
 :?:/метка1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /me поставил%ok1% метку о несогласии{Enter}
+Send, /me поставил%ok1% метку о несогласии{Enter}
 Return
 :?:/метка2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /me поставил%ok1% метку о невозможности подписать протокол{Enter}
+Send, /me поставил%ok1% метку о невозможности подписать протокол{Enter}
 Return
 Bind_VoiceOn:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
+Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
+Send, {F8} me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
 SmartSleep(10)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(10)
-SendPlay, {F8} fracvoice 1{Enter}{F8}
+Send, {F8} fracvoice 1{Enter}{F8}
 Return
 Bind_VoiceOff:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8} me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
+Send, {F8} me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
 SmartSleep(10)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(10)
-SendPlay, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
+Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} fracvoice 2{Enter}{F8}
+Send, {F8} fracvoice 2{Enter}{F8}
 Return
 Bind_Megaphone1:
 AbortBindFlag := 0
 StartChaseTimer(1)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
+Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_Megaphone2:
 AbortBindFlag := 0
 StartChaseTimer(2)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
+Send, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_Megaphone3:
 AbortBindFlag := 0
 StartChaseTimer(3)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
+Send, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_MegaphoneWay:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Send, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Send, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}{Space}{Backspace} m {#}e7950dУступите проезд спец. транспорту{!}{Enter}{F8}
+Send, {F8}{Space}{Backspace} m {#}e7950dУступите проезд спец. транспорту{!}{Enter}{F8}
 SmartSleep(10)
-SendPlay, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Send, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_FootChase:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8}{Space}{Backspace}s Гражданин останавливаемся, в противном случае к вам будет применена физическая сила{!}{Enter}{F8}
+Send, {F8}{Space}{Backspace}s Гражданин останавливаемся, в противном случае к вам будет применена физическая сила{!}{Enter}{F8}
 Return
 
 Bind_KpkOpen:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в кармане. {Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в кармане. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достав служебный планшет из кармана, запустил%ok1% его {Enter}
+Send, /me достав служебный планшет из кармана, запустил%ok1% его {Enter}
 Return
 :?:/sos::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Тревожная кнопка с GPS маячком в нагрудном кармане.{Enter}{F6}
+Send, /do Тревожная кнопка с GPS маячком в нагрудном кармане.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me нажал%ok1% тревожную кнопку{Enter}{F6}
+Send, /me нажал%ok1% тревожную кнопку{Enter}{F6}
 SmartSleep(200)
-SendPlay, /do Тревожная кнопка активирована. GPS маячок передает местоположение сотрудника.{Enter}{F6}
+Send, /do Тревожная кнопка активирована. GPS маячок передает местоположение сотрудника.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /ro [Кнопка SOS][МВД] Активирована кнопка SOS, местонахождение:{Space}
+Send, /ro [Кнопка SOS][МВД] Активирована кнопка SOS, местонахождение:{Space}
 Return
 :?:/маска::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me сняв маску с гражданина, положил%ok1% её в карман задержанного{Enter}{F6}
+Send, /me сняв маску с гражданина, положил%ok1% её в карман задержанного{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Маска снята.{Enter}
+Send, /do Маска снята.{Enter}
 Return
 :?:/убор::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me сняв головной убор с гражданина, положил%ok1% его в карман задержанного{Enter}{F6}
+Send, /me сняв головной убор с гражданина, положил%ok1% его в карман задержанного{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Головной убор снят.{Enter}
+Send, /do Головной убор снят.{Enter}
 Return
 :?:/очки::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me сняв очки с гражданина, положил%ok1% их в карман задержанного{Enter}{F6}
+Send, /me сняв очки с гражданина, положил%ok1% их в карман задержанного{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Очки сняты.{Enter}
+Send, /do Очки сняты.{Enter}
 Return
 :?:/шлем::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me сняв шлем с гражданина, поставил%ok1% его на землю{Enter}{F6}
+Send, /me сняв шлем с гражданина, поставил%ok1% его на землю{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Шлем снят.{Enter}
+Send, /do Шлем снят.{Enter}
 Return
 :?:/дтп1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Фотоаппарат лежит в сумке на плече сотрудника.{Enter}{F6}
+Send, /do Фотоаппарат лежит в сумке на плече сотрудника.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% сумку и достал%ok1% фотоаппарат, затем зафиксировал%ok1% места ДТП{Enter}{F6} 
+Send, /me открыл%ok1% сумку и достал%ok1% фотоаппарат, затем зафиксировал%ok1% места ДТП{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /me выключив фотоаппарат, убрал%ok1% его в сумку{Enter}
+Send, /me выключив фотоаппарат, убрал%ok1% его в сумку{Enter}
 Return
 :?:/дтп2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рулетка лежит в сумке на плече сотрудника.{Enter}{F6}
+Send, /do Рулетка лежит в сумке на плече сотрудника.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% сумку и достал%ok1% рулетку, затем начал%ok1% измерения тормозных путей{Enter}{F6} 
+Send, /me открыл%ok1% сумку и достал%ok1% рулетку, затем начал%ok1% измерения тормозных путей{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /me собрав рулетку, убрал%ok1% ее в сумку{Enter}
+Send, /me собрав рулетку, убрал%ok1% ее в сумку{Enter}
 Return
 :?:/дтп3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Бланки с ручкой лежат в сумке на плече сотрудника.{Enter}{F6}
+Send, /do Бланки с ручкой лежат в сумке на плече сотрудника.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% бланк осмотра места ДТП с ручкой, затем зарисовал%ok1% схему ДТП{Enter}{F6} 
+Send, /me достал%ok1% бланк осмотра места ДТП с ручкой, затем зарисовал%ok1% схему ДТП{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /me сделал%ok1% на схеме пометки со слов граждан{Enter}{F6}
+Send, /me сделал%ok1% на схеме пометки со слов граждан{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me нан%ok9% на схему значения, измеренные рулеткой {Enter}{F6} 
+Send, /me нан%ok9% на схему значения, измеренные рулеткой {Enter}{F6} 
 SmartSleep(500)
-SendPlay, /do Значения нанесены.{Enter}{F6}
+Send, /do Значения нанесены.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me положил%ok1% бланк с ручкой в сумку{Enter}{F6} 
+Send, /me положил%ok1% бланк с ручкой в сумку{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /me закончил%ok1% заполнять схему ДТП, затем убрал%ok1% схему в сумку{Enter}
+Send, /me закончил%ok1% заполнять схему ДТП, затем убрал%ok1% схему в сумку{Enter}
 Return
 :?:/дтпкам::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me подключил%ok3% к базе данных {Enter}{F6}
+Send, /me подключил%ok3% к базе данных {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Подключение завершено. {Enter}{F6}
+Send, /do Подключение завершено. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me запросил%ok1% запись с камер видеонаблюдения {Enter}{F6}
+Send, /me запросил%ok1% запись с камер видеонаблюдения {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Экран транслирует запись, полученную с камер видеонаблюдения. {Enter}
+Send, /do Экран транслирует запись, полученную с камер видеонаблюдения. {Enter}
 Return
 
 :?:/вытащить::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me вытащил%ok1% задержанного из служебного автомобиля{Enter}
+Send, /me вытащил%ok1% задержанного из служебного автомобиля{Enter}
 Return
 Bind_PullOutSimple:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me вытащил%ok1% гражданина из автомобиля{Enter}
+Send, /me вытащил%ok1% гражданина из автомобиля{Enter}
 Return
 Bind_GreetColleague:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, Здравия желаю{!}{Enter}{F6}
+Send, Здравия желаю{!}{Enter}{F6}
 SmartSleep(200)
-SendPlay, /animarmy 3{Enter}
+Send, /animarmy 3{Enter}
 Return
 :?:/п1::
 AbortBindFlag := 0
@@ -4015,17 +4221,17 @@ IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
 Return
 :?:/п2::
@@ -4046,17 +4252,17 @@ IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
 Return
 :?:/п3::
@@ -4077,17 +4283,17 @@ IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
 Return
 :?:/обл1::
@@ -4095,26 +4301,26 @@ AbortBindFlag := 0
 StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /ro [%Gibdd%][МВД] Выехал в областное патрулирование. {Enter}{F6}
+Send, /ro [%Gibdd%][МВД] Выехал в областное патрулирование. {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/обл2::
 AbortBindFlag := 0
 StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите букву города(П, М или Н) ->{Space}
+Send, /Введите букву города(П, М или Н) ->{Space}
 Input, choice, V, {Enter}
 if (choice = "П" or choice = "п" or choice = "G" or choice = "g")
     Gorod := "П"
@@ -4124,34 +4330,34 @@ else if (choice = "Н" or choice = "н" or choice = "Y" or choice = "y")
     Gorod := "Н"
 else
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /ro [%Gibdd%][МВД] Контролирую город %Gorod%. {Enter}{F6}
+Send, /ro [%Gibdd%][МВД] Контролирую город %Gorod%. {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/обл3::
 AbortBindFlag := 0
 StopDutyTimer()
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /ro [%Gibdd%][МВД] Закончил областное патрулирование. {Enter}{F6}
+Send, /ro [%Gibdd%][МВД] Закончил областное патрулирование. {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 
 :?:/рейд1::
@@ -4168,17 +4374,17 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /ro [%Gibdd% %MB%][МВД] Начали рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
+Send,  /ro [%Gibdd% %MB%][МВД] Начали рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/рейд2::
 AbortBindFlag := 0
@@ -4194,17 +4400,17 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /ro [%Gibdd% %MB%][МВД] Продолжаем рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
+Send,  /ro [%Gibdd% %MB%][МВД] Продолжаем рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/рейд3::
 AbortBindFlag := 0
@@ -4220,134 +4426,134 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /ro [%Gibdd% %MB%][МВД] Закончили рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
+Send,  /ro [%Gibdd% %MB%][МВД] Закончили рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/гун::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(400)
-SendPlay, /Введите какое ГУВД или МВД к кому идет вопрос (Пример: ГУ МВД-Н или МВД) ->{Space}
+Send, /Введите какое ГУВД или МВД к кому идет вопрос (Пример: ГУ МВД-Н или МВД) ->{Space}
 Input, GorodVizova, V, {Enter}
-SendPlay, {bs 17}
-SendPlay, {F6}
+Send, {bs 17}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][%GorodVizova%] Кто примет нарушителя{?}{Enter}{F6}
+Send, /ro [%Gibdd%][%GorodVizova%] Кто примет нарушителя{?}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13п::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-П] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][ГУ МВД-П] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13м::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-М] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][ГУ МВД-М] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13н::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-Н] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][ГУ МВД-Н] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13уп::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-П] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][УГИБДД-П] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13ум::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-М] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][УГИБДД-М] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/13ун::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-Н] Принял%ok1%{!}{Enter}{F6}
+Send, /ro [%Gibdd%][УГИБДД-Н] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/вп1::
 AbortBindFlag := 0
@@ -4355,17 +4561,17 @@ StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /d [%Gibdd% ВП] Начал%ok1% воздушное патрулирование.{Enter}{F6}
+Send,  /d [%Gibdd% ВП] Начал%ok1% воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/вп2::
 AbortBindFlag := 0
@@ -4373,17 +4579,17 @@ StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay,  /d [%Gibdd% ВП] Продолжаю воздушное патрулирование.{Enter}{F6}
+Send,  /d [%Gibdd% ВП] Продолжаю воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/вп3::
 AbortBindFlag := 0
@@ -4391,17 +4597,17 @@ StopDutyTimer()
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /d [%Gibdd% ВП] Закончил%ok1% воздушное патрулирование.{Enter}{F6}
+Send, /d [%Gibdd% ВП] Закончил%ok1% воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/пост1::
 AbortBindFlag := 0
@@ -4418,25 +4624,25 @@ IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
     else
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /Введите номер поста ->{Space}
+Send, /Введите номер поста ->{Space}
 Input, Post, V, {Enter}
 IniWrite, %Post%, %A_Temp%\gibdd.egl, User, Post
 StartDutyTimer("Пост №" . Post, 1200)
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(150)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-4 %Posst%-%Post%{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-4 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад на посту")
 Return
 :?:/пост2::
@@ -4458,17 +4664,17 @@ IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
     else
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-4-4 %Posst%-%Post%{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-4-4 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/пост3::
 AbortBindFlag := 0
@@ -4489,104 +4695,104 @@ IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
     else
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-4-1 %Posst%-%Post%{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-4-1 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/он1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /Введите местонахождение ->{Space}
+Send, /Введите местонахождение ->{Space}
 Input, Mesto, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(150)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-11 %Mesto%{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-11 %Mesto%{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/он2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-11-1 {Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-11-1 {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/дттп1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /Введите местонахождение ->{Space}
+Send, /Введите местонахождение ->{Space}
 Input, Mesto, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(150)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-10 %Mesto%{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-10 %Mesto%{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/дттп2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-10-1 {Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-10-1 {Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 Bind_KpkClose:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}
+Send, /me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}
 Return
 :?:/в1::
 AbortBindFlag := 0
@@ -4594,17 +4800,17 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-24{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-24{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/в2::
 AbortBindFlag := 0
@@ -4612,17 +4818,17 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-25{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-25{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/в+::
 AbortBindFlag := 0
@@ -4630,17 +4836,17 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-26{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-26{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/в-::
 AbortBindFlag := 0
@@ -4648,42 +4854,42 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-26ЛВ{Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-26ЛВ{Enter}{F6}
 SmartSleep(200)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/копия::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me вырвал%ok1% копию протокола и передал%ok1% ее гражданину{Enter}{F6}
+Send, /me вырвал%ok1% копию протокола и передал%ok1% ее гражданину{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Уважаемый(ая), возьмите копию протокола.{Enter}{F6}
+Send, Уважаемый(ая), возьмите копию протокола.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b /me взял(а) копию протокола{Enter}
+Send, /b /me взял(а) копию протокола{Enter}
 Return
 :?:/зкопия::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me вырвал%ok1% копию протокола и положил%ok1% на карман гражданина{Enter}
+Send, /me вырвал%ok1% копию протокола и положил%ok1% на карман гражданина{Enter}
 Return
 Bind_ShoutHands:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /s Из машины, руки на капот{!}{Enter}
+Send, /s Из машины, руки на капот{!}{Enter}
 Return
 
 
@@ -4692,339 +4898,339 @@ AbortBindFlag := 0
 {
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay,{F8}do На запястье часы с гравировкой %Gibdd%.{Enter}{F8}
+Send,{F8}do На запястье часы с гравировкой %Gibdd%.{Enter}{F8}
 SmartSleep(250)
-SendPlay,{F8}me посмотрел%Ok1% на часы{Enter}{F8}
+Send,{F8}me посмотрел%Ok1% на часы{Enter}{F8}
 SmartSleep(250)
-SendPlay,{F8}do Время на часах: %A_DD%.%A_MM%.%A_YYYY%, %A_Hour%:%A_Min%:%A_Sec%.{Enter}{F8}
+Send,{F8}do Время на часах: %A_DD%.%A_MM%.%A_YYYY%, %A_Hour%:%A_Min%:%A_Sec%.{Enter}{F8}
 SmartSleep(250)
-SendPlay,{F8}timestamp{Enter}{F8}
+Send,{F8}timestamp{Enter}{F8}
 SmartSleep(250)
-SendPlay,{F8}time{Enter}{F8}
+Send,{F8}time{Enter}{F8}
 SmartSleep(150)
-SendPlay,{F8}paytime{Enter}{F8}
+Send,{F8}paytime{Enter}{F8}
 SmartSleep(150)
-SendPlay,{F8}exptime{Enter}{F8}
+Send,{F8}exptime{Enter}{F8}
 }
 return
 
 Bind_TryDoor:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me дёрнул%ok1% за ручку двери{Enter}{F6}
+Send, /me дёрнул%ok1% за ручку двери{Enter}{F6}
 SmartSleep(100)
-SendPlay, /do Сотрудни%ok5% пытается открыть дверь.{Enter}{F6}
+Send, /do Сотрудни%ok5% пытается открыть дверь.{Enter}{F6}
 SmartSleep(100)
-SendPlay, /try открыл%ok1% дверь{Enter}
+Send, /try открыл%ok1% дверь{Enter}
 Return
 Bind_TryGlass:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me замахнул%ok3% дубинкой и ударил%ok1% по стеклу{Enter}{F6}
+Send, /me замахнул%ok3% дубинкой и ударил%ok1% по стеклу{Enter}{F6}
 SmartSleep(100)
-SendPlay, /try разбил%ok1% стекло дубинкой{Enter}
+Send, /try разбил%ok1% стекло дубинкой{Enter}
 Return 
 Bind_UnlockIn:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me потянул%ok3% рукой до замка и открыл%ok1% его изнутри{Enter}{F6}
+Send, /me потянул%ok3% рукой до замка и открыл%ok1% его изнутри{Enter}{F6}
 SmartSleep(100)
-SendPlay, /do Замок открыт.{Enter}{F6}
+Send, /do Замок открыт.{Enter}{F6}
 SmartSleep(100)
-SendPlay, /me открыл%ok1% дверь и вытащил%ok1% гражданина из машины{Enter}
+Send, /me открыл%ok1% дверь и вытащил%ok1% гражданина из машины{Enter}
 Return
 Bind_PullOutTry:
 AbortBindFlag := 0
 KeyWait, Control
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /try вытащил%ok1% гражданина напротив из автомобиля{Enter}
+Send, /try вытащил%ok1% гражданина напротив из автомобиля{Enter}
 Return
 Bind_Putpl:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Берегите голову при посадке в автомобиль{!}{Enter}{F6}
+Send, Берегите голову при посадке в автомобиль{!}{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me взял%ok1% нарушителя за руки и посадил%ok1% в служебный автомобиль{Enter}{F6}
+Send, /me взял%ok1% нарушителя за руки и посадил%ok1% в служебный автомобиль{Enter}{F6}
 SmartSleep(500)
-SendPlay, /putpl{Space}
+Send, /putpl{Space}
 Return
 Bind_KpkVu:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
+Send, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me ввел%ok1% данные гражданина в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
+Send, /me ввел%ok1% данные гражданина в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Информация о гражданине высветилась на экране.{Enter}{F6}
+Send, /do Информация о гражданине высветилась на экране.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /skan{Space}
+Send, /skan{Space}
 Return
 :?:/кпкфото::
 AbortBindFlag := 0
 KeyWait, Alt
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(200)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, Сейчас определим вашу личность.{Enter}{F6}
+Send, Сейчас определим вашу личность.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сделал%ok1% фотографию гражданина и запросил%ok1% данные{Enter}{F6}
+Send, /me сделал%ok1% фотографию гражданина и запросил%ok1% данные{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Данные гражданина выведены на экран служебного планшета.{Enter}{F6}
+Send, /do Данные гражданина выведены на экран служебного планшета.{Enter}{F6}
 SmartSleep(500)
-SendPlay, Ваша личность установлена.{Enter}{F6}
+Send, Ваша личность установлена.{Enter}{F6}
 SmartSleep(500)
 SendMessage, 0x50,, 0x4090409,, A
-SendPlay, /wanted {Enter}{F6}
+Send, /wanted {Enter}{F6}
 SmartSleep(200)
-SendPlay, /crimrec{Space}
+Send, /crimrec{Space}
 Return
 Bind_DetainProt:
 AbortBindFlag := 0
 KeyWait, Control
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay,{F8} say Гражданин, сейчас мы составим протокол Вашего задержания.{Enter}{F8} 
+Send,{F8} say Гражданин, сейчас мы составим протокол Вашего задержания.{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} do Бланки протокола с ручкой лежат в сумке на плече сотрудника.{Enter}{F8} 
+Send,{F8} do Бланки протокола с ручкой лежат в сумке на плече сотрудника.{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} me открыл%ok1% сумку и достал%ok1% бланк протокола с ручкой{Enter}{F8} 
+Send,{F8} me открыл%ok1% сумку и достал%ok1% бланк протокола с ручкой{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} me взял%ok1% ручку и начал%ok1% заполнять протокол{Enter}{F8} 
+Send,{F8} me взял%ok1% ручку и начал%ok1% заполнять протокол{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} me заполнил%ok1% личные данные{Enter}{F8} 
+Send,{F8} me заполнил%ok1% личные данные{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} me заполнил%ok1% статью нарушенную гражданином{Enter}{F8} 
+Send,{F8} me заполнил%ok1% статью нарушенную гражданином{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} me поставил%ok1% дату и подпись{Enter}{F8} 
+Send,{F8} me поставил%ok1% дату и подпись{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} do Протокол составлен.{Enter}{F8} 
+Send,{F8} do Протокол составлен.{Enter}{F8} 
 SmartSleep(2000)
-SendPlay,{F8} say Гражданин, с нарушением согласны? Подписывать протокол будете?{Enter}{F8}
+Send,{F8} say Гражданин, с нарушением согласны? Подписывать протокол будете?{Enter}{F8}
 Return
 :?:/код1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][МВД] Код-1 Местоположение:{Space}
+Send, /ro [%Gibdd%][МВД] Код-1 Местоположение:{Space}
 Return
 :?:/код0::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(200)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][МВД] Код-0 Местоположение:{Space}
+Send, /ro [%Gibdd%][МВД] Код-0 Местоположение:{Space}
 Return
 :?:/пр1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /r %Teg%-%Prop2% 10-13{Enter}{F6} 
+Send, /r %Teg%-%Prop2% 10-13{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 
 :?:/рег1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Видеорегистратор закреплен на лобовом стекле.{Enter}{F6}
+Send, /do Видеорегистратор закреплен на лобовом стекле.{Enter}{F6}
 SmartSleep(250)
-SendPlay, /me снял%ok1% видеорегистратор с крепления{Enter}
+Send, /me снял%ok1% видеорегистратор с крепления{Enter}
 Return
 :?:/рег2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me открыл%ok1% нужный файл и подготовил%ok1% его к просмотру{Enter}{F6}
+Send, /me открыл%ok1% нужный файл и подготовил%ok1% его к просмотру{Enter}{F6}
 SmartSleep(250)
-SendPlay, /me повернув видеорегистратор в сторону гражданина, запустил%ok1% запись{Enter}
+Send, /me повернув видеорегистратор в сторону гражданина, запустил%ok1% запись{Enter}
 Return
 :?:/рег3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me выключил%ok1% воспроизведение видеофайла{Enter}
+Send, /me выключил%ok1% воспроизведение видеофайла{Enter}
 Return
 :?:/рег4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me закрепил%ok1% видеорегистратор на крепление{Enter}
+Send, /me закрепил%ok1% видеорегистратор на крепление{Enter}
 Return
 :?:/алко1::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}do Алкотестер лежит в сумке на плече сотрудника.{enter}{F8}
+Send, {F8}do Алкотестер лежит в сумке на плече сотрудника.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me достал%ok1% из сумки опломбированный электронный алкотестер с клеймом {enter}{F8}
+Send, {F8}me достал%ok1% из сумки опломбированный электронный алкотестер с клеймом {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me показал опломбированный электронный алкотестер человеку напротив {enter}{F8}
+Send, {F8}me показал опломбированный электронный алкотестер человеку напротив {enter}{F8}
 }
 return
 :?:/алко2::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}say Сейчас пройдёте медицинское освидетельствование на состояние алкогольного опьянения{enter}{F8}
+Send, {F8}say Сейчас пройдёте медицинское освидетельствование на состояние алкогольного опьянения{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me достал%ok1% из сумки запечатанную трубочку {enter}{F8}
+Send, {F8}me достал%ok1% из сумки запечатанную трубочку {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me передал%ok1% запечатанную трубочку гражданину {enter}{F8}
+Send, {F8}me передал%ok1% запечатанную трубочку гражданину {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}b /me взял(a) трубочку {enter}{F8}
+Send, {F8}b /me взял(a) трубочку {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}say Распечатайте трубочку и убедитесь, что с ней всё в порядке. {enter}{F8}
+Send, {F8}say Распечатайте трубочку и убедитесь, что с ней всё в порядке. {enter}{F8}
 }
 return
 :?:/алко3::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}say Сейчас сделаем тестовое включение и проверим работу прибора.{enter}{F8}
+Send, {F8}say Сейчас сделаем тестовое включение и проверим работу прибора.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me забрал%ok1% распечатанную трубочку из рук гражданина {enter}{F8}
+Send, {F8}me забрал%ok1% распечатанную трубочку из рук гражданина {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Трубочка в руке. {enter}{F8}
+Send, {F8}do Трубочка в руке. {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me вставил%ok1% трубочку в алкотестер {enter}{F8}
+Send, {F8}me вставил%ok1% трубочку в алкотестер {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Трубочка в алкотестере. {enter}{F8}
+Send, {F8}do Трубочка в алкотестере. {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me включил%ok1% алкотестер и сделал%ok1% тестовую проверку {enter}{F8}
+Send, {F8}me включил%ok1% алкотестер и сделал%ok1% тестовую проверку {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Прибор забирает воздух из окружающей среды. {enter}{F8}
+Send, {F8}do Прибор забирает воздух из окружающей среды. {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Прибор показал: Алкоголь не обнаружен. {enter}{F8}
+Send, {F8}do Прибор показал: Алкоголь не обнаружен. {enter}{F8}
 }
 return
 :?:/алко4::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}say Сейчас вам нужно будет дуть в трубочку. Дуйте как в шарик до звукового сигнала прибора.{enter}{F8}
+Send, {F8}say Сейчас вам нужно будет дуть в трубочку. Дуйте как в шарик до звукового сигнала прибора.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me подн%ok9% прибор к рту гражданина {enter}{F8}
+Send, {F8}me подн%ok9% прибор к рту гражданина {enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}b /me дунул(а) в трубочку {enter}{F8}
+Send, {F8}b /me дунул(а) в трубочку {enter}{F8}
 }
 return
 :?:/алко5::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}say Сейчас посмотрим что показал прибор.{enter}{F8}
+Send, {F8}say Сейчас посмотрим что показал прибор.{enter}{F8}
 }
 return
 :?:/алко+::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}do На приборе высветилась надпись: Алкоголь обнаружен.{enter}{F8}
+Send, {F8}do На приборе высветилась надпись: Алкоголь обнаружен.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me распечатал%ok1% результат{enter}{F8}
+Send, {F8}me распечатал%ok1% результат{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me выбрав трубочку из алкотестера, убрал%ok1% ее в отсек сумки{enter}{F8}
+Send, {F8}me выбрав трубочку из алкотестера, убрал%ok1% ее в отсек сумки{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me выключив алкотестер, убрал%ok1% его в сумку{enter}{F8}
+Send, {F8}me выключив алкотестер, убрал%ok1% его в сумку{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Алкотестер в сумке на плече сотрудника.{enter}{F8}
+Send, {F8}do Алкотестер в сумке на плече сотрудника.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me начал%ok1% составлять акт освидетельствования{enter}{F8}
+Send, {F8}me начал%ok1% составлять акт освидетельствования{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do В графе «Результат освидетельствования» написано: «Установлено состояние алкогольного опьянения».{enter}{F8}
+Send, {F8}do В графе «Результат освидетельствования» написано: «Установлено состояние алкогольного опьянения».{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me передал%ok1% бланк с актом гражданину{enter}{F8}
+Send, {F8}me передал%ok1% бланк с актом гражданину{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}say Поставьте подпись в графе, если согласны с результатом.{enter}{F8}
+Send, {F8}say Поставьте подпись в графе, если согласны с результатом.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}b /me поставил(а) подпись {enter}{F8}
+Send, {F8}b /me поставил(а) подпись {enter}{F8}
 }
 return
 :?:/алко-::
 AbortBindFlag := 0
 {
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(500)
-SendPlay, {F8}do На приборе высветилась надпись: Алкоголь не обнаружен.{enter}{F8}
+Send, {F8}do На приборе высветилась надпись: Алкоголь не обнаружен.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me распечатал%ok1% результат{enter}{F8}
+Send, {F8}me распечатал%ok1% результат{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me выбрав трубочку из алкотестера, убрал%ok1% ее в отсек сумки{enter}{F8}
+Send, {F8}me выбрав трубочку из алкотестера, убрал%ok1% ее в отсек сумки{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me выключив алкотестер, убрал%ok1% его в сумку{enter}{F8}
+Send, {F8}me выключив алкотестер, убрал%ok1% его в сумку{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do Алкотестер в сумке на плече сотрудника.{enter}{F8}
+Send, {F8}do Алкотестер в сумке на плече сотрудника.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me начал%ok1% составлять акт освидетельствования{enter}{F8}
+Send, {F8}me начал%ok1% составлять акт освидетельствования{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}do В графе «Результат освидетельствования» написано: «Не установлено состояние алкогольного опьянения».{enter}{F8}
+Send, {F8}do В графе «Результат освидетельствования» написано: «Не установлено состояние алкогольного опьянения».{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}me передал%ok1% бланк с актом гражданину{enter}{F8}
+Send, {F8}me передал%ok1% бланк с актом гражданину{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}say Поставьте подпись в графе, если согласны с результатом.{enter}{F8}
+Send, {F8}say Поставьте подпись в графе, если согласны с результатом.{enter}{F8}
 SmartSleep(500)
-SendPlay, {F8}b /me поставил(а) подпись {enter}{F8}
+Send, {F8}b /me поставил(а) подпись {enter}{F8}
 }
 return
 
@@ -5032,42 +5238,42 @@ return
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /do В бардачке патрульного автомобиля находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
+Send, /do В бардачке патрульного автомобиля находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% бардачок патрульного автомобиля и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
+Send, /me открыл%ok1% бардачок патрульного автомобиля и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
+Send, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
 }
 else if (CheckMB = "МР") {
-SendPlay, /do В кофре патрульного мотоцикла находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
+Send, /do В кофре патрульного мотоцикла находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% кофр патрульного мотоцикла и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
+Send, /me открыл%ok1% кофр патрульного мотоцикла и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
+Send, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
 }
 Return
 :?:/таум2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me включил%ok1% тауметр и переш%ok7% в режим калибровки{Enter}{F6}
+Send, /me включил%ok1% тауметр и переш%ok7% в режим калибровки{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me совместил%ok1% измерительные датчики прибора и запустил%ok1% калибровку{Enter}{F6} 
+Send, /me совместил%ok1% измерительные датчики прибора и запустил%ok1% калибровку{Enter}{F6} 
 SmartSleep(500)
-SendPlay, /do На дисплее тауметра отобразился результат калибровки.{Enter}{F6}
+Send, /do На дисплее тауметра отобразился результат калибровки.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me убедил%ok3% в успешной калибровке и подготовил%ok1% прибор к замеру{Enter} 
+Send, /me убедил%ok3% в успешной калибровке и подготовил%ok1% прибор к замеру{Enter} 
 Return
 :?:/таум3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Проверка тонировки, Гражданин открыл полностью окно?{Space}
+Send, /Проверка тонировки, Гражданин открыл полностью окно?{Space}
 Input, choice, V, {Enter}
 if (choice = "Да")
     Ton := "Гражданин, приподнимите водительское стекло и откройте дверь для проверки светопропускаемости."
@@ -5075,1326 +5281,1326 @@ else if (choice = "Нет")
     Ton := "Откройте водительскую дверь для измерения светопропускаемости."
 else
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, %Ton%{Enter}
+Send, %Ton%{Enter}
 Return
 :?:/таум4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me тщательно протёр%ok2% лобовое и передние боковые стёкла тряпочкой{Enter}{F6}
+Send, /me тщательно протёр%ok2% лобовое и передние боковые стёкла тряпочкой{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Поверхности стёкол очищены от загрязнений.{Enter}
+Send, /do Поверхности стёкол очищены от загрязнений.{Enter}
 Return
 :?:/таум5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me установил%ok1% измерительные датчики тауметра на стёкла автомобиля{Enter}{F6}
+Send, /me установил%ok1% измерительные датчики тауметра на стёкла автомобиля{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me произв%ok8% замер светопропускаемости лобового и передних боковых стёкол{Enter}{F6}
+Send, /me произв%ok8% замер светопропускаемости лобового и передних боковых стёкол{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do На дисплее тауметра отобразились результаты измерений.{Enter}{F6}
+Send, /do На дисплее тауметра отобразились результаты измерений.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me зафиксировал%ok1% полученные показания и снял%ok1% датчики со стекла{Enter}
+Send, /me зафиксировал%ok1% полученные показания и снял%ok1% датчики со стекла{Enter}
 Return
 :?:/таум6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
+Send, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в бордачок патрульного автомобиля{Enter}{F6}
+Send, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в бордачок патрульного автомобиля{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me закрыл%ok1% бордачок{Enter}{F6}
+Send, /me закрыл%ok1% бордачок{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Бордачок закрыт.{Enter}
+Send, /do Бордачок закрыт.{Enter}
 }
 else if (CheckMB = "МР") {
-SendPlay, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
+Send, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в кофр патрульного мотоцикла{Enter}{F6}
+Send, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в кофр патрульного мотоцикла{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me закрыл%ok1% кофр{Enter}{F6}
+Send, /me закрыл%ok1% кофр{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Кофр закрыт.{Enter}
+Send, /do Кофр закрыт.{Enter}
 }
 Return
 :?:/доктаум1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /do Бардачок открыт. {Enter}{F6}
+Send, /do Бардачок открыт. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Папка с документами на тауметр лежит в бардачке патрульного автомобиля. {Enter}{F6}
+Send, /do Папка с документами на тауметр лежит в бардачке патрульного автомобиля. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из бардачка папку с документами на тауметр {Enter}{F6}
+Send, /me достал%ok1% из бардачка папку с документами на тауметр {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
 else if (CheckMB = "МР") {
-SendPlay, /do Папка с документами на тауметр лежит в сумке на плече сотрудника. {Enter}{F6}
+Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр {Enter}{F6}
+Send, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
 Return
 :?:/доктаум2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги {Enter}{F6}
+Send, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do На документах указана отметка о поверке, прибор исправен, годен до 31.12.2026. {Enter}{F6}
+Send, /do На документах указана отметка о поверке, прибор исправен, годен до 31.12.2026. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me показал%ok1% документы гражданину для ознакомления {Enter}
+Send, /me показал%ok1% документы гражданину для ознакомления {Enter}
 Return
 :?:/доктаум3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее {Enter}{F6}
+Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Папка закрыта. {Enter}{F6}
+Send, /do Папка закрыта. {Enter}{F6}
 Return
 :?:/доктаум4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
+Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
 }
 else if (CheckMB = "МР") {
-SendPlay, /me положил%ok1% папку обратно в сумку {Enter}{F6}
+Send, /me положил%ok1% папку обратно в сумку {Enter}{F6}
 }
 Return
 :?:/докалко1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /do Бардачок открыт. {Enter}{F6}
+Send, /do Бардачок открыт. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Папка с документами на алкотестер лежит в бардачке патрульного автомобиля. {Enter}{F6}
+Send, /do Папка с документами на алкотестер лежит в бардачке патрульного автомобиля. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из бардачка папку с документами на алкотестер {Enter}{F6}
+Send, /me достал%ok1% из бардачка папку с документами на алкотестер {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
 else if (CheckMB = "МР") {
-SendPlay, /do Папка с документами на алкотестер лежит в сумке на плече сотрудника. {Enter}{F6}
+Send, /do Папка с документами на алкотестер лежит в сумке на плече сотрудника. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на алкотестер {Enter}{F6}
+Send, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на алкотестер {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
 Return
 :?:/докалко2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги {Enter}{F6}
+Send, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do На документах указана отметка о поверке, прибор исправен, годен до 31.12.2026. {Enter}{F6}
+Send, /do На документах указана отметка о поверке, прибор исправен, годен до 31.12.2026. {Enter}{F6}
 SmartSleep(500)
-SendPlay, /me показал%ok1% документы гражданину для ознакомления {Enter}
+Send, /me показал%ok1% документы гражданину для ознакомления {Enter}
 Return
 :?:/докалко3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее {Enter}{F6}
+Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее {Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Папка закрыта. {Enter}{F6}
+Send, /do Папка закрыта. {Enter}{F6}
 Return
 :?:/докалко4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
 if (CheckMB = "ОР/СР") {
-SendPlay, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
+Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
 }
 else if (CheckMB = "МР") {
-SendPlay, /me положил%ok1% папку обратно в сумку {Enter}{F6}
+Send, /me положил%ok1% папку обратно в сумку {Enter}{F6}
 }
 Return
 :?:/ор1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите Имя Фамилию человека в розыске ->{Space}
+Send, /Введите Имя Фамилию человека в розыске ->{Space}
 Input, Var1, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
+Send, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
+Send, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do База данных нарушителей открыта.{Enter}{F6}
+Send, /do База данных нарушителей открыта.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me ввел%ok1% данные в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
+Send, /me ввел%ok1% данные в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do На экране высветилась ориентировка.{Enter}{F6}
+Send, /do На экране высветилась ориентировка.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me повернул%ok1% служебный планшет экраном к гражданину{Enter}{F6}
+Send, /me повернул%ok1% служебный планшет экраном к гражданину{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do На экране ориентировка на гражданина "%Var1%".{Enter}
+Send, /do На экране ориентировка на гражданина "%Var1%".{Enter}
 Return
 :?:/лекция1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Правила пользования рацией".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Правила пользования рацией".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация - одно из средств взаимодействия между сотрудниками полиции и других структур.{Enter}{F6}
+Send, Рация - одно из средств взаимодействия между сотрудниками полиции и других структур.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация даёт возможность быстро связаться с сотрудниками, оперативно передавать информацию...{Enter}{F6}
+Send, Рация даёт возможность быстро связаться с сотрудниками, оперативно передавать информацию...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..вызывать подкрепление и докладывать о своём состоянии.{Enter}{F6}
+Send, ..вызывать подкрепление и докладывать о своём состоянии.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация закреплена на поясе или на нагрудном кармане у сотрудника.{Enter}{F6}
+Send, Рация закреплена на поясе или на нагрудном кармане у сотрудника.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация "ТАКТ" позволяет быстро переключить частоту и связываться не только...{Enter}{F6}
+Send, Рация "ТАКТ" позволяет быстро переключить частоту и связываться не только...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..с сотрудниками своего отдела, но и с сотрудниками других отделов или структур в целом.{Enter}{F6}
+Send, ..с сотрудниками своего отдела, но и с сотрудниками других отделов или структур в целом.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Так, есть 3 частоты: Локальная рация - связь с сотрудниками одного отдела{Enter}{F6}
+Send, Так, есть 3 частоты: Локальная рация - связь с сотрудниками одного отдела{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Используется для докладов, передачи информации экипажам или составу{Enter}{F6}
+Send, Используется для докладов, передачи информации экипажам или составу{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доклады о патруле делаются раз в 15 минут{Enter}{F6}
+Send, Доклады о патруле делаются раз в 15 минут{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доклады на стационарном посту делаются раз в 20 минут{Enter}{F6}
+Send, Доклады на стационарном посту делаются раз в 20 минут{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Использование: "/r XX-XX 10-0-1", "/r XX-XX 10-4 Н-2" или...{Enter}{F6}
+Send, /b Использование: "/r XX-XX 10-0-1", "/r XX-XX 10-4 Н-2" или...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b .."/r XX-XX Контроль XX-XX, доложите о местоположении."{Enter}{F6}
+Send, /b .."/r XX-XX Контроль XX-XX, доложите о местоположении."{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация МВД - общая частота полицейской рации, используемая для передачи информации...{Enter}{F6}
+Send, Рация МВД - общая частота полицейской рации, используемая для передачи информации...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..или подачи запросов в другие отделы и структуры МВД.{Enter}{F6}
+Send, ..или подачи запросов в другие отделы и структуры МВД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Используется при запросе сотрудников из другой структуры или при...{Enter}{F6}
+Send, Используется при запросе сотрудников из другой структуры или при...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..докладах об областном патрулировании или рейдах.{Enter}{F6}
+Send, ..докладах об областном патрулировании или рейдах.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Использование: "/ro [От кого][Кому] Суть запроса".{Enter}{F6}
+Send, /b Использование: "/ro [От кого][Кому] Суть запроса".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Пример: "/ro [УГИБДД-Н][ГУ МВД] Требуется сотрудник для оформления задержанного.{Enter}{F6}
+Send, /b Пример: "/ro [УГИБДД-Н][ГУ МВД] Требуется сотрудник для оформления задержанного.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация департамента - общая частота между всеми фракциями, включая РЖД, МЗ и МО.{Enter}{F6}
+Send, Рация департамента - общая частота между всеми фракциями, включая РЖД, МЗ и МО.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Рация департамента в основном нужна для вызова сотрудников отдельных фракций.{Enter}{F6}
+Send, Рация департамента в основном нужна для вызова сотрудников отдельных фракций.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, К примеру для вызова врачей.{Enter}{F6}
+Send, К примеру для вызова врачей.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Так же сотрудники ОАО РЖД, МЗ и МО могут вызывать сотрудников МВД по этой рации.{Enter}{F6}
+Send, Так же сотрудники ОАО РЖД, МЗ и МО могут вызывать сотрудников МВД по этой рации.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Пример: /d [УГИБДД-Н][МЗ] Требуется АСМП к *место*, произошло ДТП.{Enter}{F6}
+Send, /b Пример: /d [УГИБДД-Н][МЗ] Требуется АСМП к *место*, произошло ДТП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В рацию запрещено нести бред, засорять эфир, общаться, материться или угрожать.{Enter}{F6}
+Send, В рацию запрещено нести бред, засорять эфир, общаться, материться или угрожать.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b в НонРП рацию так же запрещено материться, конфликтовать и угрожать.{Enter}{F6}
+Send, /b в НонРП рацию так же запрещено материться, конфликтовать и угрожать.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, За нарушение правил пользования рацией вы будете наказаны.{Enter}{F6}
+Send, За нарушение правил пользования рацией вы будете наказаны.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции есть?{Enter}{F6}
+Send, Вопросы по лекции есть?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}
+Send, На этом лекция окончена.{Enter}
 Return
 :?:/лекция2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Субординация".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Субординация".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Субординация в полиции - это система служебных отношений, основанная на...{Enter}{F6}
+Send, Субординация в полиции - это система служебных отношений, основанная на...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...подчинении младших сотрудников старшим по должности...{Enter}{F6}
+Send, ...подчинении младших сотрудников старшим по должности...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...а также чёткая иерархия полномочий и ответственности.{Enter}{F6}
+Send, ...а также чёткая иерархия полномочий и ответственности.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Она проявляется в необходимости следовать приказам руководства, выполнять обязанности...{Enter}{F6}
+Send, Она проявляется в необходимости следовать приказам руководства, выполнять обязанности...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...в соответствии со своим званием и должностью...{Enter}{F6}
+Send, ...в соответствии со своим званием и должностью...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...а также в запрете "идти через голову" непосредственного начальника по служебным вопросам.{Enter}{F6}
+Send, ...а также в запрете "идти через голову" непосредственного начальника по служебным вопросам.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При общении на службе запрещено использовать слова "Да", "нет", "наверное", "не знаю", "можно".{Enter}{F6}
+Send, При общении на службе запрещено использовать слова "Да", "нет", "наверное", "не знаю", "можно".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При встрече с коллегами, а также с вышестоящими по званию и должности, сотрудник обязан выполнить традиционное воинское приветствие...{Enter}{F6}
+Send, При встрече с коллегами, а также с вышестоящими по званию и должности, сотрудник обязан выполнить традиционное воинское приветствие...{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  ...и обратиться со словами "Здравия желаю{!}"{Enter}{F6}
+Send,  ...и обратиться со словами "Здравия желаю{!}"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Обращение к старшим с целью задать вопрос, поинтересоваться должно выглядеть так:{Enter}{F6}
+Send, Обращение к старшим с целью задать вопрос, поинтересоваться должно выглядеть так:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, "Здравия желаю, товарищ (звание). Разрешите обратиться{!} Обращается (звание) (фамилия)."{Enter}{F6}
+Send, "Здравия желаю, товарищ (звание). Разрешите обратиться{!} Обращается (звание) (фамилия)."{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После положительного ответа разрешено задать интересующий вас вопрос.{Enter}{F6}
+Send, После положительного ответа разрешено задать интересующий вас вопрос.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также обращаться к старшим по званию вы всегда должны на "Вы".{Enter}{F6}
+Send, Также обращаться к старшим по званию вы всегда должны на "Вы".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Чтобы попросить разрешения встать в строй, после обращения необходимо...{Enter}{F6}
+Send, Чтобы попросить разрешения встать в строй, после обращения необходимо...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...сказать: "Разрешите встать в строй".{Enter}{F6}
+Send, ...сказать: "Разрешите встать в строй".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Для положительного ответа используется словосочетание "Так точно".{Enter}{F6}
+Send, Для положительного ответа используется словосочетание "Так точно".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Для негативного - "Никак нет".{Enter}{F6}
+Send, Для негативного - "Никак нет".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При получении приказа или указания к действию, необходимо сказать "Есть{!}" и беспрекословно...{Enter}{F6}
+Send, При получении приказа или указания к действию, необходимо сказать "Есть{!}" и беспрекословно...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...выполнять приказ вышестоящего.{Enter}{F6}
+Send, ...выполнять приказ вышестоящего.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При незнании ответа на вопрос, следует отвечать "Не могу знать, товарищ (звание)".{Enter}{F6}
+Send, При незнании ответа на вопрос, следует отвечать "Не могу знать, товарищ (звание)".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Субординация помогает поддерживать порядок, исключать панибратство и...{Enter}{F6}
+Send, Субординация помогает поддерживать порядок, исключать панибратство и...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...неформальные отношения, которые могут помешать...{Enter}{F6}
+Send, ...неформальные отношения, которые могут помешать...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...служебной деятельности.{Enter}{F6}
+Send, ...служебной деятельности.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции остались?{Enter}{F6}
+Send, Вопросы по лекции остались?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена. {Enter}
+Send, На этом лекция окончена. {Enter}
 Return
 :?:/лекция3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Патрулирование".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Патрулирование".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Прежде чем выехать в патруль вы должны быть сытым и при одетым в форму работника.{Enter}{F6}
+Send, Прежде чем выехать в патруль вы должны быть сытым и при одетым в форму работника.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В городе вы должны соблюдать ПДД и ехать не больше 60 км/ч.{Enter}{F6}
+Send, В городе вы должны соблюдать ПДД и ехать не больше 60 км/ч.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Для патруля вам запрещено использовать мигалку и сигнальные маячки.{Enter}{F6}
+Send, Для патруля вам запрещено использовать мигалку и сигнальные маячки.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В патруле вы следите за порядком в городе.{Enter}{F6}
+Send, В патруле вы следите за порядком в городе.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если вы увидели нарушение, вы должны немедленно принять меры.{Enter}{F6}
+Send, Если вы увидели нарушение, вы должны немедленно принять меры.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В патруль допускается не более трех сотрудников.{Enter}{F6}
+Send, В патруль допускается не более трех сотрудников.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Патрулировать разрешено во всех города и их окрестностях.{Enter}{F6}
+Send, Патрулировать разрешено во всех города и их окрестностях.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И делать доклады каждые 15 минут.{Enter}{F6}
+Send, И делать доклады каждые 15 минут.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У кого есть вопросы по этой лекции? {Enter}
+Send, У кого есть вопросы по этой лекции? {Enter}
 Return
 :?:/лекция4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Сирена и маячок".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Сирена и маячок".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Сирена и маячок есть только в специально оборудованном ТС.{Enter}{F6}
+Send, Сирена и маячок есть только в специально оборудованном ТС.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Маячок и сирена одновременно работают, что-то раздельно не работает.{Enter}{F6}
+Send, Маячок и сирена одновременно работают, что-то раздельно не работает.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Сирена с проблесковые маячки включается исключительно в служебных целях{!}{Enter}{F6}
+Send, Сирена с проблесковые маячки включается исключительно в служебных целях{!}{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Сирена с проблесковыми маячками включается, чтобы Вам уступили дорогу,{Enter}{F6}
+Send, Сирена с проблесковыми маячками включается, чтобы Вам уступили дорогу,{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  Обратили на Вас внимание и тому подобное.{Enter}{F6}
+Send,  Обратили на Вас внимание и тому подобное.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  Сирена с проблесковыми маячками даёт вам право на несоблюдение ПДД.{Enter}{F6}
+Send,  Сирена с проблесковыми маячками даёт вам право на несоблюдение ПДД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Не соблюдать ПДД можно тогда, когда это никому ничем не угрожает.{Enter}{F6}
+Send, Не соблюдать ПДД можно тогда, когда это никому ничем не угрожает.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, За нарушение правил использования сирен и проблесковых маячков выдается наказание.{Enter}{F6}
+Send, За нарушение правил использования сирен и проблесковых маячков выдается наказание.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У кого есть вопросы по этой лекции?{Enter}
+Send, У кого есть вопросы по этой лекции?{Enter}
 Return
 :?:/лекция5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Правила поведения в строю".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Правила поведения в строю".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Строевой устав определяет строевые приемы и движение без оружия и с оружием,{Enter}{F6}
+Send, Строевой устав определяет строевые приемы и движение без оружия и с оружием,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, строй подразделений в пешем порядке и на машинах; порядок выполнения воинского приветствия,...{Enter}{F6}
+Send, строй подразделений в пешем порядке и на машинах; порядок выполнения воинского приветствия,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...проведения строевого смотра.{Enter}{F6}
+Send, ...проведения строевого смотра.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, обязанности сотрудников полиции перед построением и в строю и требования к их строевому обучению.{Enter}{F6}
+Send, обязанности сотрудников полиции перед построением и в строю и требования к их строевому обучению.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Каждый сотрудник полиции обязан знать соответствующую основную терминологию:{Enter}{F6}
+Send, Каждый сотрудник полиции обязан знать соответствующую основную терминологию:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Строй - установленное уставом размещение сотрудников, отделов для их совместных действий...{Enter}{F6}
+Send, Строй - установленное уставом размещение сотрудников, отделов для их совместных действий...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...в пешем порядке и на машинах.{Enter}{F6}
+Send, ...в пешем порядке и на машинах.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Шеренга - строй, в котором сотрудники размещены один возле другого на одной линии...{Enter}{F6}
+Send, Шеренга - строй, в котором сотрудники размещены один возле другого на одной линии...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...на установленных интервалах.{Enter}{F6}
+Send, ...на установленных интервалах.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Интервал - расстояние между сотрудниками (машинами) и отделами.{Enter}{F6}
+Send, Интервал - расстояние между сотрудниками (машинами) и отделами.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Дистанция - расстояние в глубину между сотрудниками (машинами) и отделами.{Enter}{F6}
+Send, Дистанция - расстояние в глубину между сотрудниками (машинами) и отделами.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Колонна - строй, в котором сотрудники расположены в затылок друг другу,...{Enter}{F6}
+Send, Колонна - строй, в котором сотрудники расположены в затылок друг другу,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ... а отделы (машины) - одно за другим на дистанциях установленных уставом...{Enter}{F6}
+Send, ... а отделы (машины) - одно за другим на дистанциях установленных уставом...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...или командиром. Колонны могут быть по одному, по два, по три, по четыре и более.{Enter}{F6}
+Send, ...или командиром. Колонны могут быть по одному, по два, по три, по четыре и более.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Направляющий - сотрудник (отдел, машина), движущийся головным в указанном направлении.{Enter}{F6}
+Send, Направляющий - сотрудник (отдел, машина), движущийся головным в указанном направлении.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, По направляющему сообразуют свое движение остальные сотрудники (отделы, машины).{Enter}{F6}
+Send, По направляющему сообразуют свое движение остальные сотрудники (отделы, машины).{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Замыкающий - сотрудник (подразделение, машина), движущийся последним в колонне.{Enter}{F6}
+Send, Замыкающий - сотрудник (подразделение, машина), движущийся последним в колонне.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Управление строем осуществляется четкими командами и приказаниями, которые подаются командиром...{Enter}{F6}
+Send, Управление строем осуществляется четкими командами и приказаниями, которые подаются командиром...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...голосом, сигналами и личным примером, а также передаются с помощью...{Enter}{F6}
+Send, ...голосом, сигналами и личным примером, а также передаются с помощью...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...технических и подвижных средств.{Enter}{F6}
+Send, ...технических и подвижных средств.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Строй выстраивается в определённом порядке: от направляющего в одну из сторон,...{Enter}{F6}
+Send, Строй выстраивается в определённом порядке: от направляющего в одну из сторон,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...которая устанавливается в момент формирования строя.{Enter}{F6}
+Send, ...которая устанавливается в момент формирования строя.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Руководящий состав выстраивается перпендикулярно строю, начиная от направляющего, образуя угол.{Enter}{F6}
+Send, Руководящий состав выстраивается перпендикулярно строю, начиная от направляющего, образуя угол.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Командующий строем стоит лицом к строю.{Enter}{F6}
+Send, Командующий строем стоит лицом к строю.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, О построении может объявить только руководство подразделения полиции. Исключение: приказ.{Enter}{F6}
+Send, О построении может объявить только руководство подразделения полиции. Исключение: приказ.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В строю строго запрещено:{Enter}{F6}
+Send, В строю строго запрещено:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Разговаривать в строю без разрешения командующего строем{Enter}{F6}
+Send, Разговаривать в строю без разрешения командующего строем{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Пользоваться мобильными телефонами{Enter}{F6}
+Send, Пользоваться мобильными телефонами{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доставать оружие и открывать огонь без приказа командующего строем{Enter}{F6}
+Send, Доставать оружие и открывать огонь без приказа командующего строем{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вставать в строй без разрешения командующего строем{Enter}{F6}
+Send, Вставать в строй без разрешения командующего строем{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Засыпать в строю более чем на 60 секунд{Enter}{F6}
+Send, Засыпать в строю более чем на 60 секунд{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Самовольно покидать строй, двигаться, жестикулировать и прочее{Enter}{F6}
+Send, Самовольно покидать строй, двигаться, жестикулировать и прочее{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Перебивать командующего строем{Enter}{F6}
+Send, Перебивать командующего строем{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Отсутствовать на построении без предупреждения командующего строем{Enter}{F6}
+Send, Отсутствовать на построении без предупреждения командующего строем{Enter}{F6}
 SmartSleep(2000)
-SendPlay, За нарушение запретов и правил поведения в строю вы будете наказаны.{Enter}{F6}
+Send, За нарушение запретов и правил поведения в строю вы будете наказаны.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции есть?{Enter}{F6}
+Send, Вопросы по лекции есть?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция подошла к концу.{Enter}
+Send, На этом лекция подошла к концу.{Enter}
 Return
 :?:/лекция6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00«Тен-коды».{Enter}{F6}
+Send, Тема лекции {#}ffff00«Тен-коды».{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Каждый сотрудник обязан хорошо знать тен-коды.{Enter}{F6}
+Send, Каждый сотрудник обязан хорошо знать тен-коды.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доклады в рацию делаются обязательно со встпулением в виде кода вашего отдела{Enter}{F6}
+Send, Доклады в рацию делаются обязательно со встпулением в виде кода вашего отдела{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И номера удостоверения.{Enter}{F6}
+Send, И номера удостоверения.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Например: 62-17, где 62 - номер отдела, а 17 - номер удостоверения.{Enter}{F6}
+Send, Например: 62-17, где 62 - номер отдела, а 17 - номер удостоверения.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Далее идет информация, которую вы хотите доложить.{Enter}{F6}
+Send, Далее идет информация, которую вы хотите доложить.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Например: 62-17 10-1, где 10-1 - выезд в патруль.{Enter}{F6}
+Send, Например: 62-17 10-1, где 10-1 - выезд в патруль.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доклады делаются строго по форме с использованием тен-кодов.{Enter}{F6}
+Send, Доклады делаются строго по форме с использованием тен-кодов.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Исключение - погоня, когда нужно доложить метоположение. После кода отдела,{Enter}{F6}
+Send, Исключение - погоня, когда нужно доложить метоположение. После кода отдела,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Номера удостоверения и обозначения кода состояния вы сообщаете местоположение погони.{Enter}{F6}
+Send, Номера удостоверения и обозначения кода состояния вы сообщаете местоположение погони.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Например: 62-17 Код-1 Веду преследование нарушителя, находимся у ЖД Вокзала.{Enter}{F6}
+Send, Например: 62-17 Код-1 Веду преследование нарушителя, находимся у ЖД Вокзала.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также не забывайте про остальные коды подачи информации,{Enter}{F6}
+Send, Также не забывайте про остальные коды подачи информации,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Которые вы обязаны докладывать во время оформления и так далее.{Enter}{F6}
+Send, Которые вы обязаны докладывать во время оформления и так далее.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Присутствует команда "контроль", на которую нужно отвечать так же по опреденной форме{Enter}{F6}
+Send, Присутствует команда "контроль", на которую нужно отвечать так же по опреденной форме{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В зависимости от того, что именно у вас запрашивают.{Enter}{F6}
+Send, В зависимости от того, что именно у вас запрашивают.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Например, Генерал-Майор хочет узнать, кто сейчас в патруле: 62-17 Контроль 62-30 ваше 10-20.{Enter}{F6}
+Send, Например, Генерал-Майор хочет узнать, кто сейчас в патруле: 62-17 Контроль 62-30 ваше 10-20.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Тот к кому обращаются должен ответить 62-30 Контроль 66-01 и ваше местоположение.{Enter}{F6}
+Send, Тот к кому обращаются должен ответить 62-30 Контроль 66-01 и ваше местоположение.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У кого-нибудь есть вопросы по этой лекции?{Enter}{F6}
+Send, У кого-нибудь есть вопросы по этой лекции?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Отлично, тогда на этом лекция окончена.{Enter}
+Send, Отлично, тогда на этом лекция окончена.{Enter}
 Return
 :?:/лекция7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00«Погоня».{Enter}{F6}
+Send, Тема лекции {#}ffff00«Погоня».{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Погоня - это физическое преследование с целью настигнуть кого-то или что-то.{Enter}{F6}
+Send, Погоня - это физическое преследование с целью настигнуть кого-то или что-то.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Погоня делится на два типа: пешая и автомобильная.{Enter}{F6}
+Send, Погоня делится на два типа: пешая и автомобильная.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При автомобильной погоне разрешено:{Enter}{F6}
+Send, При автомобильной погоне разрешено:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, использовать специальные маневры для остановки нарушителя{Enter}{F6}
+Send, использовать специальные маневры для остановки нарушителя{Enter}{F6}
 SmartSleep(2000)
-SendPlay, использовать спец.средства и табельное оружие организовывать блок-посты,перекрытия{Enter}{F6}
+Send, использовать спец.средства и табельное оружие организовывать блок-посты,перекрытия{Enter}{F6}
 SmartSleep(2000)
-SendPlay, привлекать другие экипажи/структуры МВД для остановки нарушителя{Enter}{F6}
+Send, привлекать другие экипажи/структуры МВД для остановки нарушителя{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При автомобильной погоне запрещено:использовать прямой таран для остановки т/с.{Enter}{F6}
+Send, При автомобильной погоне запрещено:использовать прямой таран для остановки т/с.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, уезжать с места ДТП при столкновении с гражданским автомобилем, не относящийся к погоне.{Enter}{F6}
+Send, уезжать с места ДТП при столкновении с гражданским автомобилем, не относящийся к погоне.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также продолжать погоню после подобного ДТП.{Enter}{F6}
+Send, Также продолжать погоню после подобного ДТП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  ЕПП/ЕПР на автомобилях не предназначенных для этого{Enter}{F6}
+Send,  ЕПП/ЕПР на автомобилях не предназначенных для этого{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ЕПТ на любом ТС.{Enter}{F6}
+Send, ЕПТ на любом ТС.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При пешей погоне разрешается:{Enter}{F6}
+Send, При пешей погоне разрешается:{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  использовать специальные средства для задержания нарушителя{Enter}{F6}
+Send,  использовать специальные средства для задержания нарушителя{Enter}{F6}
 SmartSleep(2000)
-SendPlay, привлекать другие экипажи/структуры МВД для остановки нарушителя.{Enter}{F6}
+Send, привлекать другие экипажи/структуры МВД для остановки нарушителя.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, в случае, если гражданин далеко убежал в поле, то сотрудник может попросить гражданина.{Enter}{F6}
+Send, в случае, если гражданин далеко убежал в поле, то сотрудник может попросить гражданина.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, на ЕПП авто и чтобы гражданин помог в участии погони.{Enter}{F6}
+Send, на ЕПП авто и чтобы гражданин помог в участии погони.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При пешей погоне запрещено использовать без предупреждений табельное оружие{Enter}{F6}
+Send, При пешей погоне запрещено использовать без предупреждений табельное оружие{Enter}{F6}
 SmartSleep(2000)
-SendPlay, и прыгать в ответ за гражданином.{Enter}{F6}
+Send, и прыгать в ответ за гражданином.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Во время погони присваиваются следующие статусы:{Enter}{F6}
+Send, Во время погони присваиваются следующие статусы:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Зеленый - Данный статус присваивается сразу после начала погони{Enter}{F6}
+Send, Зеленый - Данный статус присваивается сразу после начала погони{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Основной задачей сотрудник является преследование нарушителя и выдача предупреждений об остановке,{Enter}{F6}
+Send, Основной задачей сотрудник является преследование нарушителя и выдача предупреждений об остановке,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, передача ориентировки другим экипажам,{Enter}{F6}
+Send, передача ориентировки другим экипажам,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, применение специальных маневров при возможности.{Enter}{F6}
+Send, применение специальных маневров при возможности.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При специальном маневре стоит учитывать скорость автомобиля, рельеф, населенность.{Enter}{F6}
+Send, При специальном маневре стоит учитывать скорость автомобиля, рельеф, населенность.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Желтый - данный статус присваивается после того, как прошло более 3-ех минут с начала погони.{Enter}{F6}
+Send, Желтый - данный статус присваивается после того, как прошло более 3-ех минут с начала погони.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Основной задачей сотрудника является намеренная остановка транспортного средства{Enter}{F6}
+Send, Основной задачей сотрудника является намеренная остановка транспортного средства{Enter}{F6}
 SmartSleep(2000)
-SendPlay, при этом не стоит забывать про предупредительный выстрел в воздух и стрельбу по колесам.{Enter}{F6}
+Send, при этом не стоит забывать про предупредительный выстрел в воздух и стрельбу по колесам.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Только после этого, выполняется стрельба по двигателю.{Enter}{F6}
+Send, Только после этого, выполняется стрельба по двигателю.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Красный-данный статус присваивается в случае реальной угрозы сотруднику полиции, гражданским лицам.{Enter}{F6}
+Send, Красный-данный статус присваивается в случае реальной угрозы сотруднику полиции, гражданским лицам.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Интервал между предупреждениями - не меньше 15 секунд.{Enter}{F6}
+Send, Интервал между предупреждениями - не меньше 15 секунд.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В отдельной роте сотрудник должен откинуть минимум 5 предупреждений,{Enter}{F6}
+Send, В отдельной роте сотрудник должен откинуть минимум 5 предупреждений,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Из которых 4 - об остановке, и 1 перед открытием огня.{Enter}{F6}
+Send, Из которых 4 - об остановке, и 1 перед открытием огня.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,На этом лекция «Правила ведения погони» окончена.{Enter}
+Send,На этом лекция «Правила ведения погони» окончена.{Enter}
 Return
 :?:/лекция8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00«Составление протокола о нарушении ПДД».{Enter}{F6}
+Send, Тема лекции {#}ffff00«Составление протокола о нарушении ПДД».{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если вы заметели, как гражданин нарушает ПДД, вы должны попросить прижаться его к обочине.{Enter}{F6}
+Send, Если вы заметели, как гражданин нарушает ПДД, вы должны попросить прижаться его к обочине.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При остановке представляемся гражданину, просим его ВУ, говорим за что его остановили.{Enter}{F6}
+Send, При остановке представляемся гражданину, просим его ВУ, говорим за что его остановили.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Когда гражданин даёт вам документы, вы тщательно изучаете их.{Enter}{F6}
+Send, Когда гражданин даёт вам документы, вы тщательно изучаете их.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также пробиваете документы гражданина через КПК, чтобы узнать наличие штрафов.{Enter}{F6}
+Send, Также пробиваете документы гражданина через КПК, чтобы узнать наличие штрафов.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Называете гражданину пункт КоАП и сумму штрафа.{Enter}{F6}
+Send, Называете гражданину пункт КоАП и сумму штрафа.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После чего составляете протокол о нарушении КоАП, и далее передаем его на подпись гражданину.{Enter}{F6}
+Send, После чего составляете протокол о нарушении КоАП, и далее передаем его на подпись гражданину.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если гражданин не согласен, то ставим метку об несогласии.{Enter}{F6}
+Send, Если гражданин не согласен, то ставим метку об несогласии.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Далее вырываем копию и передаем гражданину.{Enter}{F6}
+Send, Далее вырываем копию и передаем гражданину.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Далее выдает штраф уже сам через КПК.{Enter}{F6}
+Send, Далее выдает штраф уже сам через КПК.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У кого-нибудь есть вопросы по этой лекции?{Enter}
+Send, У кого-нибудь есть вопросы по этой лекции?{Enter}
 Return
 :?:/лекция9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Сейчас пройдет лекция {#}ffff00«Взаимодействие с гражданскими лицами».{Enter}{F6}
+Send, Сейчас пройдет лекция {#}ffff00«Взаимодействие с гражданскими лицами».{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Согласно 2.4.4.1 ФЗоП - сотрудник полиции, при обращении к гражданину обязан:{Enter}{F6}
+Send, Согласно 2.4.4.1 ФЗоП - сотрудник полиции, при обращении к гражданину обязан:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, назвать свои должность, звание, фамилию, предъявить по обосновоннаму требованию гражданина{Enter}{F6}
+Send, назвать свои должность, звание, фамилию, предъявить по обосновоннаму требованию гражданина{Enter}{F6}
 SmartSleep(500)
-SendPlay, служебное удостоверение,{Enter}{F6}
+Send, служебное удостоверение,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, после чего сообщить причину и цель обращения.{Enter}{F6}
+Send, после чего сообщить причину и цель обращения.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  Сотрудникам гос.структур категорически запрещено переходить на “Ты” с гражданскими лицами.{Enter}{F6}
+Send,  Сотрудникам гос.структур категорически запрещено переходить на “Ты” с гражданскими лицами.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также сотрудникам гос. структур запрещено использовать нецензурную лексику.{Enter}{F6}
+Send, Также сотрудникам гос. структур запрещено использовать нецензурную лексику.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Во время взаимодействия с гражданскими соблюдайте субординацию, общайтесь вежливо{Enter}{F6}
+Send, Во время взаимодействия с гражданскими соблюдайте субординацию, общайтесь вежливо{Enter}{F6}
 SmartSleep(500)
-SendPlay, и без каких-либо насмешек, угроз, шуток.{Enter}{F6}
+Send, и без каких-либо насмешек, угроз, шуток.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Субординация разрешено не соблюдать если Вам дано разрешение на это.{Enter}{F6}
+Send, Субординация разрешено не соблюдать если Вам дано разрешение на это.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Дружеские отношения в составе МВД не запрещены, а даже наоборот, поощряются.{Enter}{F6}
+Send, Дружеские отношения в составе МВД не запрещены, а даже наоборот, поощряются.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Но, если рядом с Вами гражданские, рекомендуется всё таки соблюдать субординацию.{Enter}{F6}
+Send, Но, если рядом с Вами гражданские, рекомендуется всё таки соблюдать субординацию.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция «Взаимодействие с гражданскими лицами» окончена.{Enter}
+Send, На этом лекция «Взаимодействие с гражданскими лицами» окончена.{Enter}
 Return
 :?:/лекция10::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Табельное оружие".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Табельное оружие".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Табельное оружие выдаётся сотруднику полиции, начиная со звания Старшина.{Enter}{F6}
+Send, Табельное оружие выдаётся сотруднику полиции, начиная со звания Старшина.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Существуют правила пользования табельным оружием.{Enter}{F6}
+Send, Существуют правила пользования табельным оружием.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Запрещено просто так доставать табельное оружие, махать им...{Enter}{F6}
+Send, Запрещено просто так доставать табельное оружие, махать им...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..показывать и стрелять просто так.{Enter}{F6}
+Send, ..показывать и стрелять просто так.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Табельное оружие используется для выполнения сотрудником...{Enter}{F6}
+Send, Табельное оружие используется для выполнения сотрудником...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..служебных обязанностей, а так же для самообороны.{Enter}{F6}
+Send, ..служебных обязанностей, а так же для самообороны.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Сотрудникам полиции доступно три вида оружия:{Enter}{F6}
+Send, Сотрудникам полиции доступно три вида оружия:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Пистолет МР-443 Грач, Автомат АК-74М и Дробовик МР-133.{Enter}{F6}
+Send, Пистолет МР-443 Грач, Автомат АК-74М и Дробовик МР-133.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Пистолет МР-443 Грач доступен сотрудникам со звания Старшины.{Enter}{F6}
+Send, Пистолет МР-443 Грач доступен сотрудникам со звания Старшины.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Автомат АК-74М доступен сотрудникам со звания Майор в ОР, или со звания Лейтенант в СР.{Enter}{F6}
+Send, Автомат АК-74М доступен сотрудникам со звания Майор в ОР, или со звания Лейтенант в СР.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Дробовик МР-443 доступен только сотрудникам Управляющего и Руководящего состава.{Enter}{F6}
+Send, Дробовик МР-443 доступен только сотрудникам Управляющего и Руководящего состава.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Пистолет применяется для остановки транспортных средств,...{Enter}{F6}
+Send, Пистолет применяется для остановки транспортных средств,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..при нападении на сотрудника трёх и более гражданских лиц без оружия..{Enter}{F6}
+Send, ..при нападении на сотрудника трёх и более гражданских лиц без оружия..{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При вооруженном сопротивлении или вооруженном нападении на сотрудника и/или гражданских лиц,..{Enter}{F6}
+Send, При вооруженном сопротивлении или вооруженном нападении на сотрудника и/или гражданских лиц,..{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Автомат можно применять за пределами городской местности в тех же целях,...{Enter}{F6}
+Send, Автомат можно применять за пределами городской местности в тех же целях,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..или же в городской местности с условием отсутствия патронов на пистолет, или если пистолет...{Enter}{F6}
+Send, ..или же в городской местности с условием отсутствия патронов на пистолет, или если пистолет...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, .. малоэффективен и промедление может повлечь последствия.{Enter}{F6}
+Send, .. малоэффективен и промедление может повлечь последствия.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Из автомата запрещено стрелять с пассажирского места в городе и за городом...{Enter}{F6}
+Send, Из автомата запрещено стрелять с пассажирского места в городе и за городом...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..на скорости более 200 км/ч.{Enter}{F6}
+Send, ..на скорости более 200 км/ч.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Так же запрещено стрелять из автомата с водительского места.{Enter}{F6}
+Send, Так же запрещено стрелять из автомата с водительского места.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Дробовик можно применять за городом при вооруженном конфликте или при...{Enter}{F6}
+Send, Дробовик можно применять за городом при вооруженном конфликте или при...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..малой эффективности автомата.{Enter}{F6}
+Send, ..малой эффективности автомата.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В городской местности дробовик можно применять при отсутствии иного вооружения или...{Enter}{F6}
+Send, В городской местности дробовик можно применять при отсутствии иного вооружения или...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..патронов к нему.{Enter}{F6}
+Send, ..патронов к нему.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Из дробовика запрещено стрелять, находясь в машине.{Enter}{F6}
+Send, Из дробовика запрещено стрелять, находясь в машине.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В случае отсутствия патронов к табельному оружию сотрудник придерживается постепенного правила:{Enter}{F6}
+Send, В случае отсутствия патронов к табельному оружию сотрудник придерживается постепенного правила:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...пистолет-автомат-дробовик.{Enter}{F6}
+Send, ...пистолет-автомат-дробовик.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Водителю запрещено использовать табельное оружие, если есть вооруженный напарник.{Enter}{F6}
+Send, Водителю запрещено использовать табельное оружие, если есть вооруженный напарник.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если все вооруженные напарники истратили свой боезапас, водитель имеет право...{Enter}{F6}
+Send, Если все вооруженные напарники истратили свой боезапас, водитель имеет право...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..открыть огонь из пистолета.{Enter}{F6}
+Send, ..открыть огонь из пистолета.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, При применении табельного оружия сотрудник действует на основаниях ФЗ «О полиции».{Enter}{F6}
+Send, При применении табельного оружия сотрудник действует на основаниях ФЗ «О полиции».{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В случаях, предусмотренных ФЗ «О полиции», сотрудник вправе предупреждать или не предупреждать...{Enter}{F6}
+Send, В случаях, предусмотренных ФЗ «О полиции», сотрудник вправе предупреждать или не предупреждать...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..граждан о применении в отношении них огнестрельного оружия.{Enter}{F6}
+Send, ..граждан о применении в отношении них огнестрельного оружия.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, За нарушения правил пользования табельным оружием вы будете сурово наказаны.{Enter}{F6}
+Send, За нарушения правил пользования табельным оружием вы будете сурово наказаны.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции имеются?{Enter}{F6}
+Send, Вопросы по лекции имеются?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}
+Send, На этом лекция окончена.{Enter}
 Return
 :?:/лекция11::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Обработка вызова".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Обработка вызова".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Обработка вызова - это важный этап в работе любого сотрудника УГИБДД.{Enter}{F6}
+Send, Обработка вызова - это важный этап в работе любого сотрудника УГИБДД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, От оперативности и качества обработки зависит своевременность реагирования на происшествия,{Enter}{F6}
+Send, От оперативности и качества обработки зависит своевременность реагирования на происшествия,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, эффективность работы правоохранительных органов и, в конечном итоге, жизнь и безопасность людей.{Enter}{F6}
+Send, эффективность работы правоохранительных органов и, в конечном итоге, жизнь и безопасность людей.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Прием вызова: "ХХ-ХХ 10-24" - это стандартный тен-код, используемый для подтверждения приема вызова в рацию.{Enter}{F6}
+Send, Прием вызова: "ХХ-ХХ 10-24" - это стандартный тен-код, используемый для подтверждения приема вызова в рацию.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Прибытие на место: "ХХ-ХХ 10-25" - этот тен-код подтверждает прибытие на место вызова.{Enter}{F6}
+Send, Прибытие на место: "ХХ-ХХ 10-25" - этот тен-код подтверждает прибытие на место вызова.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, По прибытию, в случае если гражданское лицо находится на месте вызова{Enter}{F6} 
+Send, По прибытию, в случае если гражданское лицо находится на месте вызова{Enter}{F6} 
 SmartSleep(2000)
-SendPlay, Вы должны подойти к нему, представиться и узнать цель вызова.{Enter}{F6}
+Send, Вы должны подойти к нему, представиться и узнать цель вызова.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Соблюдайте этику общения, не переходите на "Ты" с заявителем, будьте вежливы и тактичны.{Enter}{F6}
+Send, Соблюдайте этику общения, не переходите на "Ты" с заявителем, будьте вежливы и тактичны.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Каждая деталь может быть важной для установления всех обстоятельств происшествия.{Enter}{F6}
+Send, Каждая деталь может быть важной для установления всех обстоятельств происшествия.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Не разглашайте информацию о заявителе или происшествии третьим лицам.{Enter}{F6}
+Send, Не разглашайте информацию о заявителе или происшествии третьим лицам.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы должны внимательно выслушать заявителя, чтобы получить максимально полную информацию о происшествии.{Enter}{F6}
+Send, Вы должны внимательно выслушать заявителя, чтобы получить максимально полную информацию о происшествии.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Важно фиксировать ключевые моменты разговора, записывая необходимые данные:{Enter}{F6}
+Send, Важно фиксировать ключевые моменты разговора, записывая необходимые данные:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, место происшествия, время, описание ситуации, контактные данные заявителя.{Enter}{F6}
+Send, место происшествия, время, описание ситуации, контактные данные заявителя.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Основные действия на вызове:{Enter}{F6}
+Send, Основные действия на вызове:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Оказать первую помощь пострадавшим, если это необходимо, до приезда скорой помощи.{Enter}{F6}
+Send, Оказать первую помощь пострадавшим, если это необходимо, до приезда скорой помощи.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В случае необходимости задержать подозреваемых.{Enter}{F6}
+Send, В случае необходимости задержать подозреваемых.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, О конечной обработке вызова вы докладываете “ХХ-ХХ 10-26”, что говорит о том{Enter}{F6}
+Send, О конечной обработке вызова вы докладываете “ХХ-ХХ 10-26”, что говорит о том{Enter}{F6}
 SmartSleep(2000)
-SendPlay, что вызов от гражданского лица обработан и закрыт.{Enter}{F6}
+Send, что вызов от гражданского лица обработан и закрыт.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В том случае, если по приезду на вызов, на нем не оказалось человека, сделавшего вызов, вызов считается “Ложным”,{Enter}{F6}
+Send, В том случае, если по приезду на вызов, на нем не оказалось человека, сделавшего вызов, вызов считается “Ложным”,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, в таком случае вы докладываете “ХХ-ХХ 10-26ЛВ”.{Enter}{F6}
+Send, в таком случае вы докладываете “ХХ-ХХ 10-26ЛВ”.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Обработка вызова - это ответственная задача, требующая от сотрудника УГИБДД высокого {Enter}{F6}
+Send, Обработка вызова - это ответственная задача, требующая от сотрудника УГИБДД высокого {Enter}{F6}
 SmartSleep(2000)
-SendPlay, уровня профессионализма, стрессоустойчивости,{Enter}{F6}
+Send, уровня профессионализма, стрессоустойчивости,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, знания своих обязанностей и умения действовать в сложных ситуациях.{Enter}{F6}
+Send, знания своих обязанностей и умения действовать в сложных ситуациях.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Соблюдение этих правил поможет обеспечить оперативность и эффективность реагирования правоохранительных органов на происшествия,{Enter}{F6}
+Send, Соблюдение этих правил поможет обеспечить оперативность и эффективность реагирования правоохранительных органов на происшествия,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, что, в конечном итоге, спасет жизнь и обеспечит безопасность людей.{Enter}{F6}
+Send, что, в конечном итоге, спасет жизнь и обеспечит безопасность людей.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции остались?{Enter}{F6}
+Send, Вопросы по лекции остались?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Лекция окончена.{Enter}
+Send, Лекция окончена.{Enter}
 Return
 :?:/лекция12::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Заступление в патруль".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Заступление в патруль".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Каждый сотрудник, прежде чем заступить в патруль должен быть сыт.{Enter}{F6}
+Send, Каждый сотрудник, прежде чем заступить в патруль должен быть сыт.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У него должно быть оружие. Поправлен быть значок.{Enter}{F6}
+Send, У него должно быть оружие. Поправлен быть значок.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, А также быть исправна машина.{Enter}{F6}
+Send, А также быть исправна машина.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Прежде чем выехать из гаража, сотрудник должен доложить в рацию о выезде.{Enter}{F6}
+Send, Прежде чем выехать из гаража, сотрудник должен доложить в рацию о выезде.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b тен-код 10-1{Enter}{F6}
+Send,  /b тен-код 10-1{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b Пример: 62-17 10-1{Enter}{F6}
+Send,  /b Пример: 62-17 10-1{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Во время патруля у него должна происходить съемка с видеорегистратора.{Enter}{F6}
+Send, Во время патруля у него должна происходить съемка с видеорегистратора.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если этого нету, устраните все недочеты и вступаете в патруль.{Enter}{F6}
+Send, Если этого нету, устраните все недочеты и вступаете в патруль.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  На этом лекция окончена.{Enter}{F6}
+Send,  На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  Если есть вопросы, задавайте{!}{Enter}
+Send,  Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция13::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Заступление на пост".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Заступление на пост".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Каждый сотрудник, прежде чем заступить на пост должен быть сыт.{Enter}{F6}
+Send, Каждый сотрудник, прежде чем заступить на пост должен быть сыт.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, У него должно быть оружие. Поправлен быть значок.{Enter}{F6}
+Send, У него должно быть оружие. Поправлен быть значок.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Он должен включить съемку на нагрудной камере.{Enter}{F6}
+Send, Он должен включить съемку на нагрудной камере.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Прежде чем заступить на пост, сотрудник должен доложить в рацию о заступлении.{Enter}{F6}
+Send, Прежде чем заступить на пост, сотрудник должен доложить в рацию о заступлении.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b тен-код 10-4 Номер поста{Enter}{F6}
+Send,  /b тен-код 10-4 Номер поста{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b Пример: 62-17 10-4 Н-3{Enter}{F6}
+Send,  /b Пример: 62-17 10-4 Н-3{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если этого нет, устраните все недочеты и заступить на пост.{Enter}{F6}
+Send, Если этого нет, устраните все недочеты и заступить на пост.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция14::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Правила поведения после окончания рабочего дня".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Правила поведения после окончания рабочего дня".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После 20:00 у вас заканчивается рабочий день в будние дни, после 19:00 по субботам,{Enter}{F6}
+Send, После 20:00 у вас заканчивается рабочий день в будние дни, после 19:00 по субботам,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, а в воскресенье выходной.{Enter}{F6}
+Send, а в воскресенье выходной.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы можете снять форму и пойти по своим делам.{Enter}{F6}
+Send, Вы можете снять форму и пойти по своим делам.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Однако существуют правила поведения на гражданке.{Enter}{F6}
+Send, Однако существуют правила поведения на гражданке.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы все также являетесь сотрудником УГИБДД и не должны это забывать.{Enter}{F6}
+Send, Вы все также являетесь сотрудником УГИБДД и не должны это забывать.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы должны соблюдать УКРП и КоАП Республики Провинция.{Enter}{F6}
+Send, Вы должны соблюдать УКРП и КоАП Республики Провинция.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также должны соблюдать Конституцию Провинции.{Enter}{F6}
+Send, Также должны соблюдать Конституцию Провинции.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, То есть, вы не должны лезть в драку.{Enter}{F6}
+Send, То есть, вы не должны лезть в драку.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Нецензурно выражаться, грубить и оскорблять других жителей республики Провинция.{Enter}{F6}
+Send, Нецензурно выражаться, грубить и оскорблять других жителей республики Провинция.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция15::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Выписка штрафа".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Выписка штрафа".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И так, писывать штраф разрешено только лицам, которые нарушили закон.{Enter}{F6}
+Send, И так, писывать штраф разрешено только лицам, которые нарушили закон.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Выписывать штраф нужно согласно статье, которое соответствует нарушению.{Enter}{F6}
+Send, Выписывать штраф нужно согласно статье, которое соответствует нарушению.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Категорически запрещено:{Enter}{F6}
+Send, Категорически запрещено:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Придумывать новые статьи.{Enter}{F6}
+Send, Придумывать новые статьи.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Выписывать штраф, если Вы сами не видели нарушения или не провели расследование.{Enter}{F6}
+Send, Выписывать штраф, если Вы сами не видели нарушения или не провели расследование.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Штраф выдаем по описанию статьи.{Enter}{F6}
+Send, Штраф выдаем по описанию статьи.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Например гражданин выполнил опасный занос.{Enter}{F6}
+Send, Например гражданин выполнил опасный занос.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы его останавливаете по 17.2 КоАП.{Enter}{F6}
+Send, Вы его останавливаете по 17.2 КоАП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Выписываете штраф.{Enter}{F6}
+Send, Выписываете штраф.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b /tsu ID игрока / сумма / объяснение{Enter}{F6}
+Send,  /b /tsu ID игрока / сумма / объяснение{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b /tsu 111 30000 17.2 КоАП{Enter}{F6}
+Send,  /b /tsu 111 30000 17.2 КоАП{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция16::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Конвоирование".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Конвоирование".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После того, как вы надели наручники на задержанного{Enter}{F6}
+Send, После того, как вы надели наручники на задержанного{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И обыскали его, а затем зачитали ему его права вы должны:{Enter}{F6}
+Send, И обыскали его, а затем зачитали ему его права вы должны:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Произвести действие, такое как как: конвоирование.{Enter}{F6}
+Send, Произвести действие, такое как как: конвоирование.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Оно включает в себя охрану задержанного, а именно:{Enter}{F6}
+Send, Оно включает в себя охрану задержанного, а именно:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Чтобы он не смог сбежать. Задержанного сажать на заднее место{Enter}{F6}
+Send, Чтобы он не смог сбежать. Задержанного сажать на заднее место{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Служебного транспорта, так как между передними и задними местами есть{Enter}{F6}
+Send, Служебного транспорта, так как между передними и задними местами есть{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Металлическая сетка, с помощью который задержанный не сможет совершить побег.{Enter}{F6}
+Send, Металлическая сетка, с помощью который задержанный не сможет совершить побег.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Произвести нападение, даже находясь в наручниках.{Enter}{F6}
+Send, Произвести нападение, даже находясь в наручниках.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция17::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Обыск".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Обыск".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Производить обыск может любой сотрудник, хоть даже Рядовой.{Enter}{F6}
+Send, Производить обыск может любой сотрудник, хоть даже Рядовой.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Обычные места для проведения обыска:{Enter}{F6}
+Send, Обычные места для проведения обыска:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Задержание гражданина, Приём, Блок-пост, Спецоперация.{Enter}{F6}
+Send, Задержание гражданина, Приём, Блок-пост, Спецоперация.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И тому подобное.{Enter}{F6}
+Send, И тому подобное.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Также обыск проводится после того, как вы надели наручники.{Enter}{F6}
+Send, Также обыск проводится после того, как вы надели наручники.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На преступника при задержании. Обыск проводить вне участка Полиции.{Enter}{F6}
+Send, На преступника при задержании. Обыск проводить вне участка Полиции.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Так как задержанный может с собой привезти огнестрельное оружие и так далее.{Enter}{F6}
+Send, Так как задержанный может с собой привезти огнестрельное оружие и так далее.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция18::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Вытаскивание подозреваемого из транспорта".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Вытаскивание подозреваемого из транспорта".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Высадка подозреваемого очень серьёзное действие.{Enter}{F6}
+Send, Высадка подозреваемого очень серьёзное действие.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Но прежде, чем это сделать надо попросить подозреваемого выйти из транспортного средства.{Enter}{F6}
+Send, Но прежде, чем это сделать надо попросить подозреваемого выйти из транспортного средства.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если он отказывается, то вы сначала объявляете его в розыск{Enter}{F6}
+Send, Если он отказывается, то вы сначала объявляете его в розыск{Enter}{F6}
 SmartSleep(2000)
-SendPlay, а потом начинаете ломать стекло двери{Enter}{F6}
+Send, а потом начинаете ломать стекло двери{Enter}{F6}
 SmartSleep(2000)
-SendPlay, чтобы открыть замок транспортного средства.{Enter}{F6}
+Send, чтобы открыть замок транспортного средства.{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b Стрелять не нужно{!}{Enter}{F6}
+Send,  /b Стрелять не нужно{!}{Enter}{F6}
 SmartSleep(2000)
-SendPlay,  /b В движении не вытаскивать преступника{!}{Enter}{F6}
+Send,  /b В движении не вытаскивать преступника{!}{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция19::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции {#}ffff00"Использование таб. оружия и спец. средств".{Enter}{F6}
+Send, Тема лекции {#}ffff00"Использование таб. оружия и спец. средств".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Применение табельного оружия и специальных средств - это крайняя мера{Enter}{F6}
+Send, Применение табельного оружия и специальных средств - это крайняя мера{Enter}{F6}
 SmartSleep(2000)
-SendPlay, к которой прибегают сотрудники УГИБДД только в случаях, предусмотренных законом{Enter}{F6}
+Send, к которой прибегают сотрудники УГИБДД только в случаях, предусмотренных законом{Enter}{F6}
 SmartSleep(2000)
-SendPlay, для предотвращения преступлений, задержания преступников{Enter}{F6}
+Send, для предотвращения преступлений, задержания преступников{Enter}{F6}
 SmartSleep(2000)
-SendPlay, защиты себя и других людей от опасности.{Enter}{F6}
+Send, защиты себя и других людей от опасности.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, порядок использования оружия и специальных средств сотрудниками полиции{Enter}{F6}
+Send, порядок использования оружия и специальных средств сотрудниками полиции{Enter}{F6}
 SmartSleep(2000)
-SendPlay, определяет Федеральный закон “О полиции”.{Enter}{F6}
+Send, определяет Федеральный закон “О полиции”.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Применение оружия и спецсредств допускается только в случае необходимости{Enter}{F6}
+Send, Применение оружия и спецсредств допускается только в случае необходимости{Enter}{F6}
 SmartSleep(2000)
-SendPlay, для предотвращения преступления или задержания преступника{Enter}{F6}
+Send, для предотвращения преступления или задержания преступника{Enter}{F6}
 SmartSleep(2000)
-SendPlay, защиты от опасности для себя или других лиц.{Enter}{F6}
+Send, защиты от опасности для себя или других лиц.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Перед применением оружия или спецсредств необходимо предупредить нарушителя{Enter}{F6}
+Send, Перед применением оружия или спецсредств необходимо предупредить нарушителя{Enter}{F6}
 SmartSleep(2000)
-SendPlay, о намерении их применить, за исключением случаев{Enter}{F6}
+Send, о намерении их применить, за исключением случаев{Enter}{F6}
 SmartSleep(2000)
-SendPlay, когда промедление опасно для жизни и здоровья людей.{Enter}{F6}
+Send, когда промедление опасно для жизни и здоровья людей.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Алгоритм действий при применении табельного оружия и специальных средств:{Enter}{F6}
+Send, Алгоритм действий при применении табельного оружия и специальных средств:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Определить характер угрозы и степень опасности.{Enter}{F6}
+Send, Определить характер угрозы и степень опасности.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Предупредить нарушителя о намерении применить оружие или спец. средства.{Enter}{F6}
+Send, Предупредить нарушителя о намерении применить оружие или спец. средства.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Выбрать оружие или спецсредство, пропорциональное степени опасности и характеру угрозы.{Enter}{F6}
+Send, Выбрать оружие или спецсредство, пропорциональное степени опасности и характеру угрозы.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Применить оружие или спецсредства с максимальной точностью и эффективностью,{Enter}{F6}
+Send, Применить оружие или спецсредства с максимальной точностью и эффективностью,{Enter}{F6}
 SmartSleep(2000)
-SendPlay, стараясь минимизировать потенциальный ущерб.{Enter}{F6}
+Send, стараясь минимизировать потенциальный ущерб.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Оказать необходимую помощь пострадавшим, вызвать скорую помощь{Enter}{F6}
+Send, Оказать необходимую помощь пострадавшим, вызвать скорую помощь{Enter}{F6}
 SmartSleep(2000)
-SendPlay, или другие службы, если это необходимо.{Enter}{F6}
+Send, или другие службы, если это необходимо.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Применение табельного оружия и специальных средств - это крайняя мера{Enter}{F6}
+Send, Применение табельного оружия и специальных средств - это крайняя мера{Enter}{F6}
 SmartSleep(2000)
-SendPlay, к которой сотрудники УГИБДД прибегают только в случаях крайней необходимости.{Enter}{F6}
+Send, к которой сотрудники УГИБДД прибегают только в случаях крайней необходимости.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Соблюдение правовых норм и алгоритма действий, а также высокая профессиональная{Enter}{F6}
+Send, Соблюдение правовых норм и алгоритма действий, а также высокая профессиональная{Enter}{F6}
 SmartSleep(2000)
-SendPlay, подготовка являются гарантией правомерности и безопасности использования оружия и спецсредств.{Enter}{F6}
+Send, подготовка являются гарантией правомерности и безопасности использования оружия и спецсредств.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}{F6}
+Send, На этом лекция окончена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если есть вопросы, задавайте{!}{Enter}
+Send, Если есть вопросы, задавайте{!}{Enter}
 Return
 :?:/лекция20:: 
 AbortBindFlag := 0
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {enter}
+Send, {enter}
 SmartSleep(50)
-SendPlay, {F8}say Лекция на тему {#}ffff00"Терроризм - угроза обществу". {enter}{F8}
+Send, {F8}say Лекция на тему {#}ffff00"Терроризм - угроза обществу". {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say В современном мире эти слова - обыденное. Вот вам пару советов, дабы спасти вашу жизнь. {enter}{F8}
+Send, {F8}say В современном мире эти слова - обыденное. Вот вам пару советов, дабы спасти вашу жизнь. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Обращайте внимание на подозрительных людей, предметы, на любые подозрительные мелочи. {enter}{F8}
+Send, {F8}say Обращайте внимание на подозрительных людей, предметы, на любые подозрительные мелочи. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Обо всем подозрительном сообщать сотрудникам правоохранительных органов. {enter}{F8}
+Send, {F8}say Обо всем подозрительном сообщать сотрудникам правоохранительных органов. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Особенно остерегайтесь людей, одетых явно не по сезону. {enter}{F8}
+Send, {F8}say Особенно остерегайтесь людей, одетых явно не по сезону. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Остерегайтесь людей с большими сумками и чемоданами, особенно, если они находятся в месте, не подходящем для такой поклажи. {enter}{F8}
+Send, {F8}say Остерегайтесь людей с большими сумками и чемоданами, особенно, если они находятся в месте, не подходящем для такой поклажи. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Будьте внимательны, постарайтесь запомнить приметы подозрительных людей, отличительные черты их лиц... {enter}{F8}
+Send, {F8}say Будьте внимательны, постарайтесь запомнить приметы подозрительных людей, отличительные черты их лиц... {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say одежду, имена, клички, возможные шрамы и татуировки, особенности речи и манеры поведения {enter}{F8}
+Send, {F8}say одежду, имена, клички, возможные шрамы и татуировки, особенности речи и манеры поведения {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Старайтесь удалиться на максимальное расстояние от тех, кто ведет себя неадекватно {enter}{F8} 
+Send, {F8}say Старайтесь удалиться на максимальное расстояние от тех, кто ведет себя неадекватно {enter}{F8} 
 SmartSleep(1500)
-SendPlay, {F8}say нервозно, испуганно, оглядываясь, проверяя что-то в одежде или в багаже. {enter}{F8}
+Send, {F8}say нервозно, испуганно, оглядываясь, проверяя что-то в одежде или в багаже. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Если вы не можете удалиться от подозрительного человека, следите за мимикой его лица {enter}{F8}
+Send, {F8}say Если вы не можете удалиться от подозрительного человека, следите за мимикой его лица {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Никогда не принимайте от незнакомцев пакеты и сумки, не оставляйте свои сумки без присмотра. {enter}{F8}
+Send, {F8}say Никогда не принимайте от незнакомцев пакеты и сумки, не оставляйте свои сумки без присмотра. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Ознакомьтесь с планом эвакуации, узнайте, где находятся резервные выходы из здания. {enter}{F8}
+Send, {F8}say Ознакомьтесь с планом эвакуации, узнайте, где находятся резервные выходы из здания. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Если произошел взрыв, пожар, вы слышите сильный шум и крики – немедленно приступайте к эвакуации. {enter}{F8}
+Send, {F8}say Если произошел взрыв, пожар, вы слышите сильный шум и крики – немедленно приступайте к эвакуации. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Возвращайтесь в покинутое помещение только после разрешения ответственных лиц. {enter}{F8}
+Send, {F8}say Возвращайтесь в покинутое помещение только после разрешения ответственных лиц. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Получив сообщение от руководства или правоохранительных органов о начале эвакуации. {enter}{F8}
+Send, {F8}say Получив сообщение от руководства или правоохранительных органов о начале эвакуации. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Соблюдайте спокойствие и четко выполняйте их команды. Старайтесь не поддаваться панике, что бы ни произошло. {enter}{F8}
+Send, {F8}say Соблюдайте спокойствие и четко выполняйте их команды. Старайтесь не поддаваться панике, что бы ни произошло. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Человеческая жизнь - высшая ценность. Берегите себя{!}{enter}{F8}
+Send, {F8}say Человеческая жизнь - высшая ценность. Берегите себя{!}{enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say На этом лекция окончена. {enter}{F8}
+Send, {F8}say На этом лекция окончена. {enter}{F8}
 return
 :?:/лекция21:: 
 AbortBindFlag := 0
 Sendmessage, 0x50,, 0x4190419,, A
-SendPlay, {enter}
+Send, {enter}
 SmartSleep(50)
-SendPlay, {F8}say Лекция на тему {#}ffff00"Дейтсвия при захвате в заложники". {enter}{F8}
+Send, {F8}say Лекция на тему {#}ffff00"Дейтсвия при захвате в заложники". {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Если ты оказался в заложниках, знай - ты не один. Помни: опытные люди уже спешат к тебе на помощь. {enter}{F8}
+Send, {F8}say Если ты оказался в заложниках, знай - ты не один. Помни: опытные люди уже спешат к тебе на помощь. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Не пытайся убежать, вырваться самостоятельно - террористы могут отреагировать агрессивно... {enter}{F8}
+Send, {F8}say Не пытайся убежать, вырваться самостоятельно - террористы могут отреагировать агрессивно... {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Постарайся успокоиться и жди освобождения. {enter}{F8}
+Send, {F8}say Постарайся успокоиться и жди освобождения. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Настройся на долгое ожидание. Специалистам требуется время, чтобы освободить тебя {enter}{F8}
+Send, {F8}say Настройся на долгое ожидание. Специалистам требуется время, чтобы освободить тебя {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Постарайся мысленно отвлечься от происходящего: вспоминай содержание книг, художественных фильмов, мультфильмов, решай в уме задачи {enter}{F8}
+Send, {F8}say Постарайся мысленно отвлечься от происходящего: вспоминай содержание книг, художественных фильмов, мультфильмов, решай в уме задачи {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Старайся не раздражать террористов: не кричи, не плачь, не возмущайся {enter}{F8}
+Send, {F8}say Старайся не раздражать террористов: не кричи, не плачь, не возмущайся {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Не вступай в споры с террористами, выполняй все их требования {enter}{F8}
+Send, {F8}say Не вступай в споры с террористами, выполняй все их требования {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Помни, что, возможно, тебе придётся долгое время провести без воды и пищи - экономь свои силы {enter}{F8}
+Send, {F8}say Помни, что, возможно, тебе придётся долгое время провести без воды и пищи - экономь свои силы {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Если в помещении душно, постарайся меньше двигаться, чтобы экономнее расходовать кислород. {enter}{F8}
+Send, {F8}say Если в помещении душно, постарайся меньше двигаться, чтобы экономнее расходовать кислород. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Помни: если заложник проводит много времени с террористами, ему может показаться, что они вместе, а весь мир - против них {enter}{F8}
+Send, {F8}say Помни: если заложник проводит много времени с террористами, ему может показаться, что они вместе, а весь мир - против них {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Это очень опасная ошибка! Знай: в любой ситуации террорист - это преступник, а заложник - его жертва{!}{enter}{F8}
+Send, {F8}say Это очень опасная ошибка! Знай: в любой ситуации террорист - это преступник, а заложник - его жертва{!}{enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Не всегда переговоры с террористами заканчиваются успешно. {enter}{F8}
+Send, {F8}say Не всегда переговоры с террористами заканчиваются успешно. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say После начала штурма старайся держаться подальше от террористов. {enter}{F8}
+Send, {F8}say После начала штурма старайся держаться подальше от террористов. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say По возможности, спрячься подальше от окон и дверных проёмов {enter}{F8}
+Send, {F8}say По возможности, спрячься подальше от окон и дверных проёмов {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say При штурме могут использоваться свето-шумовые гранаты {enter}{F8}
+Send, {F8}say При штурме могут использоваться свето-шумовые гранаты {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say После освобождения не спеши сразу уйти домой. {enter}{F8}
+Send, {F8}say После освобождения не спеши сразу уйти домой. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Сначала надо связаться с сотрудниками специальных служб и врачами. {enter}{F8}
+Send, {F8}say Сначала надо связаться с сотрудниками специальных служб и врачами. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Врачи помогут тебе выйти из шока и, если нужно, по их совету ты получишь необходимое лечение. {enter}{F8}
+Send, {F8}say Врачи помогут тебе выйти из шока и, если нужно, по их совету ты получишь необходимое лечение. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say Помни: после того, как тебя спасли, тебе необходима медицинская помощь. {enter}{F8}
+Send, {F8}say Помни: после того, как тебя спасли, тебе необходима медицинская помощь. {enter}{F8}
 SmartSleep(1500)
-SendPlay, {F8}say На этом лекция окончена. {enter}{F8}
+Send, {F8}say На этом лекция окончена. {enter}{F8}
 return
 :?:/лекция22::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Порядок оформления ДТП".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Порядок оформления ДТП".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Первоочерёдно сотрудник обязан известить о том, что выехал на вызов{Enter}{F6}
+Send, Первоочерёдно сотрудник обязан известить о том, что выехал на вызов{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Доклад об этом делается в рацию: "XX-XX 10-24"{Enter}{F6}
+Send, Доклад об этом делается в рацию: "XX-XX 10-24"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, По прибытии на место, сотрудник докладывает в рацию: "XX-XX 10-25"{Enter}{F6}
+Send, По прибытии на место, сотрудник докладывает в рацию: "XX-XX 10-25"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Следующая задача сотрудника - определить участников ДТП и опросить их. Первоочерёдно - выяснить...{Enter}{F6}
+Send, Следующая задача сотрудника - определить участников ДТП и опросить их. Первоочерёдно - выяснить...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...состояние граждан и по необходимости вызвать скорую помощь.{Enter}{F6}
+Send, ...состояние граждан и по необходимости вызвать скорую помощь.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Сотрудник обязан доложить о том, что он оформляет ДТП: "XX-XX 10-10 Место"{Enter}{F6}
+Send, Сотрудник обязан доложить о том, что он оформляет ДТП: "XX-XX 10-10 Место"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После установления участников ДТП необходимо взять их ВУ и опросить о случившемся.{Enter}{F6}
+Send, После установления участников ДТП необходимо взять их ВУ и опросить о случившемся.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Получив версии произошедшего, убедитесь, что транспортные средства граждан остались нетронутыми.{Enter}{F6}
+Send, Получив версии произошедшего, убедитесь, что транспортные средства граждан остались нетронутыми.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Следом задача сотрудника - установить аварийный знак, если таковой...{Enter}{F6}
+Send, Следом задача сотрудника - установить аварийный знак, если таковой...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...не был установлен участниками ДТП.{Enter}{F6}
+Send, ...не был установлен участниками ДТП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если у участников не было знаков или они его не установили,...{Enter}{F6}
+Send, Если у участников не было знаков или они его не установили,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...разрешено выписать штраф за нарушение 6.3 КоАП.{Enter}{F6}
+Send, ...разрешено выписать штраф за нарушение 6.3 КоАП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если автомобили сдвинули - попросите граждан поставить автомобили так,...{Enter}{F6}
+Send, Если автомобили сдвинули - попросите граждан поставить автомобили так,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...как они стояли во время ДТП.{Enter}{F6}
+Send, ...как они стояли во время ДТП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если их вернули на место, либо не трогали, сотрудник должен взять фотоаппарат...{Enter}{F6}
+Send, Если их вернули на место, либо не трогали, сотрудник должен взять фотоаппарат...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...и зафиксировать место ДТП.{Enter}{F6}
+Send, ...и зафиксировать место ДТП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После фиксации ДТП, сотрудник должен измерить тормозные пути рулеткой...{Enter}{F6}
+Send, После фиксации ДТП, сотрудник должен измерить тормозные пути рулеткой...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...и составить схему ДТП на бланке.{Enter}{F6}
+Send, ...и составить схему ДТП на бланке.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Фотоаппарат, бланки, рулетка и аварийный знак всегда должны быть у сотрудника.{Enter}{F6}
+Send, Фотоаппарат, бланки, рулетка и аварийный знак всегда должны быть у сотрудника.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Со слов граждан сотрудник делает пометки на схеме. На этом схема ДТП завершена.{Enter}{F6}
+Send, Со слов граждан сотрудник делает пометки на схеме. На этом схема ДТП завершена.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Необходимо опросить участников ДТП на предмет наличия видеорегистратора и видеофиксации.{Enter}{F6}
+Send, Необходимо опросить участников ДТП на предмет наличия видеорегистратора и видеофиксации.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если у кого-то есть видеофиксация, сотрудник должен просмотреть запись и...{Enter}{F6}
+Send, Если у кого-то есть видеофиксация, сотрудник должен просмотреть запись и...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...вынести вердикт о нарушениях.{Enter}{F6}
+Send, ...вынести вердикт о нарушениях.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если ни у кого нет видеофиксации, нет видеорегистратора, то необходимо установить...{Enter}{F6}
+Send, Если ни у кого нет видеофиксации, нет видеорегистратора, то необходимо установить...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ... виновника ДТП, основываясь на запись с камер.{Enter}{F6}
+Send, ... виновника ДТП, основываясь на запись с камер.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Для этого спрашиваете /b Согласны на /try?{Enter}{F6}
+Send, /b Для этого спрашиваете /b Согласны на /try?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b Если обе стороны согласны, то отыгрываете просмотр записей с камер видеонаблюдения.{Enter}{F6}
+Send, /b Если обе стороны согласны, то отыгрываете просмотр записей с камер видеонаблюдения.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b УЧТИТЕ{!} Если ДТП произошло в месте, где камер нет (глушь, деревни)...{Enter}{F6}
+Send, /b УЧТИТЕ{!} Если ДТП произошло в месте, где камер нет (глушь, деревни)...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, /b ...то установить виновника ДТП вы не сможете.{Enter}{F6}
+Send, /b ...то установить виновника ДТП вы не сможете.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После установки виновника ДТП, сотрудник обязан составить протоколы...{Enter}{F6}
+Send, После установки виновника ДТП, сотрудник обязан составить протоколы...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...для каждого из водителей, со всеми их нарушениями.{Enter}{F6}
+Send, ...для каждого из водителей, со всеми их нарушениями.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, После подписания протоколов гражданами, сотрудник выписывает штрафы и аннулирует ВУ,...{Enter}{F6}
+Send, После подписания протоколов гражданами, сотрудник выписывает штрафы и аннулирует ВУ,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...если того требует закон.{Enter}{F6}
+Send, ...если того требует закон.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В конце сотрудник обязан указать виновнику ДТП, что он обязан...{Enter}{F6}
+Send, В конце сотрудник обязан указать виновнику ДТП, что он обязан...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...оплатить ремонт пострадавшей стороне согласно 2.3.5 ПДД.{Enter}{F6}
+Send, ...оплатить ремонт пострадавшей стороне согласно 2.3.5 ПДД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Если гражданин не может оплатить компенсацию ввиду отсутствия денег,...{Enter}{F6}
+Send, Если гражданин не может оплатить компенсацию ввиду отсутствия денег,...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...сотрудник должен выплатить из своего кармана.{Enter}{F6}
+Send, ...сотрудник должен выплатить из своего кармана.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Оформление ДТП завершается возвратом ВУ водителям и докладами в рацию "XX-XX 10-10-1"...{Enter}{F6}
+Send, Оформление ДТП завершается возвратом ВУ водителям и докладами в рацию "XX-XX 10-10-1"...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...и "XX-XX 10-26 ДТП".{Enter}{F6}
+Send, ...и "XX-XX 10-26 ДТП".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Остались вопросы по лекции?{Enter}{F6}
+Send, Остались вопросы по лекции?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, На этом лекция окончена.{Enter}
+Send, На этом лекция окончена.{Enter}
 Return
 :?:/лекция23::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Тема лекции: {#}ffff00"Основания".{Enter}{F6}
+Send, Тема лекции: {#}ffff00"Основания".{Enter}{F6}
 SmartSleep(2000)
-SendPlay, В Республике Провинция зачастую можно встретить граждан, которые не знают законов.{Enter}{F6}
+Send, В Республике Провинция зачастую можно встретить граждан, которые не знают законов.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Либо же тех, кому нравится заставлять сотрудников ломаться и...{Enter}{F6}
+Send, Либо же тех, кому нравится заставлять сотрудников ломаться и...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ...судорожно лезть в подсказки в поисках ответа на вопрос...{Enter}{F6}
+Send, ...судорожно лезть в подсказки в поисках ответа на вопрос...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, .."А на каком основании?"{Enter}{F6}
+Send, .."А на каком основании?"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Права и обязанности сотрудников полиции прописаны в...{Enter}{F6}
+Send, Права и обязанности сотрудников полиции прописаны в...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..Федеральном Законе о Полиции, далее ФЗоП.{Enter}{F6}
+Send, ..Федеральном Законе о Полиции, далее ФЗоП.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы должны знать, что обязаны делать и на что имеете право в пределах своих полномочий.{Enter}{F6}
+Send, Вы должны знать, что обязаны делать и на что имеете право в пределах своих полномочий.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ФЗоП создан, чтобы регулировать права и обязанности сотрудников.{Enter}{F6}
+Send, ФЗоП создан, чтобы регулировать права и обязанности сотрудников.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Однако если же вы встретили гражданина, который на каждое ваше слово...{Enter}{F6}
+Send, Однако если же вы встретили гражданина, который на каждое ваше слово...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..или действие спрашивает "На каком основании?"{Enter}{F6}
+Send, ..или действие спрашивает "На каком основании?"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы должны отвечать грамотно и чётко излагать свои мысли. Пример:{Enter}{F6}
+Send, Вы должны отвечать грамотно и чётко излагать свои мысли. Пример:{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Гражданин спрашивает: "На каком основании вы проверяете документы?"{Enter}{F6}
+Send, Гражданин спрашивает: "На каком основании вы проверяете документы?"{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вы должны ответить не просто цифрами.{Enter}{F6}
+Send, Вы должны ответить не просто цифрами.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, "На основании 3.9.1.2 ФЗоП" - НЕ правильно.{Enter}{F6}
+Send, "На основании 3.9.1.2 ФЗоП" - НЕ правильно.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Следует отвечать вот так: "Согласно 3.9.1.2 Федерального закона о полиции...{Enter}{F6}
+Send, Следует отвечать вот так: "Согласно 3.9.1.2 Федерального закона о полиции...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..я, как сотрудник полиции, имею правопроверять документы у граждан...{Enter}{F6}
+Send, ..я, как сотрудник полиции, имею правопроверять документы у граждан...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..если имеются данные, дающие основания подозревать их в совершении преступления,..{Enter}{F6}
+Send, ..если имеются данные, дающие основания подозревать их в совершении преступления,..{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..или полагать что они находятся в розыске, либо имеется повод к...{Enter}{F6}
+Send, ..или полагать что они находятся в розыске, либо имеется повод к...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..возбуждению дела об административном правонарушении, а также...{Enter}{F6}
+Send, ..возбуждению дела об административном правонарушении, а также...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..проверять наличие неоплаченных штрафов, если есть основания подозревать их наличие.{Enter}{F6}
+Send, ..проверять наличие неоплаченных штрафов, если есть основания подозревать их наличие.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Можно и покороче. Главное донести основную суть и правоту ваших действий.{Enter}{F6}
+Send, Можно и покороче. Главное донести основную суть и правоту ваших действий.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Однако сотрудник в принципе не обязан объяснять гражданам...{Enter}{F6}
+Send, Однако сотрудник в принципе не обязан объяснять гражданам...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..свои права и обязанности, так как ФЗоП находится в открытом доступе.{Enter}{F6}
+Send, ..свои права и обязанности, так как ФЗоП находится в открытом доступе.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, И ничто не ограничивает граждан в ознакомлении с правами и обязанностями сотрудников полиции.{Enter}{F6}
+Send, И ничто не ограничивает граждан в ознакомлении с правами и обязанностями сотрудников полиции.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, К тому же, процедура проверки документов водителей не затрагивает...{Enter}{F6}
+Send, К тому же, процедура проверки документов водителей не затрагивает...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..их права и свободы, т.к. передача документов сотрудникам...{Enter}{F6}
+Send, ..их права и свободы, т.к. передача документов сотрудникам...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..является их обязанностью, согласно 2.1.1 ПДД.{Enter}{F6}
+Send, ..является их обязанностью, согласно 2.1.1 ПДД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, С правами и обязанностями сотрудников полиции вы можете...{Enter}{F6}
+Send, С правами и обязанностями сотрудников полиции вы можете...{Enter}{F6}
 SmartSleep(2000)
-SendPlay, ..ознакомиться на государственном портале в разделе МВД.{Enter}{F6}
+Send, ..ознакомиться на государственном портале в разделе МВД.{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Вопросы по лекции остались?{Enter}{F6}
+Send, Вопросы по лекции остались?{Enter}{F6}
 SmartSleep(2000)
-SendPlay, Лекция окончена.{Enter}
+Send, Лекция окончена.{Enter}
 Return
 
 
 :?:/собес1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Здравствуйте{!} В целях Вашей и моей безопасности. {Enter}{F6}
+Send, Здравствуйте{!} В целях Вашей и моей безопасности. {Enter}{F6}
 SmartSleep(1000)
-SendPlay, Все собеседование будет записываться на нагрудную камеру. {Enter}{F6}
+Send, Все собеседование будет записываться на нагрудную камеру. {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do На нагрудном кармане закреплена камера. {Enter}
+Send, /do На нагрудном кармане закреплена камера. {Enter}
 Return
 :?:/собес2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Скажите Ваше ФИО, ваш возраст, сколько лет Вы проживаете в республике?{Enter}{F6}
+Send, Скажите Ваше ФИО, ваш возраст, сколько лет Вы проживаете в республике?{Enter}{F6}
 SmartSleep(250)
-SendPlay, И какое у вас образование?{Enter}
+Send, И какое у вас образование?{Enter}
 Return
 :?:/собес3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Можно пожалуйста Ваш паспорт?{Enter}
+Send, Можно пожалуйста Ваш паспорт?{Enter}
 Return
 :?:/собес4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, дайте мне Вашу трудовую книгу.{Enter}
+Send, Отлично, дайте мне Вашу трудовую книгу.{Enter}
 Return
 :?:/собес5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, дайте мне Ваш диплом.{Enter}
+Send, Отлично, дайте мне Ваш диплом.{Enter}
 Return
 :?:/собес6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, дайте мне Ваше водительское удостоверение.{Enter}
+Send, Отлично, дайте мне Ваше водительское удостоверение.{Enter}
 Return
 :?:/собес7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, дайте мне Вашу медицинскую карту.{Enter}
+Send, Отлично, дайте мне Вашу медицинскую карту.{Enter}
 Return
 :?:/собес8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, дайте мне Ваш военный билет.{Enter}
+Send, Отлично, дайте мне Ваш военный билет.{Enter}
 Return
 :?:/собес9::
 AbortBindFlag := 0
@@ -6403,10 +6609,10 @@ Random, Var, 1, 3
 TextArray := ["Что такое ДМ?"
 , "Что такое СК?"
 , "Что такое ТК?"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес10::
 AbortBindFlag := 0
@@ -6415,10 +6621,10 @@ Random, Var, 1, 3
 TextArray := ["Что такое РП?"
 , "Что такое МГ?"
 , "Что такое ПГ?"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес11::
 AbortBindFlag := 0
@@ -6427,10 +6633,10 @@ Random, Var, 1, 3
 TextArray := ["Что такое ВХ?"
 , "Что такое ДБ?"
 , "Что такое БХ?"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес12::
 AbortBindFlag := 0
@@ -6439,17 +6645,17 @@ Random, Var, 1, 3
 TextArray := ["Что такое МК?"
 , "Что такое ВК?"
 , "Что такое Дискорд?"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес13::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Отлично, подождите минуточку.{Enter}
+Send, Отлично, подождите минуточку.{Enter}
 Return
 :?:/собес14::
 AbortBindFlag := 0
@@ -6459,17 +6665,17 @@ TextArray := ["/b ДБ МГ РП РПК ТК с расшифровкой и чт
 , "/b БХ ДМ РП СК ТК с расшифровкой и что означает"
 , "/b ДБ МГ ПГ ТЛ РП с расшифровкой и что означает"
 , "/b ДМ РП РПК СК ТК с расшифровкой и что означает"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес15::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Присядьте на корточки{Enter}
+Send, Присядьте на корточки{Enter}
 Return
 :?:/собес16::
 AbortBindFlag := 0
@@ -6479,390 +6685,390 @@ TextArray := ["/b Вставайте или не приму!"
 , "/b Вставайте!"
 , "/b Вставайте дам 5 ранг!"
 , "/b Вставайте, дам 10к"]
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(150)
-SendPlay, % TextArray[Var]
-SendPlay, {Enter}
+Send, % TextArray[Var]
+Send, {Enter}
 Return
 :?:/собес17::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Вставайте{Enter}
+Send, Вставайте{Enter}
 Return
 :?:/собес18::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Что у меня в руке?{Enter}
+Send, Что у меня в руке?{Enter}
 Return
 :?:/отказ::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, К сожалению вам отказано в трудоустройстве.{Enter}{F6}
+Send, К сожалению вам отказано в трудоустройстве.{Enter}{F6}
 SmartSleep(250)
-SendPlay, /b У вас были некоторые ошибки при отыгрывании команд me, do. Поэтому стоит немного подучить их{Enter}{F6}
+Send, /b У вас были некоторые ошибки при отыгрывании команд me, do. Поэтому стоит немного подучить их{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b https://vk.cc/c3UAyw(Скопировать в F8) Там есть вся информация по поводу отыгровок.{Enter}
+Send, /b https://vk.cc/c3UAyw(Скопировать в F8) Там есть вся информация по поводу отыгровок.{Enter}
 Return
 :?:/папка1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взяв папку, начал%ok1% изучать документы{Enter}
+Send, /me взяв папку, начал%ok1% изучать документы{Enter}
 Return
 :?:/папка2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, /do Документы изучены.{Enter}{F6}
+Send, /do Документы изучены.{Enter}{F6}
 SmartSleep(250)
-SendPlay, /me изучив документы, сложил%ok1% их обратно, затем передал%ok1% гражданину напротив{Enter}{F6}
+Send, /me изучив документы, сложил%ok1% их обратно, затем передал%ok1% гражданину напротив{Enter}{F6}
 SmartSleep(250)
-SendPlay, Держите вашу папку.{Enter}
+Send, Держите вашу папку.{Enter}
 Return
 :?:/пасс1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% паспорт у человека напротив{Enter}{F6}
+Send, /me взял%ok1% паспорт у человека напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Паспорт в руке.{Enter}{F6}
+Send, /do Паспорт в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me открыл%ok1% нужную страницу в паспорте и начал%ok1% его изучать{Enter}{F6}
+Send, /me открыл%ok1% нужную страницу в паспорте и начал%ok1% его изучать{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Паспорт изучен.{Enter}{F6}
+Send, /do Паспорт изучен.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me закрыл%ok1% паспорт и передал%ok1% его человеку напротив{Enter}{F6}
+Send, /me закрыл%ok1% паспорт и передал%ok1% его человеку напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите ваш паспорт.{Enter}
+Send, Держите ваш паспорт.{Enter}
 Return
 :?:/диплом1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% диплом у человека напротив{Enter}{F6}
+Send, /me взял%ok1% диплом у человека напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Диплом в руке.{Enter}{F6}
+Send, /do Диплом в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me начал%ok1% изучать диплом{Enter}{F6}
+Send, /me начал%ok1% изучать диплом{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Диплом изучен.{Enter}{F6}
+Send, /do Диплом изучен.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me передал%ok1% диплом человеку напротив{Enter}{F6}
+Send, /me передал%ok1% диплом человеку напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите ваш диплом.{Enter}
+Send, Держите ваш диплом.{Enter}
 Return
 :?:/труд1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% трудовую книгу{Enter}{F6}
+Send, /me взял%ok1% трудовую книгу{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Трудовая книга в руке.{Enter}{F6}
+Send, /do Трудовая книга в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me открыл%ok1% нужную страницу и изучил%ok1% информацию{Enter}{F6}
+Send, /me открыл%ok1% нужную страницу и изучил%ok1% информацию{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Трудовая изучена.{Enter}{F6}
+Send, /do Трудовая изучена.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me закрыл%ok1% трудовую книгу и передал%ok1% человеку{Enter}{F6}
+Send, /me закрыл%ok1% трудовую книгу и передал%ok1% человеку{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите вашу трудовую книгу.{Enter}
+Send, Держите вашу трудовую книгу.{Enter}
 Return
 :?:/ву1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% водительское удостоверение у человека напротив{Enter}{F6}
+Send, /me взял%ok1% водительское удостоверение у человека напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Водительское удостоверение в руке.{Enter}{F6}
+Send, /do Водительское удостоверение в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me открыл%ok1% нужную страницу в водительском удостоверении и начал%ok1% его изучать{Enter}{F6}
+Send, /me открыл%ok1% нужную страницу в водительском удостоверении и начал%ok1% его изучать{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Водительское удостоверение изучено.{Enter}{F6}
+Send, /do Водительское удостоверение изучено.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me закрыл%ok1% водительское удостоверение и передал%ok1% его человеку напротив{Enter}{F6}
+Send, /me закрыл%ok1% водительское удостоверение и передал%ok1% его человеку напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите ваше водительское удостоверение.{Enter}
+Send, Держите ваше водительское удостоверение.{Enter}
 Return
 :?:/карта1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% медицинскую карту у человека напротив{Enter}{F6}
+Send, /me взял%ok1% медицинскую карту у человека напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Медицинская карта в руке.{Enter}{F6}
+Send, /do Медицинская карта в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me открыл%ok1% нужную страницу в медицинской карте и начал%ok1% ее изучать{Enter}{F6}
+Send, /me открыл%ok1% нужную страницу в медицинской карте и начал%ok1% ее изучать{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Медицинская карта изучена.{Enter}{F6}
+Send, /do Медицинская карта изучена.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me закрыл%ok1% медицинскую карту и передал%ok1% его человеку напротив{Enter}{F6}
+Send, /me закрыл%ok1% медицинскую карту и передал%ok1% его человеку напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите вашу медицинскую карту.{Enter}
+Send, Держите вашу медицинскую карту.{Enter}
 Return
 :?:/вб1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me взял%ok1% военный билет у человека напротив{Enter}{F6}
+Send, /me взял%ok1% военный билет у человека напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Военный билет в руке.{Enter}{F6}
+Send, /do Военный билет в руке.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me открыл%ok1% нужную страницу в военном билете и начал%ok1% его изучать{Enter}{F6}
+Send, /me открыл%ok1% нужную страницу в военном билете и начал%ok1% его изучать{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Военный билет изучен.{Enter}{F6}
+Send, /do Военный билет изучен.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me закрыл%ok1% военный билет и передал%ok1% его человеку напротив{Enter}{F6}
+Send, /me закрыл%ok1% военный билет и передал%ok1% его человеку напротив{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Рука протянута.{Enter}{F6}
+Send, /do Рука протянута.{Enter}{F6}
 SmartSleep(1000)
-SendPlay, Держите ваш военный билет.{Enter}
+Send, Держите ваш военный билет.{Enter}
 Return
 :?:/выдформу::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В шкафчике находится форма сотрудника.{Enter}{F6}
+Send, /do В шкафчике находится форма сотрудника.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Шкаф закрыт.{Enter}{F6}
+Send, /do Шкаф закрыт.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Ключ лежит на столе.{Enter}{F6}
+Send, /do Ключ лежит на столе.{Enter}{F6}
 SmartSleep(500)
-SendPlay, Берите ключ, открывайте шкаф, переодевайтесь.{Enter}
+Send, Берите ключ, открывайте шкаф, переодевайтесь.{Enter}
 Return
 :?:/мвд::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][МВД]{Space}
+Send, /ro [%Gibdd%][МВД]{Space}
 Return
 :?:/угибдд::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД]{Space}
+Send, /ro [%Gibdd%][УГИБДД]{Space}
 Return
 :?:/ржд::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][ОАО «РЖД»]{Space}
+Send, /d [%Gibdd%][ОАО «РЖД»]{Space}
 Return
 :?:/мз::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][МЗ]{Space}
+Send, /d [%Gibdd%][МЗ]{Space}
 Return
 :?:/мо::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][МО]{Space}
+Send, /d [%Gibdd%][МО]{Space}
 Return
 :?:/угибддп::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-П]{Space}
+Send, /ro [%Gibdd%][УГИБДД-П]{Space}
 Return
 :?:/угибддм::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-М]{Space}
+Send, /ro [%Gibdd%][УГИБДД-М]{Space}
 Return
 :?:/угибддн::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][УГИБДД-Н]{Space}
+Send, /ro [%Gibdd%][УГИБДД-Н]{Space}
 Return
 :?:/гумвдп::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-П]{Space}
+Send, /ro [%Gibdd%][ГУ МВД-П]{Space}
 Return
 :?:/гумвдм::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-М]{Space}
+Send, /ro [%Gibdd%][ГУ МВД-М]{Space}
 Return
 :?:/гумвдн::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][ГУ МВД-Н]{Space}
+Send, /ro [%Gibdd%][ГУ МВД-Н]{Space}
 Return
 :?:/цгбп::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][ЦГБ-П]{Space}
+Send, /d [%Gibdd%][ЦГБ-П]{Space}
 Return
 :?:/окбм::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][ОКБ-М]{Space}
+Send, /d [%Gibdd%][ОКБ-М]{Space}
 Return
 :?:/цгбн::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][ЦГБ-Н]{Space}
+Send, /d [%Gibdd%][ЦГБ-Н]{Space}
 Return
 :?:/помощьсобес::
 AbortBindFlag := 0
@@ -6880,29 +7086,29 @@ IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
         Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(160)
-SendPlay, /d [%Gibdd%][МВД|МЗ|МО] Требуются сотрудники для помощи в проведении собеседования...{Enter}{F6}
+Send, /d [%Gibdd%][МВД|МЗ|МО] Требуются сотрудники для помощи в проведении собеседования...{Enter}{F6}
 SmartSleep(500)
-SendPlay, /d [%Gibdd%][МВД|МЗ|МО] ...Ожидаем на парковке ДЧ-%Park%.{Enter}{F6}
+Send, /d [%Gibdd%][МВД|МЗ|МО] ...Ожидаем на парковке ДЧ-%Park%.{Enter}{F6}
 SmartSleep(160)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/зосн::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите букву города(П, М или Н) ->{Space}
+Send, /Введите букву города(П, М или Н) ->{Space}
 Input, choice, V, {Enter}
 if (choice = "П" or choice = "п" or choice = "G" or choice = "g")
     Gorod := "СОБР"
@@ -6912,89 +7118,89 @@ else if (choice = "Н" or choice = "н" or choice = "Y" or choice = "y")
     Gorod := "ЦСН {""}Барс{""}"
 else
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(200)
-SendPlay, /ro [%Gibdd%][%Gorod%] {Space}
+Send, /ro [%Gibdd%][%Gorod%] {Space}
 Return
 :?:/прозыск::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите серию паспорта (через дефис) ->{Space}
+Send, /Введите серию паспорта (через дефис) ->{Space}
 Input, Pass, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay,  /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send,  /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][МВД] Проверьте гражданина с серией паспорта %Pass%...{Enter}{F6}
+Send, /ro [%Gibdd%][МВД] Проверьте гражданина с серией паспорта %Pass%...{Enter}{F6}
 SmartSleep(500)
-SendPlay, /ro [%Gibdd%][МВД] ...на наличие в базе розыска.{Enter}{F6}
+Send, /ro [%Gibdd%][МВД] ...на наличие в базе розыска.{Enter}{F6}
 SmartSleep(160)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(1000)
-SendPlay, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
 :?:/стук::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(100)
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8}me постучал%ok1% в окно{Enter}{F8}
+Send, {F8}me постучал%ok1% в окно{Enter}{F8}
 Return
 Bind_KnockWindow:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
-SendPlay, {F8}me постучал%ok1% в окно{Enter}{F8}
+Send, {F8}me постучал%ok1% в окно{Enter}{F8}
 Return
 :?:/окно?::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay,  /do Водительское окно открыто?{Enter}
+Send,  /do Водительское окно открыто?{Enter}
 Return
 :?:/ударкалаш::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay,  /me замахнул%ok3% прикладом АК-74м{Enter}{F6}
+Send,  /me замахнул%ok3% прикладом АК-74м{Enter}{F6}
 SmartSleep(200)
-SendPlay,  /try разбил%ok1% окно{Enter}
+Send,  /try разбил%ok1% окно{Enter}
 Return
 :?:/ударпистолет::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay,  /me замахнул%ok3% рукоятью пистолета{Enter}{F6}
+Send,  /me замахнул%ok3% рукоятью пистолета{Enter}{F6}
 SmartSleep(200)
-SendPlay,  /try разбил%ok1% окно{Enter}
+Send,  /try разбил%ok1% окно{Enter}
 Return
 :?:/удардробовик::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay,  /me замахнул%ok3% прикладом дробовика{Enter}{F6}
+Send,  /me замахнул%ok3% прикладом дробовика{Enter}{F6}
 SmartSleep(200)
-SendPlay,  /try разбил%ok1% окно{Enter}
+Send,  /try разбил%ok1% окно{Enter}
 Return
 
 :?:/разбор1::
@@ -7004,31 +7210,31 @@ IniRead, Fio1, %A_Temp%\gibdd.egl, User, Fio1
 IniRead, Rank, %A_Temp%\gibdd.egl, User, Rank
 StringSplit, FioParts, Fio1, %A_Space% 
 Surname := FioParts1
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(50)
-SendPlay,{F8}say Я, %Rank% %Surname%, приступаю к разборке автомата Калашникова.{Enter}{F8}
+Send,{F8}say Я, %Rank% %Surname%, приступаю к разборке автомата Калашникова.{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% магазин{Enter}{F8}
+Send,{F8}me отделил%ok2% магазин{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me проверил%ok2% на наличие патрона в патроннике{Enter}{F8}
+Send,{F8}me проверил%ok2% на наличие патрона в патроннике{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me вынул%ok2% пенал с принадлежностями из гнезда приклада{Enter}{F8}
+Send,{F8}me вынул%ok2% пенал с принадлежностями из гнезда приклада{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% шомпол{Enter}{F8}
+Send,{F8}me отделил%ok2% шомпол{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% у автомата дульный тормоз-компенсатор{Enter}{F8}
+Send,{F8}me отделил%ok2% у автомата дульный тормоз-компенсатор{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% крышку ствольной коробки{Enter}{F8}
+Send,{F8}me отделил%ok2% крышку ствольной коробки{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% возвратный механизм{Enter}{F8}
+Send,{F8}me отделил%ok2% возвратный механизм{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% затворную раму с затвором{Enter}{F8}
+Send,{F8}me отделил%ok2% затворную раму с затвором{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% затвор от затворной рамы{Enter}{F8}
+Send,{F8}me отделил%ok2% затвор от затворной рамы{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me отделил%ok2% газовую трубку со ствольной накладкой{Enter}{F8}
+Send,{F8}me отделил%ok2% газовую трубку со ствольной накладкой{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}say Я, %Rank% %Surname% разборку автомата Калашникова закончил%ok2%.{Enter}{F8}
+Send,{F8}say Я, %Rank% %Surname% разборку автомата Калашникова закончил%ok2%.{Enter}{F8}
 Return
 
 :?:/разбор2::
@@ -7038,47 +7244,47 @@ IniRead, Fio1, %A_Temp%\gibdd.egl, User, Fio1
 IniRead, Rank, %A_Temp%\gibdd.egl, User, Rank
 StringSplit, FioParts, Fio1, %A_Space% 
 Surname := FioParts1
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(50)
-SendPlay,{F8}say Я, %Rank% %Surname% приступаю к сборке автомата Калашникова.{Enter}{F8}
+Send,{F8}say Я, %Rank% %Surname% приступаю к сборке автомата Калашникова.{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% газовую трубку со ствольной накладкой{Enter}{F8}
+Send,{F8}me присоединил%ok2% газовую трубку со ствольной накладкой{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% затвор к затворной раме{Enter}{F8}
+Send,{F8}me присоединил%ok2% затвор к затворной раме{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% затворную раму с затвором к ствольной коробке{Enter}{F8}
+Send,{F8}me присоединил%ok2% затворную раму с затвором к ствольной коробке{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% возвратный механизм{Enter}{F8}
+Send,{F8}me присоединил%ok2% возвратный механизм{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% крышку ствольной коробки{Enter}{F8}
+Send,{F8}me присоединил%ok2% крышку ствольной коробки{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me спустил%ok2% курок с боевого взвода, после поставил%ok2% на предохранитель{Enter}{F8}
+Send,{F8}me спустил%ok2% курок с боевого взвода, после поставил%ok2% на предохранитель{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% к автомату дульный тормоз-компенсатор{Enter}{F8}
+Send,{F8}me присоединил%ok2% к автомату дульный тормоз-компенсатор{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% шомпол{Enter}{F8}
+Send,{F8}me присоединил%ok2% шомпол{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me вложил%ok2% пенал с принадлежностями в гнездо приклада{Enter}{F8}
+Send,{F8}me вложил%ok2% пенал с принадлежностями в гнездо приклада{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}me присоединил%ok2% магазин к автомату{Enter}{F8}
+Send,{F8}me присоединил%ok2% магазин к автомату{Enter}{F8}
 SmartSleep(1000)
-SendPlay,{F8}say Я %Rank% %Surname% закончил%ok2% сборку автомата Калашникова.{Enter}{F8}
+Send,{F8}say Я %Rank% %Surname% закончил%ok2% сборку автомата Калашникова.{Enter}{F8}
 Return
 
 :?:/выдпогоны::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите погоны должности ->{Space}
+Send, /Введите погоны должности ->{Space}
 Input, Var1, V, {Enter} 
-SendPlay, {bs 17} 
+Send, {bs 17} 
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(1000)
-SendPlay, /do В багажнике лежат погоны "%var1%". {Enter}{F6}
+Send, /do В багажнике лежат погоны "%var1%". {Enter}{F6}
 SmartSleep(1000)
-SendPlay, Берите из багажника новые погоны, и прикрепите их на плечи{!}{Enter}
+Send, Берите из багажника новые погоны, и прикрепите их на плечи{!}{Enter}
 Return
 
 :?:/пмедкарта::
@@ -7086,1848 +7292,1848 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(500)
-SendPlay, /Кому продлить медкарту?(ид пишете 0-0-0) ID ->{Space}
+Send, /Кому продлить медкарту?(ид пишете 0-0-0) ID ->{Space}
 Input, id, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
 SmartSleep(500)
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
-SendPlay, /d [%Gibdd%][МЗ] Требуется продление медкарты для сотрудника с серией паспорта %id%.{Enter}
+Send, /d [%Gibdd%][МЗ] Требуется продление медкарты для сотрудника с серией паспорта %id%.{Enter}
 Return
 
 :?:/кпкповышение::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите ID сотрудника которого хотите повысить ->{Space}
+Send, /Введите ID сотрудника которого хотите повысить ->{Space}
 Input, Var1, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите номер должности ->{Space}
+Send, /Введите номер должности ->{Space}
 Input, Var2, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
+Send, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
 SmartSleep(1700)
-SendPlay, /me вв%ok8% данные об повышении сотрудника {Enter}{F6}
+Send, /me вв%ok8% данные об повышении сотрудника {Enter}{F6}
 SmartSleep(1700)
-SendPlay, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}{F6}
+Send, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}{F6}
 SmartSleep(250)
-SendPlay, /giverank %Var1% %Var2%{Enter}{F6}
+Send, /giverank %Var1% %Var2%{Enter}{F6}
 SmartSleep(250)
-SendPlay, /timestamp {Enter}
+Send, /timestamp {Enter}
 SmartSleep(500)
 Return
 :?:/кпкпонижение::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите ID сотрудника которого хотите понизить ->{Space}
+Send, /Введите ID сотрудника которого хотите понизить ->{Space}
 Input, Var1, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите номер должности ->{Space}
+Send, /Введите номер должности ->{Space}
 Input, Var2, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
+Send, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
 SmartSleep(1700)
-SendPlay, /me вв%ok8% данные об понижении сотрудника {Enter}{F6}
+Send, /me вв%ok8% данные об понижении сотрудника {Enter}{F6}
 SmartSleep(1700)
-SendPlay, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}{F6}
+Send, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}{F6}
 SmartSleep(250)
-SendPlay, /giverank %Var1% %Var2%{Enter}
+Send, /giverank %Var1% %Var2%{Enter}
 SmartSleep(250)
 Return
 :?:/кпкувал::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите ID сотрудника которого хотите уволить ->{Space}
+Send, /Введите ID сотрудника которого хотите уволить ->{Space}
 Input, Var, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в сумке.{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
+Send, /me достав служебный планшет из сумки, запустил%ok1% его{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me запустил%ok1% приложение БД{Enter}{F6}
+Send, /me запустил%ok1% приложение БД{Enter}{F6}
 SmartSleep(800)
-SendPlay, /do Приложение "База Данных" включено.{Enter}{F6}
+Send, /do Приложение "База Данных" включено.{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me удалил%ok1% всю информацию о сотруднике и перенес%ok2% его в лист "Уволенные"{Enter}{F6}
+Send, /me удалил%ok1% всю информацию о сотруднике и перенес%ok2% его в лист "Уволенные"{Enter}{F6}
 SmartSleep(800)
-SendPlay, /do Информация о сотруднике удалена.{Enter}{F6}
+Send, /do Информация о сотруднике удалена.{Enter}{F6}
 SmartSleep(800)
-SendPlay, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}
+Send, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}
 SmartSleep(800)
 Return
 :?:/кпкпринятие::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /Введите ID сотрудника которого хотите принять ->{Space}
+Send, /Введите ID сотрудника которого хотите принять ->{Space}
 Input, Var1, V, {Enter}
-SendPlay, {bs 17}
+Send, {bs 17}
 SmartSleep(250)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Служебный планшет марки “MIG LT11i” в сумке. {Enter}{F6}
+Send, /do Служебный планшет марки “MIG LT11i” в сумке. {Enter}{F6}
 SmartSleep(800)
-SendPlay, /me достав служебный планшет из сумки, запустил%ok1% его {Enter}{F6}
+Send, /me достав служебный планшет из сумки, запустил%ok1% его {Enter}{F6}
 SmartSleep(800)
-SendPlay, /me запустил%ok1% приложение БД {Enter}{F6}
+Send, /me запустил%ok1% приложение БД {Enter}{F6}
 SmartSleep(800)
-SendPlay, /do Приложение "База Данных" включено. {Enter}{F6}
+Send, /do Приложение "База Данных" включено. {Enter}{F6}
 SmartSleep(800)
-SendPlay, /me занес%ok2% информацию о сотруднике и перенес%ok2% его в лист "Принятые" {Enter}{F6}
+Send, /me занес%ok2% информацию о сотруднике и перенес%ok2% его в лист "Принятые" {Enter}{F6}
 SmartSleep(800)
-SendPlay, /do Информация о сотруднике занесена. {Enter}{F6}
+Send, /do Информация о сотруднике занесена. {Enter}{F6}
 SmartSleep(800)
-SendPlay, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку {Enter}{F6}
+Send, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку {Enter}{F6}
 SmartSleep(800)
-SendPlay, /invite %Var1% {Enter}
+Send, /invite %Var1% {Enter}
 Return
 :?:/пмп1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} do Аптечка ПМП "ФЭСТ" находится в багажнике автомобиля.{Enter}{F8}
+Send, {F8} do Аптечка ПМП "ФЭСТ" находится в багажнике автомобиля.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me взял%ok2% аптечку из багажника{Enter}{F8}
+Send, {F8} me взял%ok2% аптечку из багажника{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
+Send, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
 Return
 :?:/пмп2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} do Что случилось с пострадавшим?{Enter}{F8}
+Send, {F8} do Что случилось с пострадавшим?{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Напишите в чат через команду /do, что с вами случилось{Enter}{F8}
+Send, {F8} b Напишите в чат через команду /do, что с вами случилось{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Пример: /do Пострадавшего сбила машина.{Enter}{F8}
+Send, {F8} b Пример: /do Пострадавшего сбила машина.{Enter}{F8}
 Return
 :?:/пмп3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} me поднес%ok2% руку к сонной артерии гражданина{Enter}{F8}
+Send, {F8} me поднес%ok2% руку к сонной артерии гражданина{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Рука поднесена к сонной артерии пациента.{Enter}{F8}
+Send, {F8} do Рука поднесена к сонной артерии пациента.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Пульс обнаружен?{Enter}{F8}
+Send, {F8} do Пульс обнаружен?{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F8}
+Send, {F8} b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Чат открывается на клавишу T и туда прописываются эти команды.{Enter}{F8}
+Send, {F8} b Чат открывается на клавишу T и туда прописываются эти команды.{Enter}{F8}
 Return
 :?:/пмп4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
+Send, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me поставил%ok1% аптечку на землю, открыл%ok1% её{Enter}{F8}
+Send, {F8} me поставил%ok1% аптечку на землю, открыл%ok1% её{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Аптечка ПМП "ФЭСТ" открыта.{Enter}{F8}
+Send, {F8} do Аптечка ПМП "ФЭСТ" открыта.{Enter}{F8}
 Return
 :?:/пмп5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} me достал%ok2% спирт и вату из аптечки{Enter}{F8}
+Send, {F8} me достал%ok2% спирт и вату из аптечки{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Спирт и кусочек ваты в руках.{Enter}{F8}
+Send, {F8} do Спирт и кусочек ваты в руках.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me смочив вату нашатырным спиртом, пров%ok7% ею около носа пострадавшего{Enter}{F8}
+Send, {F8} me смочив вату нашатырным спиртом, пров%ok7% ею около носа пострадавшего{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me откинув использованный кусочек ваты на землю, поставил%ok2% спирт в аптечку{Enter}{F8}
+Send, {F8} me откинув использованный кусочек ваты на землю, поставил%ok2% спирт в аптечку{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Нашатырный спирт в Аптечке ПМП "ФЭСТ".{Enter}{F8}
+Send, {F8} do Нашатырный спирт в Аптечке ПМП "ФЭСТ".{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me закрыв аптечку, взял%ok1% её в руку{Enter}{F8}
+Send, {F8} me закрыв аптечку, взял%ok1% её в руку{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Аптечке ПМП "ФЭСТ" в руке.{Enter}{F8}
+Send, {F8} do Аптечке ПМП "ФЭСТ" в руке.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} do Пострадавший пришёл в сознание?{Enter}{F8}
+Send, {F8} do Пострадавший пришёл в сознание?{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F8}
+Send, {F8} b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} b Чат открывается на клавишу T и туда прописываются эти команды.{Enter}{F8}
+Send, {F8} b Чат открывается на клавишу T и туда прописываются эти команды.{Enter}{F8}
 Return
 :?:/пмп6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {Enter}
+Send, {Enter}
 SmartSleep(250)
-SendPlay, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
+Send, {F8} do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F8}
 SmartSleep(500)
-SendPlay, {F8} me положил%ok2% аптечку в багажник{Enter}{F8}
+Send, {F8} me положил%ok2% аптечку в багажник{Enter}{F8}
 Return
 :?:/оранения::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me начал%ok1% осматривать тело пострадавшего{Enter}{F6}
+Send, /me начал%ok1% осматривать тело пострадавшего{Enter}{F6}
 SmartSleep(1700)
-SendPlay, /do Сотрудни%ok5% осматривает всё тело пострадавшего.{Enter}{F6}
+Send, /do Сотрудни%ok5% осматривает всё тело пострадавшего.{Enter}{F6}
 SmartSleep(1700)
-SendPlay, /do Какие ранения и травмы имеются на теле?{Enter}{F6}
+Send, /do Какие ранения и травмы имеются на теле?{Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b Ответьте РП отыгровкой /do в чат. Можете написать про ссадины, порезы, ушибы. {Enter}{F6}
+Send, /b Ответьте РП отыгровкой /do в чат. Можете написать про ссадины, порезы, ушибы. {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b Пример: /do На теле пострадавшего ножевое ранение; /do На теле пострадавшего кровотечение.{Enter}
+Send, /b Пример: /do На теле пострадавшего ножевое ранение; /do На теле пострадавшего кровотечение.{Enter}
 Return
 :?:/массаж::
 AbortBindFlag := 0
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me проводит непрямой массаж сердца пострадавшему, надавливая на грудную клетку {Enter}{F6}
+Send, /me проводит непрямой массаж сердца пострадавшему, надавливая на грудную клетку {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Сотрудни%ok5% выполняет непрямой массаж сердца. {Enter}
+Send, /do Сотрудни%ok5% выполняет непрямой массаж сердца. {Enter}
 Return
 :?:/пулевое::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В аптечке лежат жгут, шприц с обезболивающим, ватка и медицинский спирт.{Enter}{F6}
+Send, /do В аптечке лежат жгут, шприц с обезболивающим, ватка и медицинский спирт.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% аптечку и достал%ok1% из нее жгут{Enter}{F6}
+Send, /me открыл%ok1% аптечку и достал%ok1% из нее жгут{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me развязав жгут, надел%ok1% его чуть выше пулевого отверстия{Enter}{F6}
+Send, /me развязав жгут, надел%ok1% его чуть выше пулевого отверстия{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me затянул%ok1% ремешок жгута{Enter}{F6}
+Send, /me затянул%ok1% ремешок жгута{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Жгут затянут.{Enter}
+Send, /do Жгут затянут.{Enter}
 Return
 :?:/переломз::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В аптечке лежат шина, бинт и холодный компресс.{Enter}{F6}
+Send, /do В аптечке лежат шина, бинт и холодный компресс.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вытащил%ok1% из аптечки шину и бинт{Enter}{F6}
+Send, /me вытащил%ok1% из аптечки шину и бинт{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me застегнул%ok1% шину на поврежденной конечности пострадавшего{Enter}{F6}
+Send, /me застегнул%ok1% шину на поврежденной конечности пострадавшего{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Шина застегнута.{Enter}{F6}
+Send, /do Шина застегнута.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из медицинской сумки холодный компресс{Enter}{F6}
+Send, /me достал%ok1% из медицинской сумки холодный компресс{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me приложил%ok1% компресс к поврежденной конечности пострадавшего{Enter}{F6}
+Send, /me приложил%ok1% компресс к поврежденной конечности пострадавшего{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Компрессор наложен.{Enter}
+Send, /do Компрессор наложен.{Enter}
 Return
 :?:/переломо::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В аптечке лежат жгут, вата, спиртовой раствор йода и шина.{Enter}{F6}
+Send, /do В аптечке лежат жгут, вата, спиртовой раствор йода и шина.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% аптечку и достал%ok1% из нее жгут{Enter}{F6}
+Send, /me открыл%ok1% аптечку и достал%ok1% из нее жгут{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me наложил%ok1% жгут выше раны пострадавшего{Enter}{F6}
+Send, /me наложил%ok1% жгут выше раны пострадавшего{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из медицинской сумки вату и спиртовой раствор йода{Enter}{F6}
+Send, /me достал%ok1% из медицинской сумки вату и спиртовой раствор йода{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me смочил%ok1% ватку йодом{Enter}{F6}
+Send, /me смочил%ok1% ватку йодом{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Ватка смоченная йодом.{Enter}{F6}
+Send, /do Ватка смоченная йодом.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me обработал%ok1% рану ватой{Enter}{F6}
+Send, /me обработал%ok1% рану ватой{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Рана обработана.{Enter}{F6}
+Send, /do Рана обработана.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me вытащил%ok1% из аптечки шину и бинт{Enter}{F6}
+Send, /me вытащил%ok1% из аптечки шину и бинт{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me застегнул%ok1% шину на поврежденной конечности пострадавшего.{Enter}{F6}
+Send, /me застегнул%ok1% шину на поврежденной конечности пострадавшего.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Шина застегнута.{Enter}
+Send, /do Шина застегнута.{Enter}
 Return
 :?:/ушиб::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В аптечке лежат холодный компресс, гепариновая мазь и бинт.{Enter}{F6}
+Send, /do В аптечке лежат холодный компресс, гепариновая мазь и бинт.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыл%ok1% аптечку и достал%ok1% из нее холодный компресс{Enter}{F6}
+Send, /me открыл%ok1% аптечку и достал%ok1% из нее холодный компресс{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me приложил%ok1% компресс к месту ушиба пострадавшего{Enter}{F6}
+Send, /me приложил%ok1% компресс к месту ушиба пострадавшего{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из аптечки гепариновую мазь{Enter}{F6}
+Send, /me достал%ok1% из аптечки гепариновую мазь{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me намазал%ok1% место ушиба гепариновой мазью{Enter}{F6}
+Send, /me намазал%ok1% место ушиба гепариновой мазью{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% из аптечки бинт{Enter}{F6}
+Send, /me достал%ok1% из аптечки бинт{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me наложил%ok1% повязку на место ушиба{Enter}{F6}
+Send, /me наложил%ok1% повязку на место ушиба{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Повязка наложена.{Enter}
+Send, /do Повязка наложена.{Enter}
 Return
 :?:/кровь::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do В аптечке лежат бинты.{Enter}{F6}
+Send, /do В аптечке лежат бинты.{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me достал%ok1% две упаковки бинтов{Enter}{F6}
+Send, /me достал%ok1% две упаковки бинтов{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me открыв бинты, отбросил%ok1% упаковку на землю{Enter}{F6}
+Send, /me открыв бинты, отбросил%ok1% упаковку на землю{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me приложил%ok1% один валик к месту ранения{Enter}{F6}
+Send, /me приложил%ok1% один валик к месту ранения{Enter}{F6}
 SmartSleep(500)
-SendPlay, /me размотав второй валик бинта, наложил%ok1% его на место ранения{Enter}{F6}
+Send, /me размотав второй валик бинта, наложил%ok1% его на место ранения{Enter}{F6}
 SmartSleep(500)
-SendPlay, /do Давящая повязка наложена.{Enter}
+Send, /do Давящая повязка наложена.{Enter}
 Return
 :?:/пульс-::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me проводит непрямой массаж сердца пострадавшему, надавливая на грудную клетку {Enter}{F6}
+Send, /me проводит непрямой массаж сердца пострадавшему, надавливая на грудную клетку {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Сотрудни%ok5% выполняет непрямой массаж сердца. {Enter}{F6}
+Send, /do Сотрудни%ok5% выполняет непрямой массаж сердца. {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me прислонил%ok1% руку к сонной артерии гражданина {Enter}{F6}
+Send, /me прислонил%ok1% руку к сонной артерии гражданина {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Пульс обнаружен? {Enter}{F6}
+Send, /do Пульс обнаружен? {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /b Ответьте РП отыгровкой в чат: /do Да. или /do Нет. {Enter}
+Send, /b Ответьте РП отыгровкой в чат: /do Да. или /do Нет. {Enter}
 Return
 :?:/ожог::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /me достал%ok1% из сумки мед.ножницы {Enter}{F6}
+Send, /me достал%ok1% из сумки мед.ножницы {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me используя ножницы, освободил%ok1% обожжённый участок кожи от одежды {Enter}{F6}
+Send, /me используя ножницы, освободил%ok1% обожжённый участок кожи от одежды {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me достав из сумки спрей "Олазоль", открыл%ok1% его колпачок {Enter}{F6}
+Send, /me достав из сумки спрей "Олазоль", открыл%ok1% его колпачок {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me сбрызнул%ok1% спреем обгоревшие участки кожи, закрыл%ok1% спрей {Enter}{F6}
+Send, /me сбрызнул%ok1% спреем обгоревшие участки кожи, закрыл%ok1% спрей {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me убрав его в сумку, достал%ok1% из неё бинты {Enter}{F6}
+Send, /me убрав его в сумку, достал%ok1% из неё бинты {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /me наложил%ok1% повязку из бинтов на ожог {Enter}{F6}
+Send, /me наложил%ok1% повязку из бинтов на ожог {Enter}{F6}
 SmartSleep(1000)
-SendPlay, /do Повязка крепко сидит на ожоге.​ {Enter}
+Send, /do Повязка крепко сидит на ожоге.​ {Enter}
 Return
 
 :?:/камера::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, /do Видеорегистратор "DOZOR" весит на груди сотрудни%ok4%.{Enter}{F6}
+Send, /do Видеорегистратор "DOZOR" весит на груди сотрудни%ok4%.{Enter}{F6}
 SmartSleep(250)
-SendPlay, /me протянувшись к камере, нажал%ok1% кнопку и запустил%ok1% видеозапись{Enter}{F6}
+Send, /me протянувшись к камере, нажал%ok1% кнопку и запустил%ok1% видеозапись{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Видеорегистратор "DOZOR" издал короткий сигнал.{Enter}{F6}
+Send, /do Видеорегистратор "DOZOR" издал короткий сигнал.{Enter}{F6}
 SmartSleep(250)
-SendPlay, /do Индикатор сменился с красного на мигающий зелёный.{Enter}
+Send, /do Индикатор сменился с красного на мигающий зелёный.{Enter}
 Return
 
 :?:/пдд211::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, Иметь при себе и по требованию служащих полиции передавать им, для проверки{Enter}{F6}
+Send, Иметь при себе и по требованию служащих полиции передавать им, для проверки{Enter}{F6}
 SmartSleep(250)
-SendPlay, водительское удостоверение на право управления транспортным средством соответствующей категории{Enter}{F6}
+Send, водительское удостоверение на право управления транспортным средством соответствующей категории{Enter}{F6}
 SmartSleep(250)
-SendPlay, или подкатегории, паспорт транспортного средства, на котором осуществляется передвижение.{Enter}
+Send, или подкатегории, паспорт транспортного средства, на котором осуществляется передвижение.{Enter}
 Return
 
 :?:/коап5.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.1 КоАП вождение без документов, предусмотренных пунктом 2.1.1 ПДД{Enter}{F6}
+Send, 5.1 КоАП вождение без документов, предусмотренных пунктом 2.1.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап5.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.2 КоАП непредоставление по требованию сотрудника полиции документов{Enter}{F6}
+Send, 5.2 КоАП непредоставление по требованию сотрудника полиции документов{Enter}{F6}
 SmartSleep(250)
-SendPlay, предусмотренных пунктом 2.1.1 ПДД{Enter}{F6}
+Send, предусмотренных пунктом 2.1.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей или лишение права на управление ТС с возможностью моментального переобучения.{Enter}
+Send, Штраф 30.000 рублей или лишение права на управление ТС с возможностью моментального переобучения.{Enter}
 Return
 
 :?:/коап5.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.3 КоАП управление ТС, не зарегистрированным в установленном порядке {Enter}{F6}
+Send, 5.3 КоАП управление ТС, не зарегистрированным в установленном порядке {Enter}{F6}
 SmartSleep(250)
-SendPlay, либо без гос. номеров, либо с изменёнными или закрытыми регистрационными знаками {Enter}{F6}
+Send, либо без гос. номеров, либо с изменёнными или закрытыми регистрационными знаками {Enter}{F6}
 SmartSleep(250)
-SendPlay, если прошло более 3 суток с момента покупки {Enter}{F6}
+Send, если прошло более 3 суток с момента покупки {Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей. {Enter}
+Send, Штраф 10.000 рублей. {Enter}
 Return
 
 :?:/коап5.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.4 КоАП управление ТС с тонировкой, светопропускаемость которой менее 70 процентов {Enter}{F6}
+Send, 5.4 КоАП управление ТС с тонировкой, светопропускаемость которой менее 70 процентов {Enter}{F6}
 SmartSleep(250)
-SendPlay, на боковых передних и лобовом стеклах включая запрещённые цветные пленки {Enter}{F6}
+Send, на боковых передних и лобовом стеклах включая запрещённые цветные пленки {Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей. {Enter}
+Send, Штраф 20.000 рублей. {Enter}
 Return
 
 :?:/коап5.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.5 КоАП управление ТС при технической неисправности или в условиях, когда управление запрещено{Enter}{F6}
+Send, 5.5 КоАП управление ТС при технической неисправности или в условиях, когда управление запрещено{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 2.4 ПДД{Enter}{F6}
+Send, согласно пунктом 2.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф от 10.000 до 30.000 рублей.{Enter}
+Send, Предупреждение или штраф от 10.000 до 30.000 рублей.{Enter}
 Return
 
 :?:/коап5.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.6 КоАП управление мотоциклом или мопедом, либо перевозка пассажиров без мотошлемов{Enter}{F6}
+Send, 5.6 КоАП управление мотоциклом или мопедом, либо перевозка пассажиров без мотошлемов{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 2.1.3 ПДД{Enter}{F6}
+Send, согласно пунктом 2.1.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап5.7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.7 КоАП нарушение ПДД пешеходами и велосипедистами{Enter}{F6}
+Send, 5.7 КоАП нарушение ПДД пешеходами и велосипедистами{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно главе 4 ПДД{Enter}{F6}
+Send, согласно главе 4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф от 5.000 до 15.000 рублей.{Enter}
+Send, Предупреждение или штраф от 5.000 до 15.000 рублей.{Enter}
 Return
 
 :?:/коап5.8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.8 КоАП посадка или высадка пассажиров со стороны проезжей части{Enter}{F6}
+Send, 5.8 КоАП посадка или высадка пассажиров со стороны проезжей части{Enter}{F6}
 SmartSleep(250)
-SendPlay, в нарушение правил дорожного движения {Enter}{F6}
+Send, в нарушение правил дорожного движения {Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап5.9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.9 КоАП игнорирование водителем требования об остановке с помощью жезла{Enter}{F6}
+Send, 5.9 КоАП игнорирование водителем требования об остановке с помощью жезла{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап5.10::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.10 КоАП несоблюдение требований дорожных знаков или разметки{Enter}{F6}
+Send, 5.10 КоАП несоблюдение требований дорожных знаков или разметки{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно приложению 1 и 2 ПДД{Enter}{F6}
+Send, согласно приложению 1 и 2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 5.000 рублей.{Enter}
+Send, Штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап6.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.1 КоАП использование приоритета с включёнными маячками и звуковым сигналом{Enter}{F6}
+Send, 6.1 КоАП использование приоритета с включёнными маячками и звуковым сигналом{Enter}{F6}
 SmartSleep(250)
-SendPlay, без убедительности в безопасности манёвра согласно пунктом 3.1 ПДД{Enter}{F6}
+Send, без убедительности в безопасности манёвра согласно пунктом 3.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап6.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.2 КоАП нарушение правил использования аварийных сигналов{Enter}{F6}
+Send, 6.2 КоАП нарушение правил использования аварийных сигналов{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 7.1 ПДД{Enter}{F6}
+Send, согласно пунктом 7.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 10.000 рублей.{Enter}
+Send, Предупреждение или штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап6.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.3 КоАП нарушение правил использования знака аварийной остановки{Enter}{F6}
+Send, 6.3 КоАП нарушение правил использования знака аварийной остановки{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 7.2 ПДД{Enter}{F6}
+Send, согласно пунктом 7.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 10.000 рублей.{Enter}
+Send, Предупреждение или штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап6.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.4 КоАП управление ТС с выключенными фарами{Enter}{F6}
+Send, 6.4 КоАП управление ТС с выключенными фарами{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 8.1 ПДД{Enter}{F6}
+Send, согласно пунктом 8.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап6.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.5 КоАП использование звукового сигнала с нарушением ПДД{Enter}{F6}
+Send, 6.5 КоАП использование звукового сигнала с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 8.3 ПДД{Enter}{F6}
+Send, согласно пунктом 8.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап7.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.1 КоАП проезд на красный сигнал светофора, запрещающий жест регулировщика, или на жёлтый{Enter}{F6}
+Send, 7.1 КоАП проезд на красный сигнал светофора, запрещающий жест регулировщика, или на жёлтый{Enter}{F6}
 SmartSleep(250)
-SendPlay, при возможности остановки без создания опасности согласно пунктом 6.1 ПДД{Enter}{F6}
+Send, при возможности остановки без создания опасности согласно пунктом 6.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап7.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.2 КоАП невыполнение требования остановки перед стоп-линией при запрещающем сигнале светофора{Enter}{F6}
+Send, 7.2 КоАП невыполнение требования остановки перед стоп-линией при запрещающем сигнале светофора{Enter}{F6}
 SmartSleep(250)
-SendPlay, или жесте регулировщика согласно пунктом 6.2 ПДД{Enter}{F6}
+Send, или жесте регулировщика согласно пунктом 6.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап8.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 8.1 КоАП начало движения, перестроение, поворот или остановка без использования сигнала поворота{Enter}{F6}
+Send, 8.1 КоАП начало движения, перестроение, поворот или остановка без использования сигнала поворота{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 9.1 ПДД{Enter}{F6}
+Send, согласно пунктом 9.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап8.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 8.2 КоАП непредоставление при перестроении преимущества транспортному средству {Enter}{F6}
+Send, 8.2 КоАП непредоставление при перестроении преимущества транспортному средству {Enter}{F6}
 SmartSleep(250)
-SendPlay, попутного направления или справа согласно пунктом 9.4 ПДД{Enter}{F6}
+Send, попутного направления или справа согласно пунктом 9.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап8.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 8.3 КоАП поворот направо, налево или разворот из полосы, не предназначенной для данного манёвра{Enter}{F6}
+Send, 8.3 КоАП поворот направо, налево или разворот из полосы, не предназначенной для данного манёвра{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 9.4 ПДД{Enter}{F6}
+Send, согласно пунктом 9.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап8.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 8.4 КоАП поворот направо, налево, разворот или движение задним ходом с нарушением ПДД{Enter}{F6}
+Send, 8.4 КоАП поворот направо, налево, разворот или движение задним ходом с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, знаков или разметки согласно пунктам 9.4, 9.4.1, 9.6, 9.7 ПДД{Enter}{F6}
+Send, знаков или разметки согласно пунктам 9.4, 9.4.1, 9.6, 9.7 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап9.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.1 КоАП движение по полосе, предназначенной для встречного движения, с нарушением ПДД{Enter}{F6}
+Send, 9.1 КоАП движение по полосе, предназначенной для встречного движения, с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.1 ПДД{Enter}{F6}
+Send, согласно пунктом 10.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 50.000 рублей с лишением права управления до 2 лет.{Enter}
+Send, Штраф 50.000 рублей с лишением права управления до 2 лет.{Enter}
 Return
 
 :?:/коап9.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.2 КоАП выезд на полосу, предназначенную для встречного движения, с нарушением ПДД{Enter}{F6}
+Send, 9.2 КоАП выезд на полосу, предназначенную для встречного движения, с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.1 ПДД{Enter}{F6}
+Send, согласно пунктом 10.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 50.000 рублей.{Enter}
+Send, Штраф 50.000 рублей.{Enter}
 Return
 
 :?:/коап9.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.3 КоАП движение вне населённых пунктов по левым полосам при свободных правых{Enter}{F6}
+Send, 9.3 КоАП движение вне населённых пунктов по левым полосам при свободных правых{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.2 ПДД{Enter}{F6}
+Send, согласно пунктом 10.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап9.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.4 КоАП движение по прерывистым линиям разметки с нарушением ПДД{Enter}{F6}
+Send, 9.4 КоАП движение по прерывистым линиям разметки с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.4 ПДД{Enter}{F6}
+Send, согласно пунктом 10.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 10.000 рублей.{Enter}
+Send, Предупреждение или штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап9.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.5 КоАП движение по разделительным полосам, обочинам, тротуарам, пешеходным дорожкам и газону{Enter}{F6}
+Send, 9.5 КоАП движение по разделительным полосам, обочинам, тротуарам, пешеходным дорожкам и газону{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.6 ПДД{Enter}{F6}
+Send, согласно пунктом 10.6 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей.{Enter}
+Send, Штраф 30.000 рублей.{Enter}
 Return
 
 :?:/коап9.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 9.6 КоАП несоблюдение дистанции до впереди идущего ТС и бокового интервала между движущимися ТС{Enter}{F6}
+Send, 9.6 КоАП несоблюдение дистанции до впереди идущего ТС и бокового интервала между движущимися ТС{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 10.8 ПДД{Enter}{F6}
+Send, согласно пунктом 10.8 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 10.000 рублей.{Enter}
+Send, Предупреждение или штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап10.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 10.1 КоАП обгон ТС с нанесёнными спец. цветографическими схемами{Enter}{F6}
+Send, 10.1 КоАП обгон ТС с нанесёнными спец. цветографическими схемами{Enter}{F6}
 SmartSleep(250)
-SendPlay, с включённым синим проблесковым маячком и спец. звуковым сигналом согласно пунктом 3.2 ПДД{Enter}{F6}
+Send, с включённым синим проблесковым маячком и спец. звуковым сигналом согласно пунктом 3.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап10.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 10.2 КоАП обгон ТС с спец. цветографическими схемами, с включёнными проблесковыми маячками синего{Enter}{F6}
+Send, 10.2 КоАП обгон ТС с спец. цветографическими схемами, с включёнными проблесковыми маячками синего{Enter}{F6}
 SmartSleep(250)
-SendPlay, и/или красного цветов, а также сопровождаемого ТС согласно пунктом 3.2 ПДД{Enter}{F6}
+Send, и/или красного цветов, а также сопровождаемого ТС согласно пунктом 3.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап10.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 10.3 КоАП обгон ТС в случаях, когда манёвр запрещён{Enter}{F6}
+Send, 10.3 КоАП обгон ТС в случаях, когда манёвр запрещён{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 12.2 ПДД{Enter}{F6}
+Send, согласно пунктом 12.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап10.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 10.4 КоАП препятствование обгону согласно пунктом 12.3 ПДД{Enter}{F6}
+Send, 10.4 КоАП препятствование обгону согласно пунктом 12.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап11.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 11.1 КоАП остановка или стоянка ТС на пешеходном переходе, ближе 5 м перед ним{Enter}{F6}
+Send, 11.1 КоАП остановка или стоянка ТС на пешеходном переходе, ближе 5 м перед ним{Enter}{F6}
 SmartSleep(250)
-SendPlay, или на тротуаре согласно пунктом 13.3 ПДД{Enter}{F6}
+Send, или на тротуаре согласно пунктом 13.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап11.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 11.2 КоАП остановка или стоянка ТС в местах остановки маршрутных ТС или ближе 15 м от них{Enter}{F6}
+Send, 11.2 КоАП остановка или стоянка ТС в местах остановки маршрутных ТС или ближе 15 м от них{Enter}{F6}
 SmartSleep(250)
-SendPlay, кроме посадки/высадки или вынужденной остановки согласно пунктом 13.3 ПДД{Enter}{F6}
+Send, кроме посадки/высадки или вынужденной остановки согласно пунктом 13.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап11.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 11.3 КоАП остановка или стоянка ТС на трамвайных путях{Enter}{F6}
+Send, 11.3 КоАП остановка или стоянка ТС на трамвайных путях{Enter}{F6}
 SmartSleep(250)
-SendPlay, газоне или далее первого ряда от края проезжей части согласно пунктом 13.3 ПДД{Enter}{F6}
+Send, газоне или далее первого ряда от края проезжей части согласно пунктом 13.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап11.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 11.4 КоАП нарушение правил остановки или стоянки ТС на проезжей части{Enter}{F6}
+Send, 11.4 КоАП нарушение правил остановки или стоянки ТС на проезжей части{Enter}{F6}
 SmartSleep(250)
-SendPlay, или в тоннелях с созданием препятствий для движения других ТС согласно пунктом 13.3 ПДД{Enter}{F6}
+Send, или в тоннелях с созданием препятствий для движения других ТС согласно пунктом 13.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап11.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 11.5 КоАП нарушение правил остановки или стоянки ТС, за исключением случаев частей 1-4 {Enter}{F6}
+Send, 11.5 КоАП нарушение правил остановки или стоянки ТС, за исключением случаев частей 1-4 {Enter}{F6}
 SmartSleep(250)
-SendPlay, настоящей статьи согласно главе 13 ПДД{Enter}{F6}
+Send, настоящей статьи согласно главе 13 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап12.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 12.1 КоАП нарушения правил проезда перекрёстков, не повлекшие опасности {Enter}{F6}
+Send, 12.1 КоАП нарушения правил проезда перекрёстков, не повлекшие опасности {Enter}{F6}
 SmartSleep(250)
-SendPlay, другим участникам движения согласно главе 14 ПДД{Enter}{F6}
+Send, другим участникам движения согласно главе 14 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап12.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 12.2 КоАП нарушения правил проезда перекрёстков, повлекшие опасность {Enter}{F6}
+Send, 12.2 КоАП нарушения правил проезда перекрёстков, повлекшие опасность {Enter}{F6}
 SmartSleep(250)
-SendPlay, другим участникам движения согласно главе 14 ПДД{Enter}{F6}
+Send, другим участникам движения согласно главе 14 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап13.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 13.1 КоАП пересечение железнодорожных путей в местах, не оборудованных для этого{Enter}{F6}
+Send, 13.1 КоАП пересечение железнодорожных путей в местах, не оборудованных для этого{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 16.1 ПДД{Enter}{F6}
+Send, согласно пунктом 16.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап13.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 13.2 КоАП выезд на железнодорожный переезд в случаях, когда это запрещено{Enter}{F6}
+Send, 13.2 КоАП выезд на железнодорожный переезд в случаях, когда это запрещено{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 16.3 ПДД{Enter}{F6}
+Send, согласно пунктом 16.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап13.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 13.3 КоАП остановка ТС ближе 5 м от шлагбаума, или при его отсутствии ближе 10м {Enter}{F6}
+Send, 13.3 КоАП остановка ТС ближе 5 м от шлагбаума, или при его отсутствии ближе 10м {Enter}{F6}
 SmartSleep(250)
-SendPlay, до ближайшего рельса согласно пунктом 16.4 ПДД{Enter}{F6}
+Send, до ближайшего рельса согласно пунктом 16.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап14.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.1 КоАП движение по автомагистрали ТС, скорость которых по характеристикам {Enter}{F6}
+Send, 14.1 КоАП движение по автомагистрали ТС, скорость которых по характеристикам {Enter}{F6}
 SmartSleep(250)
-SendPlay, или состоянию менее 40 км/ч согласно пунктом 17.1 ПДД{Enter}{F6}
+Send, или состоянию менее 40 км/ч согласно пунктом 17.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап14.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.2 КоАП движение по автомагистрали грузовых автомобилей далее второй полосы{Enter}{F6}
+Send, 14.2 КоАП движение по автомагистрали грузовых автомобилей далее второй полосы{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 17.1 ПДД{Enter}{F6}
+Send, согласно пунктом 17.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап14.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.3 КоАП движение по автомагистрали задним ходом согласно пунктом 17.1 ПДД{Enter}{F6}
+Send, 14.3 КоАП движение по автомагистрали задним ходом согласно пунктом 17.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап14.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.4 КоАП создание пешеходом помех для автомобилей при движении в жилых зонах{Enter}{F6}
+Send, 14.4 КоАП создание пешеходом помех для автомобилей при движении в жилых зонах{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 18.1 ПДД{Enter}{F6}
+Send, согласно пунктом 18.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап14.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.5 КоАП сквозное движение, учебная езда, стоянка с работающим двигателем {Enter}{F6}
+Send, 14.5 КоАП сквозное движение, учебная езда, стоянка с работающим двигателем {Enter}{F6}
 SmartSleep(250)
-SendPlay, а также стоянка грузовых ТС свыше 3,5 тонн вне спец выделенных мест согласно пунктом 18.2 ПДД{Enter}{F6}
+Send, а также стоянка грузовых ТС свыше 3,5 тонн вне спец выделенных мест согласно пунктом 18.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап14.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 14.6 КоАП движение в колонне с нарушением правил дорожного движения{Enter}{F6}
+Send, 14.6 КоАП движение в колонне с нарушением правил дорожного движения{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно главе 19 ПДД{Enter}{F6}
+Send, согласно главе 19 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 10.000 рублей.{Enter}
+Send, Предупреждение или штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап15.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 15.1 КоАП непредоставление преимущества ТС с включенным проблесковым маячком синего {Enter}{F6}
+Send, 15.1 КоАП непредоставление преимущества ТС с включенным проблесковым маячком синего {Enter}{F6}
 SmartSleep(250)
-SendPlay, и/или красного цвета и спец. звуковым сигналом согласно пунктом 3.2 ПДД{Enter}{F6}
+Send, и/или красного цвета и спец. звуковым сигналом согласно пунктом 3.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап15.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 15.2 КоАП непредоставление преимущества троллейбусам и автобусам {Enter}{F6}
+Send, 15.2 КоАП непредоставление преимущества троллейбусам и автобусам {Enter}{F6}
 SmartSleep(250)
-SendPlay, начинающим движение от места остановки согласно пунктом 20.2 ПДД{Enter}{F6}
+Send, начинающим движение от места остановки согласно пунктом 20.2 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 5.000 рублей.{Enter}
+Send, Штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап15.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 15.3 КоАП непредоставление преимущества ТС, движущимся по главной дороге{Enter}{F6}
+Send, 15.3 КоАП непредоставление преимущества ТС, движущимся по главной дороге{Enter}{F6}
 SmartSleep(250)
-SendPlay, или при выезде с прилегающей территории согласно пунктом 9.3 ПДД{Enter}{F6}
+Send, или при выезде с прилегающей территории согласно пунктом 9.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей.{Enter}
+Send, Штраф 10.000 рублей.{Enter}
 Return
 
 :?:/коап15.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 15.4 КоАП непредоставление преимущества пешеходам {Enter}{F6}
+Send, 15.4 КоАП непредоставление преимущества пешеходам {Enter}{F6}
 SmartSleep(250)
-SendPlay, и/или велосипедистам при пересечении проезжей части согласно пунктом 15.1 ПДД{Enter}{F6}
+Send, и/или велосипедистам при пересечении проезжей части согласно пунктом 15.1 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или штраф 5.000 рублей.{Enter}
+Send, Предупреждение или штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап16.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 16.1 КоАП оставление водителем места ДТП, участником которого он являлся, с нарушением ПДД{Enter}{F6}
+Send, 16.1 КоАП оставление водителем места ДТП, участником которого он являлся, с нарушением ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 2.4 ПДД{Enter}{F6}
+Send, согласно пунктом 2.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей с лишением права управления на 3-4 года и административный арест 20 суток.{Enter}
+Send, Штраф 30.000 рублей с лишением права управления на 3-4 года и административный арест 20 суток.{Enter}
 Return
 
 :?:/коап16.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 16.2 КоАП неоказание первой помощи при ДТП, если она необходима{Enter}{F6}
+Send, 16.2 КоАП неоказание первой помощи при ДТП, если она необходима{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно пунктом 2.3 ПДД{Enter}{F6}
+Send, согласно пунктом 2.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап16.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 16.3 КоАП невыполнение водителем обязанностей при ДТП, участником которого он является{Enter}{F6}
+Send, 16.3 КоАП невыполнение водителем обязанностей при ДТП, участником которого он является{Enter}{F6}
 SmartSleep(250)
-SendPlay, кроме случаев статьи 16.1 согласно пунктом 2.3 ПДД{Enter}{F6}
+Send, кроме случаев статьи 16.1 согласно пунктом 2.3 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф от 10.000 до 35.000 рублей.{Enter}
+Send, Штраф от 10.000 до 35.000 рублей.{Enter}
 Return
 
 :?:/коап1711::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.1.1 КоАП лицо, управляющее ТС и имеющее признаки опьянения {Enter}{F6}
+Send, 17.1.1 КоАП лицо, управляющее ТС и имеющее признаки опьянения {Enter}{F6}
 SmartSleep(250)
-SendPlay, или совершившее правонарушения по ст. 19.1 и 19.4 подлежит отстранению от управления до устранения причины{Enter}
+Send, или совершившее правонарушения по ст. 19.1 и 19.4 подлежит отстранению от управления до устранения причины{Enter}
 Return
 
 :?:/коап1712::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.1.2 КоАП составляется протокол об отстранении от управления и направлении {Enter}{F6}
+Send, 17.1.2 КоАП составляется протокол об отстранении от управления и направлении {Enter}{F6}
 SmartSleep(250)
-SendPlay, на медицинское освидетельствование копия вручается лицу{Enter}
+Send, на медицинское освидетельствование копия вручается лицу{Enter}
 Return
 
 :?:/коап1713::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.1.3 КоАП лицо с признаками опьянения подлежит освидетельствованию при отказе {Enter}{F6}
+Send, 17.1.3 КоАП лицо с признаками опьянения подлежит освидетельствованию при отказе {Enter}{F6}
 SmartSleep(250)
-SendPlay, или несогласии направляется на медицинское освидетельствование {Enter}
+Send, или несогласии направляется на медицинское освидетельствование {Enter}
 Return
 
 :?:/коап1714::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.1.4 КоАП управление ТС в состоянии опьянения или передача управления лицу в состоянии опьянения{Enter}{F6}
+Send, 17.1.4 КоАП управление ТС в состоянии опьянения или передача управления лицу в состоянии опьянения{Enter}{F6}
 SmartSleep(250)
-SendPlay, согласно п. 2.4 ПДД{Enter}{F6}
+Send, согласно п. 2.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей с лишением права управления до 1 года.{Enter}
+Send, Штраф 30.000 рублей с лишением права управления до 1 года.{Enter}
 Return
 
 :?:/коап1715::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.1.5 КоАП невыполнение законного требования о прохождении медицинского освидетельствования{Enter}{F6}
+Send, 17.1.5 КоАП невыполнение законного требования о прохождении медицинского освидетельствования{Enter}{F6}
 SmartSleep(250)
-SendPlay, на состояние опьянения {Enter}{F6}
+Send, на состояние опьянения {Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей с лишением права управления до 1 года.{Enter}
+Send, Штраф 30.000 рублей с лишением права управления до 1 года.{Enter}
 Return
 
 :?:/коап17.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.2 КоАП опасное вождение согласно пунктом 2.4 ПДД{Enter}{F6}
+Send, 17.2 КоАП опасное вождение согласно пунктом 2.4 ПДД{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф до 30.000 рублей с лишением права управления до 2 лет.{Enter}
+Send, Штраф до 30.000 рублей с лишением права управления до 2 лет.{Enter}
 Return
 
 :?:/коап17.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.3 КоАП управление ТС при неуплате штрафов до 10.000 рублей{Enter}{F6}
+Send, 17.3 КоАП управление ТС при неуплате штрафов до 10.000 рублей{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение.{Enter}
+Send, Предупреждение.{Enter}
 Return
 
 :?:/коап17.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.4 КоАП управление ТС при неуплате штрафов от 10.000 до 50.000 рублей{Enter}{F6}
+Send, 17.4 КоАП управление ТС при неуплате штрафов от 10.000 до 50.000 рублей{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 30.000 рублей.{Enter}
+Send, Штраф 30.000 рублей.{Enter}
 Return
 
 :?:/коап17.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.5 КоАП управление ТС при неуплате штрафов от 50.000 до 100.000 рублей{Enter}{F6}
+Send, 17.5 КоАП управление ТС при неуплате штрафов от 50.000 до 100.000 рублей{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 50.000 рублей с лишением права управления на 1 год.{Enter}
+Send, Штраф 50.000 рублей с лишением права управления на 1 год.{Enter}
 Return
 
 :?:/коап17.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 17.6 КоАП управление ТС при неуплате штрафов свыше 100.000 рублей{Enter}{F6}
+Send, 17.6 КоАП управление ТС при неуплате штрафов свыше 100.000 рублей{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 100.000 рублей с лишением права управления на 2 года.{Enter}
+Send, Штраф 100.000 рублей с лишением права управления на 2 года.{Enter}
 Return
 
 :?:/коап18.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 18.1 КоАП превышение скорости на 10-20 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
+Send, 18.1 КоАП превышение скорости на 10-20 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение.{Enter}
+Send, Предупреждение.{Enter}
 Return
 
 :?:/коап18.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 18.2 КоАП превышение скорости на 20-40 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
+Send, 18.2 КоАП превышение скорости на 20-40 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 2.000 рублей.{Enter}
+Send, Штраф 2.000 рублей.{Enter}
 Return
 
 :?:/коап18.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 18.3 КоАП превышение скорости на 40-60 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
+Send, 18.3 КоАП превышение скорости на 40-60 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 5.000 рублей.{Enter}
+Send, Штраф 5.000 рублей.{Enter}
 Return
 
 :?:/коап18.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 18.4 КоАП превышение скорости на 60-80 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
+Send, 18.4 КоАП превышение скорости на 60-80 км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 7.000 рублей.{Enter}
+Send, Штраф 7.000 рублей.{Enter}
 Return
 
 :?:/коап18.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 18.5 КоАП превышение скорости на 80+ км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
+Send, 18.5 КоАП превышение скорости на 80+ км/ч, зафиксированное сотрудниками полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 10.000 рублей с лишением права управления на 1 год.{Enter}
+Send, Штраф 10.000 рублей с лишением права управления на 1 год.{Enter}
 Return
 
 :?:/коап19.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.1 КоАП мелкое хулиганство, нарушение общественного порядка с нецензурной лексикой {Enter}{F6}
+Send, 19.1 КоАП мелкое хулиганство, нарушение общественного порядка с нецензурной лексикой {Enter}{F6}
 SmartSleep(250)
-SendPlay, оскорбительным поведением или повреждением чужого имущества {Enter}{F6}
+Send, оскорбительным поведением или повреждением чужого имущества {Enter}{F6}
 SmartSleep(250)
-SendPlay, а так же нахождение в нижнем белье вне водоёмов, бассейнов, спортзалов {Enter}{F6}
+Send, а так же нахождение в нижнем белье вне водоёмов, бассейнов, спортзалов {Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф до 10.000 рублей или административный арест 10 суток.{Enter}
+Send, Штраф до 10.000 рублей или административный арест 10 суток.{Enter}
 Return
 
 :?:/коап19.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.2 КоАП оскорбление, унижение чести и достоинства другого лица неприличной или аморальной формой{Enter}{F6}
+Send, 19.2 КоАП оскорбление, унижение чести и достоинства другого лица неприличной или аморальной формой{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф до 10.000 рублей или административный арест 10 суток.{Enter}
+Send, Штраф до 10.000 рублей или административный арест 10 суток.{Enter}
 Return
 
 :?:/коап19.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.3 КоАП нанесение побоев или иных насильственных действий, причиняющих физическую боль, {Enter}{F6}
+Send, 19.3 КоАП нанесение побоев или иных насильственных действий, причиняющих физическую боль, {Enter}{F6}
 SmartSleep(250)
-SendPlay, не содержащих уголовно наказуемое деяние{Enter}{F6}
+Send, не содержащих уголовно наказуемое деяние{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф до 20.000 рублей или административный арест 10 суток.{Enter}
+Send, Штраф до 20.000 рублей или административный арест 10 суток.{Enter}
 Return
 
 :?:/коап19.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.4 КоАП распитие алкоголя в общественных местах или появление в состоянии опьянения {Enter}{F6}
+Send, 19.4 КоАП распитие алкоголя в общественных местах или появление в состоянии опьянения {Enter}{F6}
 SmartSleep(250)
-SendPlay, оскорбляющем человеческое достоинство и общественную нравственность{Enter}
+Send, оскорбляющем человеческое достоинство и общественную нравственность{Enter}
 SmartSleep(250)
-SendPlay, Штраф 5.000 рублей.{Enter}{F6}
+Send, Штраф 5.000 рублей.{Enter}{F6}
 Return
 
 :?:/коап19.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.5 КоАП занятие попрошайничеством в общественных местах{Enter}{F6}
+Send, 19.5 КоАП занятие попрошайничеством в общественных местах{Enter}{F6}
 SmartSleep(250)
-SendPlay, Предупреждение или административный арест 10 суток.{Enter}
+Send, Предупреждение или административный арест 10 суток.{Enter}
 Return
 
 :?:/коап19.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.6 КоАП предпринимательская деятельность без регистрации или лицензии, если она обязательна{Enter}{F6}
+Send, 19.6 КоАП предпринимательская деятельность без регистрации или лицензии, если она обязательна{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 100.000 рублей.{Enter}
+Send, Штраф 100.000 рублей.{Enter}
 Return
 
 :?:/коап19.7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.7 КоАП заведомо ложный вызов пожарной охраны, полиции, скорой или иных служб{Enter}{F6}
+Send, 19.7 КоАП заведомо ложный вызов пожарной охраны, полиции, скорой или иных служб{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/коап19.8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.8 КоАП организация, участие или призыв к несогласованному митингу с нарушением порядка {Enter}{F6}
+Send, 19.8 КоАП организация, участие или призыв к несогласованному митингу с нарушением порядка {Enter}{F6}
 SmartSleep(250)
-SendPlay, и созданием помех движению{Enter}{F6}
+Send, и созданием помех движению{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф до 20.000 рублей или административный арест 10 суток.{Enter}
+Send, Штраф до 20.000 рублей или административный арест 10 суток.{Enter}
 Return
 
 :?:/коап19.9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.9 КоАП неповиновение законному распоряжению сотрудника полиции или военнослужащего{Enter}{F6}
+Send, 19.9 КоАП неповиновение законному распоряжению сотрудника полиции или военнослужащего{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей, или лишение права управления на 1 год, или административный арест до 20 суток.{Enter}
+Send, Штраф 20.000 рублей, или лишение права управления на 1 год, или административный арест до 20 суток.{Enter}
 Return
 
 :?:/коап19.10::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 19.10 КоАП клевета, распространение заведомо ложных сведений {Enter}{F6}
+Send, 19.10 КоАП клевета, распространение заведомо ложных сведений {Enter}{F6}
 SmartSleep(250)
-SendPlay, порочащих честь и достоинство или репутацию другого лица{Enter}{F6}
+Send, порочащих честь и достоинство или репутацию другого лица{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 20.000 рублей.{Enter}
+Send, Штраф 20.000 рублей.{Enter}
 Return
 
 :?:/укрп4.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.1 УКРП умышленное причинение вреда здоровью человека без летального исхода{Enter}{F6}
+Send, 4.1 УКРП умышленное причинение вреда здоровью человека без летального исхода{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 1 год.{Enter}
+Send, Арест сроком на 1 год.{Enter}
 Return
 
 :?:/укрп4.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.2 УКРП умышленное нанесение особо тяжких телесных повреждений{Enter}{F6}
+Send, 4.2 УКРП умышленное нанесение особо тяжких телесных повреждений{Enter}{F6}
 SmartSleep(250)
-SendPlay, по итогу которых человек был доведен до предсмертного положения{Enter}{F6}
+Send, по итогу которых человек был доведен до предсмертного положения{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп421::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.2.1 УКРП умышленное нанесение особо тяжких телесных повреждений двум или более лицам{Enter}{F6}
+Send, 4.2.1 УКРП умышленное нанесение особо тяжких телесных повреждений двум или более лицам{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком от 4 до 6 лет.{Enter}
+Send, Арест сроком от 4 до 6 лет.{Enter}
 Return
 
 :?:/укрп422::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.2.2 УКРП нанесение особо тяжких телесных повреждений по неосторожности или в состоянии аффекта {Enter}{F6}
+Send, 4.2.2 УКРП нанесение особо тяжких телесных повреждений по неосторожности или в состоянии аффекта {Enter}{F6}
 SmartSleep(250)
-SendPlay, вызванного насилием, издевательством или тяжким оскорблением со стороны потерпевшего{Enter}{F6}
+Send, вызванного насилием, издевательством или тяжким оскорблением со стороны потерпевшего{Enter}{F6}
 SmartSleep(250)
-SendPlay, либо иными противоправными или аморальными действиями потерпевшего{Enter}{F6}
+Send, либо иными противоправными или аморальными действиями потерпевшего{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 2 лет.{Enter}
+Send, Арест сроком до 2 лет.{Enter}
 Return
 
 :?:/укрп4.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.3 УКРП угроза нанесения особо тяжких телесных повреждений или причинения вреда здоровью человека{Enter}{F6}
+Send, 4.3 УКРП угроза нанесения особо тяжких телесных повреждений или причинения вреда здоровью человека{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 1 год.{Enter}
+Send, Арест сроком на 1 год.{Enter}
 Return
 
 :?:/укрп4.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.4 УКРП похищение гражданина или незаконное лишение человека свободы, не связанное с похищением{Enter}{F6}
+Send, 4.4 УКРП похищение гражданина или незаконное лишение человека свободы, не связанное с похищением{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком от 4 до 6 лет.{Enter}
+Send, Арест сроком от 4 до 6 лет.{Enter}
 Return
 
 :?:/укрп4.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.5 УКРП действия, направленные против половой неприкосновенности и половой свободы личности{Enter}{F6}
+Send, 4.5 УКРП действия, направленные против половой неприкосновенности и половой свободы личности{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком от 3 до 6 лет.{Enter}
+Send, Арест сроком от 3 до 6 лет.{Enter}
 Return
 
 :?:/укрп4.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 4.6 УКРП незаконный сбор или распространение сведений о частной жизни лица без его согласия{Enter}{F6}
+Send, 4.6 УКРП незаконный сбор или распространение сведений о частной жизни лица без его согласия{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 1 год.{Enter}
+Send, Арест сроком на 1 год.{Enter}
 Return
 
 :?:/укрп5.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.1 УКРП получение должностным лицом взятки за осуществление очевидно незаконных действий{Enter}{F6}
+Send, 5.1 УКРП получение должностным лицом взятки за осуществление очевидно незаконных действий{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф в полуторакратном размере от полученной взятки {Enter}{F6}
+Send, Штраф в полуторакратном размере от полученной взятки {Enter}{F6}
 SmartSleep(250)
-SendPlay, или 50.000 рублей, а также арест сроком на 3 года.{Enter}
+Send, или 50.000 рублей, а также арест сроком на 3 года.{Enter}
 Return
 
 :?:/укрп5.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.2 УКРП дача взятки должностному лицу лично или через посредника{Enter}{F6}
+Send, 5.2 УКРП дача взятки должностному лицу лично или через посредника{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 3 года.{Enter}
+Send, Арест сроком на 3 года.{Enter}
 Return
 
 :?:/укрп5.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.3 УКРП посягательство на жизнь и здоровье сотрудника полиции {Enter}{F6}
+Send, 5.3 УКРП посягательство на жизнь и здоровье сотрудника полиции {Enter}{F6}
 SmartSleep(250)
-SendPlay, военнослужащего или работника инкассации{Enter}{F6}
+Send, военнослужащего или работника инкассации{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком от 3 до 6 лет.{Enter}
+Send, Арест сроком от 3 до 6 лет.{Enter}
 Return
 
 :?:/укрп5.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.4 УКРП применение насилия или угроза применения насилия в отношении представителя власти{Enter}{F6}
+Send, 5.4 УКРП применение насилия или угроза применения насилия в отношении представителя власти{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 3 лет.{Enter}
+Send, Арест сроком до 3 лет.{Enter}
 Return
 
 :?:/укрп5.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.5 УКРП хамство или дерзость по отношению к сотруднику правоохранительных органов{Enter}{F6}
+Send, 5.5 УКРП хамство или дерзость по отношению к сотруднику правоохранительных органов{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 1 год.{Enter}
+Send, Арест сроком на 1 год.{Enter}
 Return
 
 :?:/укрп5.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.6 УКРП публичное оскорбление или неоднократное неуважение к представителям власти{Enter}{F6}
+Send, 5.6 УКРП публичное оскорбление или неоднократное неуважение к представителям власти{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп5.7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.7 УКРП провокационные действия в отношении сотрудников государственных структур{Enter}{F6}
+Send, 5.7 УКРП провокационные действия в отношении сотрудников государственных структур{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 2 лет.{Enter}
+Send, Арест сроком до 2 лет.{Enter}
 Return
 
 :?:/укрп571::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.7.1 УКРП длительное преследование экипажа сотрудников правоохранительных органов {Enter}{F6}
+Send, 5.7.1 УКРП длительное преследование экипажа сотрудников правоохранительных органов {Enter}{F6}
 SmartSleep(250)
-SendPlay, или создание помех их работе{Enter}{F6}
+Send, или создание помех их работе{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 2 лет.{Enter}
+Send, Арест сроком до 2 лет.{Enter}
 Return
 
 :?:/укрп5.8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.8 УКРП неоднократное неповиновение законным требованиям служащего полиции{Enter}{F6}
+Send, 5.8 УКРП неоднократное неповиновение законным требованиям служащего полиции{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп581::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.8.1 УКРП уход от правоохранительных органов с нанесением ущерба имуществу{Enter}{F6}
+Send, 5.8.1 УКРП уход от правоохранительных органов с нанесением ущерба имуществу{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 3 года.{Enter}
+Send, Арест сроком на 3 года.{Enter}
 Return
 
 :?:/укрп582::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.8.2 УКРП уход от правоохранительных органов с причинением {Enter}{F6}
+Send, 5.8.2 УКРП уход от правоохранительных органов с причинением {Enter}{F6}
 SmartSleep(250)
-SendPlay, телесных повреждений средней тяжести и выше{Enter}{F6}
+Send, телесных повреждений средней тяжести и выше{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 4 года.{Enter}
+Send, Арест сроком на 4 года.{Enter}
 Return
 
 :?:/укрп5.9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.9 УКРП умышленное уничтожение или повреждение имущества государственных организаций{Enter}{F6}
+Send, 5.9 УКРП умышленное уничтожение или повреждение имущества государственных организаций{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп5.10::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.10 УКРП заведомо ложный донос или ложные показания по уголовному, административному делу{Enter}{F6}
+Send, 5.10 УКРП заведомо ложный донос или ложные показания по уголовному, административному делу{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп5.11::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.11 УКРП разглашение секретных данных или сведений о предстоящих операциях{Enter}{F6}
+Send, 5.11 УКРП разглашение секретных данных или сведений о предстоящих операциях{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 3 лет.{Enter}
+Send, Арест сроком до 3 лет.{Enter}
 Return
 
 :?:/укрп5.12::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.12 УКРП представление себя служащим государственной организации{Enter}{F6} 
+Send, 5.12 УКРП представление себя служащим государственной организации{Enter}{F6} 
 SmartSleep(250)
-SendPlay, если это не соответствует действительности{Enter}{F6}
+Send, если это не соответствует действительности{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 1 год.{Enter}
+Send, Арест сроком на 1 год.{Enter}
 Return
 
 :?:/укрп5.13::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 5.13 УКРП халатность, повлекшая крупный ущерб или нарушение прав граждан{Enter}{F6}
+Send, 5.13 УКРП халатность, повлекшая крупный ущерб или нарушение прав граждан{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 3 лет.{Enter}
+Send, Арест сроком до 3 лет.{Enter}
 Return
 
 :?:/укрп6.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.1 УКРП терроризм, совершение взрыва, поджога или иных действий {Enter}{F6}
+Send, 6.1 УКРП терроризм, совершение взрыва, поджога или иных действий {Enter}{F6}
 SmartSleep(250)
-SendPlay, создающих опасность гибели людей или тяжкие последствия{Enter}{F6}
+Send, создающих опасность гибели людей или тяжкие последствия{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 6 лет.{Enter}
+Send, Арест сроком до 6 лет.{Enter}
 Return
 
 :?:/укрп6.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.2 УКРП ложное сообщение о готовящихся взрыве, поджоге или иных опасных действиях{Enter}{F6}
+Send, 6.2 УКРП ложное сообщение о готовящихся взрыве, поджоге или иных опасных действиях{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 3 года.{Enter}
+Send, Арест на 3 года.{Enter}
 Return
 
 :?:/укрп6.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.3 УКРП захват или удержание лица в качестве заложника{Enter}{F6}
+Send, 6.3 УКРП захват или удержание лица в качестве заложника{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 3 лет.{Enter}
+Send, Арест сроком до 3 лет.{Enter}
 Return
 
 :?:/укрп6.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.4 УКРП организация массовых беспорядков, сопровождающихся насилием и разрушениями{Enter}{F6}
+Send, 6.4 УКРП организация массовых беспорядков, сопровождающихся насилием и разрушениями{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 6 лет.{Enter}
+Send, Арест сроком до 6 лет.{Enter}
 Return
 
 :?:/укрп6.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.5 УКРП создание банды, руководство ею или участие в её деятельности{Enter}{F6}
+Send, 6.5 УКРП создание банды, руководство ею или участие в её деятельности{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком до 6 лет.{Enter}
+Send, Арест сроком до 6 лет.{Enter}
 Return
 
 :?:/укрп6.6::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.6 УКРП вандализм, порча имущества или осквернение сооружений{Enter}{F6}
+Send, 6.6 УКРП вандализм, порча имущества или осквернение сооружений{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 1 год.{Enter}
+Send, Арест на 1 год.{Enter}
 Return
 
 :?:/укрп6.7::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.7 УКРП незаконное проникновение в жилище или частную территорию{Enter}{F6}
+Send, 6.7 УКРП незаконное проникновение в жилище или частную территорию{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 2 года.{Enter}
+Send, Арест сроком на 2 года.{Enter}
 Return
 
 :?:/укрп6.8::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.8 УКРП проникновение на охраняемый объект{Enter}{F6}
+Send, 6.8 УКРП проникновение на охраняемый объект{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 2 года.{Enter}
+Send, Арест на 2 года.{Enter}
 Return
 
 :?:/укрп6.9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.9 УКРП незаконное обращение с огнестрельным оружием или боеприпасами{Enter}{F6}
+Send, 6.9 УКРП незаконное обращение с огнестрельным оружием или боеприпасами{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 3 года.{Enter}
+Send, Арест на 3 года.{Enter}
 Return
 
 :?:/укрп6.10::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.10 УКРП незаконный оборот наркотических средств или психотропных веществ{Enter}{F6}
+Send, 6.10 УКРП незаконный оборот наркотических средств или психотропных веществ{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 3 года.{Enter}
+Send, Арест на 3 года.{Enter}
 Return
 
 :?:/укрп6.11::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.11 УКРП неоказание первой или медицинской помощи без уважительных причин{Enter}{F6}
+Send, 6.11 УКРП неоказание первой или медицинской помощи без уважительных причин{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 1 год.{Enter}
+Send, Арест на 1 год.{Enter}
 Return
 
 :?:/укрп6.12::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.12 УКРП попытка срыва мероприятий или помеха их проведению{Enter}{F6}
+Send, 6.12 УКРП попытка срыва мероприятий или помеха их проведению{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест сроком на 3 года.{Enter}
+Send, Арест сроком на 3 года.{Enter}
 Return
 
 :?:/укрп6.13::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.13 УКРП подделка или использование поддельных лицензий или удостоверений{Enter}{F6}
+Send, 6.13 УКРП подделка или использование поддельных лицензий или удостоверений{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 3 года.{Enter}
+Send, Арест на 3 года.{Enter}
 Return
 
 :?:/укрп6.14::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 6.14 УКРП превышение должностных полномочий, повлекшее существенные нарушения{Enter}{F6}
+Send, 6.14 УКРП превышение должностных полномочий, повлекшее существенные нарушения{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест до 3 лет.{Enter}
+Send, Арест до 3 лет.{Enter}
 Return
 
 :?:/укрп7.1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.1 УКРП мошенничество, хищение имущества путем обмана или злоупотребления доверием{Enter}{F6}
+Send, 7.1 УКРП мошенничество, хищение имущества путем обмана или злоупотребления доверием{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 50.000 рублей и возмещение ущерба или арест на 3 года.{Enter}
+Send, Штраф 50.000 рублей и возмещение ущерба или арест на 3 года.{Enter}
 Return
 
 :?:/укрп7.2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.2 УКРП грабеж или кража чужого имущества{Enter}{F6}
+Send, 7.2 УКРП грабеж или кража чужого имущества{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 2 года.{Enter}
+Send, Арест на 2 года.{Enter}
 Return
 
 :?:/укрп7.3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.3 УКРП вымогательство, требование передачи имущества под угрозами{Enter}{F6}
+Send, 7.3 УКРП вымогательство, требование передачи имущества под угрозами{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 3 года.{Enter}
+Send, Арест на 3 года.{Enter}
 Return
 
 :?:/укрп7.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.4 УКРП умышленное уничтожение или повреждение имущества, повлекшее значительный ущерб{Enter}{F6}
+Send, 7.4 УКРП умышленное уничтожение или повреждение имущества, повлекшее значительный ущерб{Enter}{F6}
 SmartSleep(250)
-SendPlay, Штраф 50.000 рублей и возмещение ущерба или арест на 2 года.{Enter}
+Send, Штраф 50.000 рублей и возмещение ущерба или арест на 2 года.{Enter}
 Return
 
 :?:/укрп7.5::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 7.5 УКРП организация или проведение азартных игр в общественных местах{Enter}{F6}
+Send, 7.5 УКРП организация или проведение азартных игр в общественных местах{Enter}{F6}
 SmartSleep(250)
-SendPlay, Арест на 2 года.{Enter}
+Send, Арест на 2 года.{Enter}
 Return
 
 :?:/пдд211::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 2.1.1 ПДД Иметь при себе и по требованию полиции предъявлять водительское удостоверение {Enter}{F6}
+Send, 2.1.1 ПДД Иметь при себе и по требованию полиции предъявлять водительское удостоверение {Enter}{F6}
 SmartSleep(250)
-SendPlay, и паспорт транспортного средства.{Enter}
+Send, и паспорт транспортного средства.{Enter}
 Return
 
 :?:/пдд221::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 2.2.1. ПДД Перед выездом и в пути обеспечивать исправное техническое состояние ТС. {Enter}{F6}
+Send, 2.2.1. ПДД Перед выездом и в пути обеспечивать исправное техническое состояние ТС. {Enter}{F6}
 SmartSleep(250)
-SendPlay, Запрещено движение при неисправности тормозной системы, рулевого управления, сцепного устройства {Enter}{F6}
+Send, Запрещено движение при неисправности тормозной системы, рулевого управления, сцепного устройства {Enter}{F6}
 SmartSleep(250)
-SendPlay, фар и задних габаритных огней в тёмное время суток {Enter}{F6}
+Send, фар и задних габаритных огней в тёмное время суток {Enter}{F6}
 SmartSleep(250)
-SendPlay, а также стеклоочистителя во время дождя или снегопада.{Enter}{F6}
+Send, а также стеклоочистителя во время дождя или снегопада.{Enter}{F6}
 SmartSleep(250)
-SendPlay, При прочих неисправностях нужно устранить их {Enter}{F6}
+Send, При прочих неисправностях нужно устранить их {Enter}{F6}
 SmartSleep(250)
-SendPlay, либо следовать к месту ремонта с соблюдением мер предосторожности.{Enter}
+Send, либо следовать к месту ремонта с соблюдением мер предосторожности.{Enter}
 Return
 
 :?:/пдд235::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 2.3.5 ПДД Если установлена вина одного из участников ДТП, виновник обязан {Enter}{F6}
+Send, 2.3.5 ПДД Если установлена вина одного из участников ДТП, виновник обязан {Enter}{F6}
 SmartSleep(250)
-SendPlay, выплатить пострадавшему компенсацию в размере, не превышающем полной стоимости ремонта ТС. {Enter}
+Send, выплатить пострадавшему компенсацию в размере, не превышающем полной стоимости ремонта ТС. {Enter}
 Return
 
 :?:/пдд2.4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(250)
-SendPlay, 2.4 ПДД Водителю запрещается {Enter}{F6}
+Send, 2.4 ПДД Водителю запрещается {Enter}{F6}
 SmartSleep(250)
-SendPlay, Управлять ТС в состоянии опьянения, под воздействием препаратов, ухудшающих реакцию {Enter}{F6}
+Send, Управлять ТС в состоянии опьянения, под воздействием препаратов, ухудшающих реакцию {Enter}{F6}
 SmartSleep(250)
-SendPlay, а также в болезненном или утомлённом состоянии. {Enter}{F6}
+Send, а также в болезненном или утомлённом состоянии. {Enter}{F6}
 SmartSleep(250)
-SendPlay, Передавать управление ТС лицу, находящемуся в состоянии опьянения. {Enter}{F6}
+Send, Передавать управление ТС лицу, находящемуся в состоянии опьянения. {Enter}{F6}
 SmartSleep(250)
-SendPlay, Управлять ТС при наличии неисправностей, при которых эксплуатация запрещена. {Enter}{F6}
+Send, Управлять ТС при наличии неисправностей, при которых эксплуатация запрещена. {Enter}{F6}
 SmartSleep(250)
-SendPlay, Пересекать организованные колонны и занимать место в них. {Enter}{F6}
+Send, Пересекать организованные колонны и занимать место в них. {Enter}{F6}
 SmartSleep(250)
-SendPlay, Допускать опасное вождение: опасные перестроения, несоблюдение дистанции или бокового интервала, {Enter}{F6}
+Send, Допускать опасное вождение: опасные перестроения, несоблюдение дистанции или бокового интервала, {Enter}{F6}
 SmartSleep(250)
-SendPlay, управляемые заносы, резкое торможение без необходимости, препятствование обгону {Enter}{F6}
+Send, управляемые заносы, резкое торможение без необходимости, препятствование обгону {Enter}{F6}
 SmartSleep(250)
-SendPlay, и другие действия создающие угрозу ДТП, жизни, здоровью или имуществу. {Enter}
+Send, и другие действия создающие угрозу ДТП, жизни, здоровью или имуществу. {Enter}
 Return
 
 :?:/дверь+::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F8}
+Send, {F8}
 SmartSleep(50)
-SendPlay, /do Дверь открыта.{Enter}
+Send, /do Дверь открыта.{Enter}
 Return
 
 :?:/дверь-::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F8}
+Send, {F8}
 SmartSleep(50)
-SendPlay, /do Дверь заперта.{Enter}
+Send, /do Дверь заперта.{Enter}
 Return
 
 :?:/окно+::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F8}
+Send, {F8}
 SmartSleep(50)
-SendPlay, /do Окно разбито.{Enter}
+Send, /do Окно разбито.{Enter}
 Return
 
 :?:/окно-::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F8}
+Send, {F8}
 SmartSleep(50)
-SendPlay, /do Окно цело.{Enter}
+Send, /do Окно цело.{Enter}
 Return
 
 
@@ -8968,86 +9174,86 @@ return
 :?:/фзопобр::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 2.4.4.1 ФЗ «О полиции», при обращении к гражданину сотрудник обязан{Enter}
+Send, Согласно п. 2.4.4.1 ФЗ «О полиции», при обращении к гражданину сотрудник обязан{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, назвать свои должность, звание, фамилию, по обоснованному требованию предъявить удостоверение,{Enter}
+Send, назвать свои должность, звание, фамилию, по обоснованному требованию предъявить удостоверение,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, после чего сообщить причину и цель обращения.{Enter}
+Send, после чего сообщить причину и цель обращения.{Enter}
 Return
 
 
 :?:/фзопправа::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 2.4.4.2 ФЗ «О полиции», при применении мер, ограничивающих права и свободы,{Enter}
+Send, Согласно п. 2.4.4.2 ФЗ «О полиции», при применении мер, ограничивающих права и свободы,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, сотрудник разъясняет причину и основания применения таких мер после задержания,{Enter}
+Send, сотрудник разъясняет причину и основания применения таких мер после задержания,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а также возникающие в связи с этим права и обязанности гражданина.{Enter}
+Send, а также возникающие в связи с этим права и обязанности гражданина.{Enter}
 Return
 
 
 :?:/фзопмат::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 2.4.6 ФЗ «О полиции», полиция обязана обеспечить гражданину возможность{Enter}
+Send, Согласно п. 2.4.6 ФЗ «О полиции», полиция обязана обеспечить гражданину возможность{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, ознакомления с документами и материалами, непосредственно затрагивающими его права и свободы.{Enter}
+Send, ознакомления с документами и материалами, непосредственно затрагивающими его права и свободы.{Enter}
 Return
 
 
 :?:/фзопнадзор::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.8.1.11 ФЗ «О полиции», на полицию возложена обязанность{Enter}
+Send, Согласно п. 3.8.1.11 ФЗ «О полиции», на полицию возложена обязанность{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, осуществлять государственный контроль и надзор в области безопасности дорожного движения.{Enter}
+Send, осуществлять государственный контроль и надзор в области безопасности дорожного движения.{Enter}
 Return
 
 
 :?:/фзопконф::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.8.1.13 ФЗ «О полиции», сотрудник полиции обязан конфисковывать{Enter}
+Send, Согласно п. 3.8.1.13 ФЗ «О полиции», сотрудник полиции обязан конфисковывать{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, нелегальные предметы, обнаруженные у задержанного, согласно ст. 2.5 УК РП.{Enter}
+Send, нелегальные предметы, обнаруженные у задержанного, согласно ст. 2.5 УК РП.{Enter}
 Return
 
 
 :?:/фзоптреб::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.1 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
+Send, Согласно п. 3.9.1.1 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, требовать от граждан и должностных лиц прекращения противоправных действий.{Enter}
+Send, требовать от граждан и должностных лиц прекращения противоправных действий.{Enter}
 Return
 
 
@@ -9055,299 +9261,299 @@ Return
 :?:/фзопдок::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.2 ФЗ «О полиции», сотрудник МВД имеет право проверять документы граждан,{Enter}
+Send, Согласно п. 3.9.1.2 ФЗ «О полиции», сотрудник МВД имеет право проверять документы граждан,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, если имеются основания подозревать их в преступлении, розыске или административном правонарушении,{Enter}
+Send, если имеются основания подозревать их в преступлении, розыске или административном правонарушении,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а также проверять ВУ, ПТС и наличие неоплаченных штрафов.{Enter}
+Send, а также проверять ВУ, ПТС и наличие неоплаченных штрафов.{Enter}
 Return
 
 
 :?:/фзопотойти::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.4 ФЗ «О полиции», сотрудник полиции вправе требовать от граждан{Enter}
+Send, Согласно п. 3.9.1.4 ФЗ «О полиции», сотрудник полиции вправе требовать от граждан{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, покинуть место и прилегающую территорию проведения процессуальных действий (оформление, допрос и пр.),{Enter}
+Send, покинуть место и прилегающую территорию проведения процессуальных действий (оформление, допрос и пр.),{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, при этом сотрудник имеет право не разглашать, какие процессуальные действия он проводит.{Enter}
+Send, при этом сотрудник имеет право не разглашать, какие процессуальные действия он проводит.{Enter}
 Return
 
 
 :?:/фзопдост::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.7 ФЗ «О полиции», сотрудник вправе доставлять граждан в отдел полиции{Enter}
+Send, Согласно п. 3.9.1.7 ФЗ «О полиции», сотрудник вправе доставлять граждан в отдел полиции{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, для решения вопроса о задержании или установления личности гражданина.{Enter}
+Send, для решения вопроса о задержании или установления личности гражданина.{Enter}
 Return
 
 
 :?:/фзопдосмотр::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.8 и п. 4.10.5 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
+Send, Согласно п. 3.9.1.8 и п. 4.10.5 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, осуществлять личный досмотр граждан, досмотр находящихся при них вещей и транспортных средств{Enter}
+Send, осуществлять личный досмотр граждан, досмотр находящихся при них вещей и транспортных средств{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, при наличии данных о запрещенных предметах, а также при задержании лица.{Enter}
+Send, при наличии данных о запрещенных предметах, а также при задержании лица.{Enter}
 Return
 
 
 :?:/фзопост::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.9 и ст. 3.9.2 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
+Send, Согласно п. 3.9.1.9 и ст. 3.9.2 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, останавливать транспортные средства для обеспечения безопасности дорожного движения,{Enter}
+Send, останавливать транспортные средства для обеспечения безопасности дорожного движения,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, проверять водительское удостоверение, ПТС и документы на перевозимые грузы.{Enter}
+Send, проверять водительское удостоверение, ПТС и документы на перевозимые грузы.{Enter}
 Return
 
 
 :?:/фзопотстр::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.11 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
+Send, Согласно п. 3.9.1.11 ФЗ «О полиции», сотрудник полиции имеет право{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, задерживать транспортные средства и отстранять водителей от управления ТС.{Enter}
+Send, задерживать транспортные средства и отстранять водителей от управления ТС.{Enter}
 Return
 
 
 :?:/фзопкамера::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.12 ФЗ «О полиции», сотрудник полиции имеет право использовать{Enter}
+Send, Согласно п. 3.9.1.12 ФЗ «О полиции», сотрудник полиции имеет право использовать{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, информационные системы, видео- и фотоаппаратуру, а также технические и специальные средства.{Enter}
+Send, информационные системы, видео- и фотоаппаратуру, а также технические и специальные средства.{Enter}
 Return
 
 
 :?:/фзопдоступтс::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.14 ФЗ «О полиции», сотрудник имеет право требовать от водителя{Enter}
+Send, Согласно п. 3.9.1.14 ФЗ «О полиции», сотрудник имеет право требовать от водителя{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, предоставить доступ к транспортному средству для проведения проверки,{Enter}
+Send, предоставить доступ к транспортному средству для проведения проверки,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, если есть основания полагать, что ТС неисправно или на нем совершается правонарушение.{Enter}
+Send, если есть основания полагать, что ТС неисправно или на нем совершается правонарушение.{Enter}
 Return
 
 
 :?:/фзопмаяк::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 3.9.1.17–18 ФЗ «О полиции», проблесковые маячки включаются при патрулировании,{Enter}
+Send, Согласно п. 3.9.1.17–18 ФЗ «О полиции», проблесковые маячки включаются при патрулировании,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, на посту, при оформлении ДТП и стоянке с отступлением от ПДД,{Enter}
+Send, на посту, при оформлении ДТП и стоянке с отступлением от ПДД,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а совместно с СГУ — при ведении погони, срочном вызове и сопровождении колонн.{Enter}
+Send, а совместно с СГУ — при ведении погони, срочном вызове и сопровождении колонн.{Enter}
 Return
 
 
 :?:/фзопост9::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ч. 2 ст. 9 (п. 3.9.2) ФЗ «О полиции», сотрудник вправе остановить ТС при обнаружении{Enter}
+Send, Согласно ч. 2 ст. 9 (п. 3.9.2) ФЗ «О полиции», сотрудник вправе остановить ТС при обнаружении{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, признаков нарушения БДД, причастности водителя к правонарушению или ДТП, нахождении ТС в розыске,{Enter}
+Send, признаков нарушения БДД, причастности водителя к правонарушению или ДТП, нахождении ТС в розыске,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а также для проверки документов при наличии повода к возбуждению дела об АПН.{Enter}
+Send, а также для проверки документов при наличии повода к возбуждению дела об АПН.{Enter}
 Return
 
 
 :?:/фзопзадерж::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ч. 2 ст. 10 (п. 4.10.2) ФЗ «О полиции», полиция имеет право задерживать лиц,{Enter}
+Send, Согласно ч. 2 ст. 10 (п. 4.10.2) ФЗ «О полиции», полиция имеет право задерживать лиц,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, подозреваемых в совершении преступления, находящихся в розыске, лиц, в отношении которых{Enter}
+Send, подозреваемых в совершении преступления, находящихся в розыске, лиц, в отношении которых{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, ведется производство по делу об АПН, а также не выполнивших законные требования сотрудника.{Enter}
+Send, ведется производство по делу об АПН, а также не выполнивших законные требования сотрудника.{Enter}
 Return
 
 
 :?:/фзопзвонок::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 4.10.7–8 ФЗ «О полиции», задержанный перед допросом имеет право на один{Enter}
+Send, Согласно п. 4.10.7–8 ФЗ «О полиции», задержанный перед допросом имеет право на один{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, телефонный разговор в присутствии сотрудника, если это не создаст угрозу сообщения информации сообщникам.{Enter}
+Send, телефонный разговор в присутствии сотрудника, если это не создаст угрозу сообщения информации сообщникам.{Enter}
 Return
 
 
 :?:/фзопоцеп::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ст. 11 (п. 4.11.2–3) ФЗ «О полиции», полиция имеет право проводить оцепление{Enter}
+Send, Согласно ст. 11 (п. 4.11.2–3) ФЗ «О полиции», полиция имеет право проводить оцепление{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, участков местности и временно ограничивать движение транспорта и пешеходов.{Enter}
+Send, участков местности и временно ограничивать движение транспорта и пешеходов.{Enter}
 Return
 
 
 :?:/фзопбезпред::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 5.13.2 ФЗ «О полиции», сотрудник имеет право не предупреждать перед применением{Enter}
+Send, Согласно п. 5.13.2 ФЗ «О полиции», сотрудник имеет право не предупреждать перед применением{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, силы, спецсредств или оружия при непосредственной угрозе жизни и здоровью, провокации,{Enter}
+Send, силы, спецсредств или оружия при непосредственной угрозе жизни и здоровью, провокации,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а также если лицо застигнуто в момент совершения преступления или арестного правонарушения.{Enter}
+Send, а также если лицо застигнуто в момент совершения преступления или арестного правонарушения.{Enter}
 Return
 
 
 :?:/фзопсила::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ст. 14 (п. 5.14.1) ФЗ «О полиции», сотрудник имеет право применять физическую силу{Enter}
+Send, Согласно ст. 14 (п. 5.14.1) ФЗ «О полиции», сотрудник имеет право применять физическую силу{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, для пресечения правонарушений, задержания лиц и преодоления противодействия законным требованиям.{Enter}
+Send, для пресечения правонарушений, задержания лиц и преодоления противодействия законным требованиям.{Enter}
 Return
 
 
 :?:/фзопспец::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ст. 15 (п. 5.15.1–2) ФЗ «О полиции», сотрудник имеет право применять спецсредства{Enter}
+Send, Согласно ст. 15 (п. 5.15.1–2) ФЗ «О полиции», сотрудник имеет право применять спецсредства{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, (наручники, дубинку, тайзер) для пресечения преступления или АПН, преодоления сопротивления,{Enter}
+Send, (наручники, дубинку, тайзер) для пресечения преступления или АПН, преодоления сопротивления,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, задержания лица, пытающегося скрыться, а также для доставления и конвоирования задержанных.{Enter}
+Send, задержания лица, пытающегося скрыться, а также для доставления и конвоирования задержанных.{Enter}
 Return
 
 
 :?:/фзопоружие::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ст. 17 (п. 5.17.1 и 5.17.3) ФЗ «О полиции», сотрудник имеет право применять{Enter}
+Send, Согласно ст. 17 (п. 5.17.1 и 5.17.3) ФЗ «О полиции», сотрудник имеет право применять{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, огнестрельное оружие для защиты жизни и здоровья, задержания при вооруженном сопротивлении,{Enter}
+Send, огнестрельное оружие для защиты жизни и здоровья, задержания при вооруженном сопротивлении,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, а также для остановки ТС путем его повреждения при неоднократном отказе остановиться.{Enter}
+Send, а также для остановки ТС путем его повреждения при неоднократном отказе остановиться.{Enter}
 Return
 
 
 :?:/фзопзапретор::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно п. 5.17.6–9 ФЗ «О полиции», запрещено применять оружие при скоплении людей,{Enter}
+Send, Согласно п. 5.17.6–9 ФЗ «О полиции», запрещено применять оружие при скоплении людей,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, с водительского места при наличии вооруженного напарника, а также применять тяжелое{Enter}
+Send, с водительского места при наличии вооруженного напарника, а также применять тяжелое{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, автоматическое и гладкоствольное оружие для остановки ТС путем повреждения.{Enter}
+Send, автоматическое и гладкоствольное оружие для остановки ТС путем повреждения.{Enter}
 Return
 
 
 :?:/фзопстрой::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Согласно ст. 19–20 (п. 6.19.7 и 6.20.1) ФЗ «О полиции», в строю запрещено разговаривать,{Enter}
+Send, Согласно ст. 19–20 (п. 6.19.7 и 6.20.1) ФЗ «О полиции», в строю запрещено разговаривать,{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, доставать телефон или оружие, спать более 60 секунд и покидать строй без разрешения.{Enter}
+Send, доставать телефон или оружие, спать более 60 секунд и покидать строй без разрешения.{Enter}
 SmartSleep(1800)
-SendPlay, {F6}
+Send, {F6}
 SmartSleep(350)
-SendPlay, Каждую субботу до 23:59 МСК сотрудник обязан сдать отчёт в онлайн-протоколе.{Enter}
+Send, Каждую субботу до 23:59 МСК сотрудник обязан сдать отчёт в онлайн-протоколе.{Enter}
 Return
 
 :*:/погоня::
@@ -9362,3 +9568,158 @@ Return
 StopChaseMode()
 Return
 #If
+
+
+; =================================================================================================
+; СИСТЕМА АВТООБНОВЛЕНИЯ (GITHUB RAW & RELEASES)
+; =================================================================================================
+global AppNumericVersion := "2.2.0"
+global AppVersionCode    := 220
+global UpdateCheckUrl    := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
+global PendingUpdateUrl  := ""
+global PendingUpdateVer  := ""
+
+InitAutoUpdater() {
+    ; Отложенная фоновая проверка через 5 секунд после старта (не блокирует загрузку GUI)
+    SetTimer, BackgroundUpdateCheckTimer, -5000
+}
+
+BackgroundUpdateCheckTimer:
+CheckForUpdates(1) ; 1 = Тихий фоновый режим
+Return
+
+ManualCheckUpdates:
+CheckForUpdates(0) ; 0 = Интерактивный режим по кнопке
+Return
+
+CheckForUpdates(IsSilent := 1) {
+    global UpdateCheckUrl, AppVersionCode, AppNumericVersion, PendingUpdateUrl, PendingUpdateVer
+    if (!IsSilent)
+        TrayTip, AHK УГИБДД, Проверка наличия обновлений на сервере..., 2, 1
+
+    jsonStr := FetchUrlText(UpdateCheckUrl, 5)
+    if (jsonStr = "") {
+        if (!IsSilent)
+            MsgBox, 48, AHK УГИБДД, Не удалось связаться с сервером обновлений GitHub.`nПроверьте подключение к интернету или доступность репозитория.
+        Return
+    }
+
+    ; Парсинг JSON через RegEx
+    RegExMatch(jsonStr, """version"":\s*""([^""]+)""", mVer)
+    RegExMatch(jsonStr, """version_code"":\s*(\d+)", mCode)
+    RegExMatch(jsonStr, """title"":\s*""([^""]+)""", mTitle)
+    RegExMatch(jsonStr, """download_url"":\s*""([^""]+)""", mDown)
+    RegExMatch(jsonStr, """ahk_url"":\s*""([^""]+)""", mAhk)
+    RegExMatch(jsonStr, """changelog"":\s*""([^""]+)""", mLog)
+
+    newVer := mVer1
+    newCode := mCode1 + 0
+    newTitle := mTitle1
+    newChangelog := StrReplace(mLog1, "\n", "`n")
+    downloadUrl := A_IsCompiled ? mDown1 : mAhk1
+
+    if (newCode > AppVersionCode) {
+        PendingUpdateUrl := downloadUrl
+        PendingUpdateVer := newVer
+        ShowUpdateDialog(newVer, newTitle, newChangelog, downloadUrl)
+    } else {
+        if (!IsSilent)
+            MsgBox, 64, AHK УГИБДД, У вас установлена актуальная версия биндера (v%AppNumericVersion%)!
+    }
+}
+
+ShowUpdateDialog(NewVer, NewTitle, NewChangelog, DownUrl) {
+    global AppNumericVersion
+    Gui, 7:Destroy
+    Gui, 7:Color, 121622, 1B2234
+    Gui, 7:Font, S11 C58A6FF Bold, Segoe UI
+    Gui, 7:Add, Text, x16 y12 w568 h26, 🚀 Доступно обновление: v%NewVer% (текущая: v%AppNumericVersion%)
+    Gui, 7:Font, S10 CFFB84D Bold, Segoe UI
+    Gui, 7:Add, Text, x16 y40 w568 h20, % NewTitle
+    Gui, 7:Font, S9 CE6EDF3 Norm, Segoe UI
+    Gui, 7:Add, Edit, x16 y66 w568 h175 ReadOnly Background161D2E cE6EDF3, % NewChangelog
+    Gui, 7:Font, S9 C8B949E Norm, Segoe UI
+    Gui, 7:Add, Text, x16 y248 w568 h20 vUpdateStatusTxt, Обновление будет загружено и установлено автоматически.
+    Gui, 7:Font, S10 CE6EDF3 Bold, Segoe UI
+    Gui, 7:Add, Button, x16 y274 w276 h38 gStartUpdateInstallation, ⚡ Обновить сейчас
+    Gui, 7:Add, Button, x308 y274 w276 h38 gCloseUpdateDialog, ⏱️ Напомнить позже
+    Gui, 7:Show, w600 h324, AHK УГИБДД — Доступно обновление
+}
+
+CloseUpdateDialog:
+Gui, 7:Destroy
+Return
+
+StartUpdateInstallation:
+GuiControl, 7:Disable, StartUpdateInstallation
+GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка файлов обновления с GitHub...
+SetTimer, PerformUpdateAction, -100
+Return
+
+PerformUpdateAction:
+PerformDownloadAndUpdate()
+Return
+
+PerformDownloadAndUpdate() {
+    global PendingUpdateUrl, PendingUpdateVer
+    if (PendingUpdateUrl = "") {
+        MsgBox, 48, Ошибка, Ссылка для загрузки не определена.
+        Return
+    }
+
+    tempFile := A_Temp . "\ahk_update_" . A_TickCount . (A_IsCompiled ? ".exe" : ".ahk")
+    try {
+        UrlDownloadToFile, %PendingUpdateUrl%, %tempFile%
+    } catch {
+        FileDelete, %tempFile%
+        MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте доступность GitHub или скачайте вручную.
+        Return
+    }
+
+    FileGetSize, fSize, %tempFile%
+    if (fSize < 1000) {
+        FileDelete, %tempFile%
+        MsgBox, 16, Ошибка загрузки, Скачанный файл повреждён или недоступен (размер: %fSize% байт).
+        Return
+    }
+
+    currentPath := A_ScriptFullPath
+    if (A_IsCompiled) {
+        ; Создаём bat-скрипт для бесшовной замены заблокированного исполняемого файла
+        batScript := A_Temp . "\replace_gibdd_" . A_TickCount . ".bat"
+        batContent := "@echo off`r`n"
+        batContent .= "ping 127.0.0.1 -n 2 > nul`r`n"
+        batContent .= ":retry`r`n"
+        batContent .= "move /y """ . tempFile . """ """ . currentPath . """ > nul 2>&1`r`n"
+        batContent .= "if exist """ . tempFile . """ (`r`n"
+        batContent .= "    ping 127.0.0.1 -n 1 > nul`r`n"
+        batContent .= "    goto retry`r`n"
+        batContent .= ")`r`n"
+        batContent .= "start """" """ . currentPath . """`r`n"
+        batContent .= "del ""%~f0""`r`n"
+        FileDelete, %batScript%
+        FileAppend, %batContent%, %batScript%
+        Run, "%batScript%",, Hide
+        ExitApp
+    } else {
+        FileCopy, %tempFile%, %currentPath%, 1
+        FileDelete, %tempFile%
+        TrayTip, AHK УГИБДД, Биндер успешно обновлён до v%PendingUpdateVer%!, 3, 1
+        Reload
+    }
+}
+
+FetchUrlText(Url, TimeoutSec := 5) {
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(2000, 2000, TimeoutSec * 1000, TimeoutSec * 1000)
+        ; Включаем TLS 1.2 (0x0800)
+        whr.Option(9) := 0x0800
+        whr.Open("GET", Url . "?t=" . A_TickCount, false)
+        whr.SetRequestHeader("User-Agent", "AHK-GIBDD-Updater")
+        whr.Send()
+        if (whr.Status = 200)
+            return whr.ResponseText
+    }
+    return ""
+}
