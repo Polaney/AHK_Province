@@ -55,6 +55,11 @@ if (!FileExist(A_ScriptDir . "\assets\fluent_template.html")) {
         FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
     }
 }
+if (!FileExist(A_ScriptDir . "\assets\mobile_tablet.html")) {
+    try {
+        FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
+    }
+}
 
 AbortBindFlag := 0
 RefreshTray()
@@ -4022,6 +4027,11 @@ if (HudVisible) {
     GuiControl, 6:, HudChaseTxt, %chaseTxt%
     GuiControl, 6:, HudStatsTxt, %statsTxt%
     GuiControl, 6:, HudLogTxt, %logTxt%
+    LiveShiftDuration := shiftFmt
+    LiveForumPoints := forumPoints
+    LiveFinesCount := fCount
+    LiveArrestsCount := aCount
+    LiveTargetId := idDisp
 }
 SyncFluentLiveTelemetry(idDisp, DutyType, FormatMMSS(DutyRemainSec), (DutyType != "Нет" && DutyTotalSec > 0) ? dutyPct : 0, ChaseActive ? ("Пред " . ChaseStage . "/3 (" . (ChaseCooldownSec > 0 ? ChaseCooldownSec . "с" : "ГОТОВ") . ")") : "Готов (^Space)", ChaseActive ? Floor(((15 - ChaseCooldownSec) / 15) * 100) : 100, shiftFmt, forumPoints, fCount, aCount, lCount, rCount)
 Return
@@ -10652,7 +10662,9 @@ BuildFluentInitialJson() {
     j .= """winVer"":""" . JsonEscapeStr(WinVerDescription) . ""","
     j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
     j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
-    j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0)
+    j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
+    j .= """localIp"":""" . JsonEscapeStr(A_IPAddress1) . ""","
+    j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088)
     j .= "},"
 
     j .= """hotkeys"":["
@@ -10736,6 +10748,7 @@ InitAndShowFluentGlassUI() {
     }
 
     Gui, 8:Show, Center w%winW% h%winH%, АХК УГИБДД МВД — Fluent Police Glass
+    MobileServer_Start(8088)
     Gosub, UpdateHudTick
 }
 
@@ -10814,6 +10827,23 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             }
         }
         Gosub, OpenCalc
+        Return
+    }
+    if (action = "open_tablet_modal") {
+        if (FluentUiMode && IsObject(FluentWB)) {
+            try {
+                FluentWB.document.parentWindow.openTabletModal()
+                Return
+            }
+        }
+        Return
+    }
+    if (action = "restart_mobile_server") {
+        MobileServer_Stop()
+        MobileServer_Start(8088)
+        RefreshFluentWebData()
+        SoundBeep, 900, 100
+        TrayTip, 📱 Мобильный планшет, Сервер перезапущен на порту 8088! IP: %A_IPAddress1%, 2, 1
         Return
     }
     if (action = "open_web_url") {
@@ -11212,5 +11242,242 @@ ApplySingleHotkeyUpdate(hkId, newKey) {
         PopulateHotkeysListView(HkFilterQuery)
         SelectHotkeyInLV(hkId)
         PopulateBindsListView(BindSearchQuery, BindCatFilter)
+    }
+}
+
+; =================================================================================================
+; МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ МВД (HTTP МИКРО-СЕРВЕР НА WINSOCK)
+; =================================================================================================
+global MobileServerSock := -1
+global MobileServerPort := 8088
+global LiveShiftDuration := "00:00"
+global LiveForumPoints := 0
+global LiveFinesCount := 0
+global LiveArrestsCount := 0
+global LiveTargetId := "—"
+
+MobileServer_Start(Port := 8088) {
+    global MobileServerSock, MobileServerPort
+    if (MobileServerSock != -1)
+        return true
+    MobileServerPort := Port
+
+    VarSetCapacity(wsaData, 400, 0)
+    if DllCall("ws2_32\WSAStartup", "UShort", 0x0202, "Ptr", &wsaData)
+        return false
+
+    MobileServerSock := DllCall("ws2_32\socket", "Int", 2, "Int", 1, "Int", 6, "Ptr")
+    if (MobileServerSock = -1)
+        return false
+
+    VarSetCapacity(addr, 16, 0)
+    NumPut(2, addr, 0, "UShort")
+    NumPut(DllCall("ws2_32\htons", "UShort", Port, "UShort"), addr, 2, "UShort")
+    NumPut(0, addr, 4, "UInt")
+
+    if DllCall("ws2_32\bind", "Ptr", MobileServerSock, "Ptr", &addr, "Int", 16) {
+        MobileServer_Stop()
+        return false
+    }
+
+    if DllCall("ws2_32\listen", "Ptr", MobileServerSock, "Int", 16) {
+        MobileServer_Stop()
+        return false
+    }
+
+    OnMessage(0x8055, "MobileServer_OnSocketMsg")
+    DllCall("ws2_32\WSAAsyncSelect", "Ptr", MobileServerSock, "Ptr", A_ScriptHwnd, "UInt", 0x8055, "Int", 8)
+    return true
+}
+
+MobileServer_Stop() {
+    global MobileServerSock
+    if (MobileServerSock != -1) {
+        DllCall("ws2_32\closesocket", "Ptr", MobileServerSock)
+        DllCall("ws2_32\WSACleanup")
+        MobileServerSock := -1
+    }
+}
+
+MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
+    global MobileServerSock, Fio1, Rank, Teg, Prop2, Gibdd, ArticlesDB
+    global LiveShiftDuration, LiveForumPoints, LiveFinesCount, LiveArrestsCount, LiveTargetId
+
+    event := lParam & 0xFFFF
+    clientSock := wParam
+
+    if (clientSock = MobileServerSock) {
+        if (event = 8) { ; FD_ACCEPT
+            VarSetCapacity(clientAddr, 16, 0)
+            addrLen := 16
+            newClient := DllCall("ws2_32\accept", "Ptr", MobileServerSock, "Ptr", &clientAddr, "IntP", addrLen, "Ptr")
+            if (newClient != -1) {
+                DllCall("ws2_32\WSAAsyncSelect", "Ptr", newClient, "Ptr", A_ScriptHwnd, "UInt", 0x8055, "Int", 33)
+            }
+        }
+        return
+    }
+
+    if (event = 1) { ; FD_READ
+        VarSetCapacity(recvBuf, 4096, 0)
+        bytesRead := DllCall("ws2_32\recv", "Ptr", clientSock, "Ptr", &recvBuf, "Int", 4095, "Int", 0)
+        if (bytesRead > 0) {
+            reqStr := StrGet(&recvBuf, bytesRead, "UTF-8")
+            line1 := StrSplit(reqStr, "`n")[1]
+            parts := StrSplit(line1, " ")
+            method := parts[1]
+            urlPath := parts[2]
+
+            body := ""
+            cType := "text/plain; charset=utf-8"
+
+            if (InStr(urlPath, "/api/state")) {
+                cType := "application/json; charset=utf-8"
+                body := "{"
+                body .= """profile"":{"
+                body .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
+                body .= """rank"":""" . JsonEscapeStr(Rank) . ""","
+                body .= """teg"":""" . JsonEscapeStr(Teg) . ""","
+                body .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
+                body .= """gibdd"":""" . JsonEscapeStr(Gibdd) . """"
+                body .= "},"
+                body .= """live"":{"
+                body .= """dutyClock"":""" . JsonEscapeStr(LiveShiftDuration) . ""","
+                body .= """finesCnt"":" . (LiveFinesCount + 0) . ","
+                body .= """arrestsCnt"":" . (LiveArrestsCount + 0) . ","
+                body .= """forumPts"":" . (LiveForumPoints + 0) . ","
+                body .= """targetId"":""" . JsonEscapeStr(LiveTargetId) . """"
+                body .= "},"
+                body .= """articles"":["
+                for idx, art in ArticlesDB {
+                    if (idx > 1)
+                        body .= ","
+                    body .= "{""code"":""" . JsonEscapeStr(art.Code) . """,""num"":""" . JsonEscapeStr(art.Num) . """,""sanction"":""" . JsonEscapeStr(art.Sanction) . """,""desc"":""" . JsonEscapeStr(art.Desc) . """}"
+                }
+                body .= "]}"
+            } else if (InStr(urlPath, "/api/action")) {
+                cType := "application/json; charset=utf-8"
+                cmdName := ""
+                if RegExMatch(urlPath, "cmd=([^& ]+)", m)
+                    cmdName := m1
+                ExecuteMobilePatrolCommand(cmdName)
+                body := "{""ok"":true,""cmd"":""" . cmdName . """}"
+            } else {
+                cType := "text/html; charset=utf-8"
+                tabletFile := A_ScriptDir . "\assets\mobile_tablet.html"
+                if (FileExist(tabletFile)) {
+                    FileRead, body, *P65001 %tabletFile%
+                } else {
+                    body := "<h1>Mobile Tablet File Not Found</h1>"
+                }
+            }
+
+            resp := "HTTP/1.1 200 OK`r`n"
+            resp .= "Content-Type: " . cType . "`r`n"
+            resp .= "Access-Control-Allow-Origin: *`r`n"
+            resp .= "Connection: close`r`n"
+            resp .= "Content-Length: " . StrPut(body, "UTF-8") - 1 . "`r`n`r`n"
+            resp .= body
+
+            VarSetCapacity(sendData, StrPut(resp, "UTF-8"), 0)
+            sendLen := StrPut(resp, &sendData, "UTF-8") - 1
+            DllCall("ws2_32\send", "Ptr", clientSock, "Ptr", &sendData, "Int", sendLen, "Int", 0)
+        }
+        DllCall("ws2_32\closesocket", "Ptr", clientSock)
+    } else if (event = 32) { ; FD_CLOSE
+        DllCall("ws2_32\closesocket", "Ptr", clientSock)
+    }
+}
+
+ExecuteMobilePatrolCommand(cmd, arg := "") {
+    global Fio1, Rank, Teg, Prop2, Vers, AbortBindFlag
+
+    if (cmd = "stop_bind") {
+        AbortBindFlag := 1
+        SoundBeep, 600, 150
+        TrayTip, ⛔ Остановка биндера, Текущая отыгровка экстренно остановлена!, 2, 2
+        return
+    }
+
+    if (cmd = "meg1") {
+        Gosub, Bind_Megaphone1
+    } else if (cmd = "meg2") {
+        Gosub, Bind_Megaphone2
+    } else if (cmd = "meg3") {
+        Gosub, Bind_Megaphone3
+    } else if (cmd = "meg_way") {
+        Gosub, Bind_MegaphoneWay
+    } else if (cmd = "foot_chase") {
+        Gosub, Bind_FootChase
+    } else if (cmd = "wcar") {
+        Gosub, PressCount
+    } else if (cmd = "greeting") {
+        Gosub, Bind_Greeting
+    } else if (cmd = "ask_docs") {
+        Gosub, Bind_AskDocs
+    } else if (cmd = "take_docs") {
+        Gosub, Bind_TakeDocs
+    } else if (cmd = "return_docs") {
+        Gosub, Bind_ReturnDocs
+    } else if (cmd = "kpk_open") {
+        Gosub, Bind_KpkOpen
+    } else if (cmd = "kpk_vu") {
+        Gosub, Bind_KpkVu
+    } else if (cmd = "kpk_close") {
+        Gosub, Bind_KpkClose
+    } else if (cmd = "cuffs_open") {
+        Gosub, Bind_CuffsOpen
+    } else if (cmd = "cuffs_close") {
+        Gosub, Bind_CuffsClose
+    } else if (cmd = "putpl") {
+        Gosub, Bind_Putpl
+    } else if (cmd = "pullout") {
+        Gosub, Bind_PullOutTry
+    } else if (cmd = "try_door") {
+        Gosub, Bind_TryDoor
+    } else if (cmd = "try_glass") {
+        Gosub, Bind_TryGlass
+    } else if (cmd = "unlock_in") {
+        Gosub, Bind_UnlockIn
+    } else if (cmd = "detain_prot") {
+        Gosub, Bind_DetainProt
+    } else if (cmd = "admin_prot") {
+        Gosub, Bind_AdminProt
+    } else if (cmd = "arrest") {
+        Gosub, Bind_Arrest
+    } else if (cmd = "tsu") {
+        Gosub, Bind_Tsu
+    } else if (cmd = "su_fast") {
+        Gosub, Bind_SuFast
+    } else if (cmd = "su_sound") {
+        Gosub, Bind_SuSound
+    } else if (cmd = "clock") {
+        Gosub, Bind_Clock
+    } else if (cmd = "voice_on") {
+        Gosub, Bind_VoiceOn
+    } else if (cmd = "voice_off") {
+        Gosub, Bind_VoiceOff
+    } else if (cmd = "shout_hands") {
+        Gosub, Bind_ShoutHands
+    } else if (cmd = "report_patrol") {
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду патрулирование города. Код: 10-4.{Enter}{F8}
+    } else if (cmd = "report_chase") {
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду преследование нарушителя! Код: 10-57.{Enter}{F8}
+    } else if (cmd = "report_help") {
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Срочно требуется поддержка экипажа! Код: 10-33.{Enter}{F8}
+    } else if (cmd = "report_start") {
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Выехал в патруль. Код: 10-8.{Enter}{F8}
+    } else if (cmd = "report_end") {
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Окончил патрулирование, перерыв. Код: 10-7.{Enter}{F8}
     }
 }

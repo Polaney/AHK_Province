@@ -909,6 +909,7 @@ html, body {
         <div class="tb-right" onmousedown="stopProp(event)">
             <button class="tb-action-btn" onclick="callAhk('toggle_hud')">⏱️ HUD (Alt+H)</button>
             <button class="tb-action-btn" onclick="callAhk('drag_hud')">🎯 Двигать HUD</button>
+            <button class="tb-action-btn" onclick="openTabletModal()" style="color:#79C0FF; border-color:rgba(88,166,255,0.4); font-weight:700;">📱 Планшет</button>
             <button class="tb-action-btn" onclick="openCalcModal()">⚖️ Калькулятор (Alt+F1)</button>
             <button class="tb-action-btn" onclick="openLinksModal()">🔗 Ссылки МВД</button>
             <button class="tb-action-btn" onclick="callAhk('switch_classic')">🎛️ Классика</button>
@@ -991,6 +992,7 @@ html, body {
                             <div class="hero-sub">Интеллектуальный бортовой терминал УГИБДД МВД Провинции. Мгновенный ввод без задержек, защита от античита, тактический HUD погони и полная база КоАП / УК РП / ФЗоП.</div>
                         </div>
                         <div class="hero-actions">
+                            <button class="btn-fluent" onclick="openTabletModal()" style="background:linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);">📱 Планшет на телефоне</button>
                             <button class="btn-fluent" onclick="openCalcModal()">⚖️ Открыть Калькулятор (Alt+F1)</button>
                             <button class="btn-glass" onclick="callAhk('toggle_hud')">⏱️ Тактический HUD (Alt+H)</button>
                             <button class="btn-glass" onclick="openProfileModal()">👤 Настроить анкету</button>
@@ -2058,6 +2060,47 @@ html, body {
     </div>
 </div>
 
+<!-- МОДАЛКА: МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ -->
+<div id="tablet-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:540px; text-align:center;">
+        <div class="modal-header" style="justify-content:center; position:relative;">
+            <div style="font-size:16px; font-weight:800; color:#58A6FF;">📱 Бортовой планшет МВД (Второй экран)</div>
+            <div style="position:absolute; right:0; cursor:pointer; color:#8B949E; font-size:18px;" onclick="closeTabletModal()">✕</div>
+        </div>
+        
+        <div style="font-size:12.5px; color:#C9D1D9; margin:12px 0 16px 0; line-height:1.4;">
+            Управляйте патрулем, мегафоном, задержанием и статьями прямо с экрана смартфона или планшета рядом с монитором!
+        </div>
+
+        <div style="display:flex; justify-content:center; margin-bottom:14px;">
+            <div style="background:#FFF; padding:10px; border-radius:12px; display:inline-block; box-shadow:0 0 20px rgba(56,139,253,0.3);">
+                <img id="tablet-qr-img" src="" alt="QR Код" style="width:180px; height:180px; display:block;">
+            </div>
+        </div>
+
+        <div style="background:rgba(10,16,30,0.85); border:1px solid rgba(56,139,253,0.3); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">http://...:8088</span>
+            <button class="btn-fluent" onclick="copyTabletUrl()" style="padding:4px 12px; font-size:11px;">📋 Скопировать</button>
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:8px; margin-bottom:16px;">
+            <div class="status-pill green" id="tablet-server-status">🟢 Сервер активен (Порт 8088)</div>
+            <button class="btn-glass" onclick="callAhk('restart_mobile_server')" style="padding:3px 10px; font-size:11px;">🔄 Перезапустить</button>
+        </div>
+
+        <div style="font-size:11.5px; color:#8B949E; text-align:left; background:rgba(22,34,62,0.4); border-radius:8px; padding:10px 12px; margin-bottom:16px;">
+            <div style="color:#79C0FF; font-weight:bold; margin-bottom:4px;">💡 Как подключить телефон:</div>
+            1. Убедитесь, что телефон подключен к тому же домашнему Wi-Fi, что и компьютер.<br>
+            2. Наведите камеру телефона на QR-код или откройте ссылку в мобильном браузере.<br>
+            3. Поставьте телефон на подставку под монитором и нажимайте отыгровки в 1 тап!
+        </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+            <button class="btn-glass" onclick="closeTabletModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast-box">Скопировано!</div>
 
 <script>
@@ -2087,6 +2130,39 @@ function openLinksModal() {
 function closeLinksModal() {
     var m = document.getElementById('links-modal');
     if (m) m.style.display = 'none';
+}
+
+function openTabletModal() {
+    var ip = (APP_DATA && APP_DATA.profile && APP_DATA.profile.localIp) ? APP_DATA.profile.localIp : '127.0.0.1';
+    var port = (APP_DATA && APP_DATA.profile && APP_DATA.profile.tabletPort) ? APP_DATA.profile.tabletPort : 8088;
+    var url = 'http://' + ip + ':' + port;
+
+    var txt = document.getElementById('tablet-url-txt');
+    if (txt) txt.innerText = url;
+
+    var qr = document.getElementById('tablet-qr-img');
+    if (qr) {
+        qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(url);
+    }
+
+    var m = document.getElementById('tablet-modal');
+    if (m) m.style.display = 'flex';
+}
+
+function closeTabletModal() {
+    var m = document.getElementById('tablet-modal');
+    if (m) m.style.display = 'none';
+}
+
+function copyTabletUrl() {
+    var txt = document.getElementById('tablet-url-txt');
+    if (txt && window.clipboardData) {
+        window.clipboardData.setData('Text', txt.innerText);
+        showToast('📋 Ссылка скопирована: ' + txt.innerText);
+    } else if (txt) {
+        callAhk('copy_cmd', txt.innerText);
+        showToast('📋 Ссылка скопирована: ' + txt.innerText);
+    }
 }
 
 function openCalcModal() {
