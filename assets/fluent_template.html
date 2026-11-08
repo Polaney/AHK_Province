@@ -2086,16 +2086,18 @@ html, body {
             <button class="btn-fluent" onclick="copyTabletUrl()" style="padding:4px 12px; font-size:11px;">📋 Скопировать</button>
         </div>
 
-        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
             <div style="background:rgba(46,160,67,0.18); border:1px solid rgba(46,160,67,0.45); color:#7EE787; font-weight:700; font-size:11.5px; padding:4px 12px; border-radius:12px;" id="tablet-server-status">🟢 Сервер активен (Порт 8088)</div>
-            <button class="btn-glass" onclick="callAhk('restart_mobile_server')" style="padding:3px 10px; font-size:11px;">🔄 Перезапустить</button>
+            <button class="btn-glass" onclick="callAhk('restart_mobile_server')" style="padding:4px 10px; font-size:11px;">🔄 Перезапустить</button>
+            <button class="btn-fluent" onclick="callAhk('allow_firewall')" style="background:rgba(210,153,34,0.2); border-color:#FFD33D; color:#FFD33D; padding:4px 10px; font-size:11px;">🛡️ Разрешить в Брандмауэре</button>
         </div>
 
         <div style="font-size:11.5px; color:#8B949E; text-align:left; background:rgba(22,34,62,0.4); border-radius:8px; padding:10px 12px; margin-bottom:16px;">
             <div style="color:#79C0FF; font-weight:bold; margin-bottom:4px;">💡 Как подключить телефон:</div>
             1. Убедитесь, что телефон подключен к тому же домашнему Wi-Fi, что и компьютер.<br>
             2. Наведите камеру телефона на QR-код или откройте ссылку в мобильном браузере.<br>
-            3. Поставьте телефон на подставку под монитором и нажимайте отыгровки в 1 тап!
+            3. Если на телефоне страница не открывается — нажмите кнопку <b>«🛡️ Разрешить в Брандмауэре»</b> выше.<br>
+            4. Поставьте телефон на подставку под монитором и нажимайте отыгровки в 1 тап!
         </div>
 
         <div style="display:flex; justify-content:flex-end;">
@@ -2426,23 +2428,114 @@ function copyCmd(cmdStr) {
 
 var currentEditingHkId = '';
 
+var RU_EN_MAP = {
+    'й':'q','ц':'w','у':'e','к':'r','е':'t','н':'y','г':'u','ш':'i','щ':'o','з':'p','х':'[','ъ':']',
+    'ф':'a','ы':'s','в':'d','а':'f','п':'g','р':'h','о':'j','л':'k','д':'l','ж':';','э':'\'',
+    'я':'z','ч':'x','с':'c','м':'v','и':'b','т':'n','ь':'m','б':',','ю':'.'
+};
+function ruToEn(str) {
+    if (!str) return '';
+    var res = '';
+    for (var i = 0; i < str.length; i++) {
+        var ch = str.charAt(i);
+        res += (RU_EN_MAP[ch] !== undefined) ? RU_EN_MAP[ch] : ch;
+    }
+    return res;
+}
+
+// При фокусе на любых текстовых полях ввода отключаем горячие клавиши АХК, чтобы не срабатывали игровые бинды
+document.addEventListener('focusin', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+        callAhk('suspend_hotkeys', '1');
+    }
+});
+document.addEventListener('focusout', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+        if (!currentEditingHkId) {
+            callAhk('suspend_hotkeys', '0');
+        }
+    }
+});
+
 function remapKey(hkId) {
-    if (!hkId) return;
-    callAhk('remap_hotkey', hkId);
+    if (!hkId || !APP_DATA || !APP_DATA.hotkeys) return;
+    var target = null;
+    for (var i = 0; i < APP_DATA.hotkeys.length; i++) {
+        if (APP_DATA.hotkeys[i].id === hkId) {
+            target = APP_DATA.hotkeys[i];
+            break;
+        }
+    }
+    if (!target) return;
+    currentEditingHkId = hkId;
+
+    var nameEl = document.getElementById('modal-hk-subname');
+    if (nameEl) nameEl.innerText = target.name || hkId;
+
+    var infoEl = document.getElementById('modal-hk-info');
+    if (infoEl) {
+        infoEl.innerHTML = 'Текущая: <span style="color:#79C0FF; font-weight:bold;">[' + (target.keyDisp || '—') + ']</span> | По умолчанию: <span style="color:#C9D1D9;">[' + (target.defDisp || '—') + ']</span>';
+    }
+
+    var curKey = target.rawKey || '';
+    var inp = document.getElementById('modal-hk-input');
+    if (inp) inp.value = curKey;
+
+    var hasCtrl = curKey.indexOf('^') !== -1;
+    var hasAlt = curKey.indexOf('!') !== -1;
+    var hasShift = curKey.indexOf('+') !== -1;
+    var baseKey = curKey.replace(/[\^!+]/g, '');
+
+    var cCtrl = document.getElementById('modal-hk-ctrl');
+    var cAlt = document.getElementById('modal-hk-alt');
+    var cShift = document.getElementById('modal-hk-shift');
+    var cSpec = document.getElementById('modal-hk-spec');
+    if (cCtrl) cCtrl.checked = hasCtrl;
+    if (cAlt) cAlt.checked = hasAlt;
+    if (cShift) cShift.checked = hasShift;
+    if (cSpec) {
+        cSpec.value = baseKey;
+    }
+
+    callAhk('suspend_hotkeys', '1');
+
+    var m = document.getElementById('hotkey-modal');
+    if (m) m.style.display = 'flex';
+    if (inp) {
+        setTimeout(function() {
+            try {
+                inp.focus();
+                inp.select();
+            } catch (e) {}
+        }, 80);
+    }
 }
 
 function closeHotkeyModal() {
     var m = document.getElementById('hotkey-modal');
     if (m) m.style.display = 'none';
     currentEditingHkId = '';
+    callAhk('suspend_hotkeys', '0');
 }
 
 function onHotkeyInputKeyDown(e) {
     if (!e) e = window.event;
+    var code = e.keyCode || e.which;
+
+    if (code === 27) { // Escape
+        closeHotkeyModal();
+        if (e.preventDefault) e.preventDefault();
+        return false;
+    }
+    if (code === 13) { // Enter
+        saveHotkeyModal();
+        if (e.preventDefault) e.preventDefault();
+        return false;
+    }
+
     if (e.preventDefault) e.preventDefault();
     if (e.stopPropagation) e.stopPropagation();
 
-    var code = e.keyCode || e.which;
     // одиночные модификаторы игнорируем
     if (code === 16 || code === 17 || code === 18 || code === 91 || code === 92) return false;
 
@@ -2487,17 +2580,26 @@ function onHotkeyInputKeyDown(e) {
     } else if (code >= 48 && code <= 57) {
         keyName = String.fromCharCode(code);
     } else if (e.key && e.key.length === 1) {
-        keyName = e.key.toUpperCase();
+        var k = e.key.toLowerCase();
+        keyName = (RU_EN_MAP[k] || e.key).toUpperCase();
     }
 
     if (!keyName) return false;
 
     var ahkKey = mods.join('') + keyName;
-    document.getElementById('modal-hk-input').value = ahkKey;
-    document.getElementById('modal-hk-ctrl').checked = e.ctrlKey;
-    document.getElementById('modal-hk-alt').checked = e.altKey;
-    document.getElementById('modal-hk-shift').checked = e.shiftKey;
-    document.getElementById('modal-hk-spec').value = '';
+    var inp = document.getElementById('modal-hk-input');
+    if (inp) inp.value = ahkKey;
+
+    var cCtrl = document.getElementById('modal-hk-ctrl');
+    var cAlt = document.getElementById('modal-hk-alt');
+    var cShift = document.getElementById('modal-hk-shift');
+    var cSpec = document.getElementById('modal-hk-spec');
+    if (cCtrl) cCtrl.checked = e.ctrlKey;
+    if (cAlt) cAlt.checked = e.altKey;
+    if (cShift) cShift.checked = e.shiftKey;
+    if (cSpec) {
+        cSpec.value = keyName;
+    }
     return false;
 }
 
@@ -2674,7 +2776,9 @@ function renderHotkeysTable() {
             
             var matched = true;
             for (var t = 0; t < qTokens.length; t++) {
-                if (hay.indexOf(qTokens[t]) === -1) {
+                var tok = qTokens[t];
+                var tokEn = ruToEn(tok);
+                if (hay.indexOf(tok) === -1 && hay.indexOf(tokEn) === -1) {
                     matched = false;
                     break;
                 }

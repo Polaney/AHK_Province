@@ -10632,6 +10632,20 @@ JsonEscapeStr(s) {
     return s
 }
 
+GetBestLocalIP() {
+    Loop, 4 {
+        ip := A_IPAddress%A_Index%
+        if (InStr(ip, "192.168.") = 1)
+            return ip
+    }
+    Loop, 4 {
+        ip := A_IPAddress%A_Index%
+        if (InStr(ip, "10.") = 1 && ip != "10.8.1.1")
+            return ip
+    }
+    return (A_IPAddress1 != "" && A_IPAddress1 != "0.0.0.0") ? A_IPAddress1 : "127.0.0.1"
+}
+
 BuildFluentInitialJson() {
     global Fio1, Rank, Otdel, Znak, Teg, Prop2, Frak, Gibdd, Gender, CheckMB, Vers, WinVerDescription, ActiveSendEngine
     global OnlyInGameMode, AutoScreenMode, HotkeyDefs, ArticlesDB, JournalEntries
@@ -10663,7 +10677,7 @@ BuildFluentInitialJson() {
     j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
     j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
     j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
-    j .= """localIp"":""" . JsonEscapeStr(A_IPAddress1) . ""","
+    j .= """localIp"":""" . JsonEscapeStr(GetBestLocalIP()) . ""","
     j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088)
     j .= "},"
 
@@ -10739,6 +10753,10 @@ InitAndShowFluentGlassUI() {
     navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/")
     FluentWB.Navigate(navUrl)
 
+    ; Перехват сообщений ввода с клавиатуры для ActiveX WebBrowser (Backspace, Delete, ввод текста в поиск)
+    OnMessage(0x0100, "Gui_KeyDown")
+    OnMessage(0x0101, "Gui_KeyDown")
+
     startWait := A_TickCount
     while (FluentWB.ReadyState != 4 && (A_TickCount - startWait < 2500))
         Sleep, 15
@@ -10750,6 +10768,29 @@ InitAndShowFluentGlassUI() {
     Gui, 8:Show, Center w%winW% h%winH%, АХК УГИБДД МВД — Fluent Police Glass
     MobileServer_Start(8088)
     Gosub, UpdateHudTick
+}
+
+Gui_KeyDown(wParam, lParam, nMsg, hWnd) {
+    global FluentGuiHwnd, FluentWB
+    static IID_IOleInPlaceActiveObject := "{00000117-0000-0000-C000-000000000046}"
+    if (!FluentWB || !FluentGuiHwnd)
+        return
+    if (hWnd != FluentGuiHwnd && DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr") != FluentGuiHwnd)
+        return
+    pipa := ComObjQuery(FluentWB, IID_IOleInPlaceActiveObject)
+    if (!pipa)
+        return
+    VarSetCapacity(msg, 48, 0)
+    NumPut(hWnd,   msg, 0,  "Ptr")
+    NumPut(nMsg,   msg, A_PtrSize, "UInt")
+    NumPut(wParam, msg, A_PtrSize * 2, "UPtr")
+    NumPut(lParam, msg, A_PtrSize * 3, "Ptr")
+    NumPut(DllCall("GetMessageTime", "UInt"), msg, A_PtrSize * 4, "UInt")
+    DllCall("GetCursorPos", "Ptr", &msg + (A_PtrSize * 4 + 4))
+    hr := DllCall(NumGet(NumGet(pipa+0)+5*A_PtrSize), "Ptr", pipa, "Ptr", &msg)
+    ObjRelease(pipa)
+    if (hr == 0)
+        return 0
 }
 
 RefreshFluentWebData() {
@@ -10796,6 +10837,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Return
     }
     if (action = "win_close") {
+        Suspend, Off
         Gui, 8:Hide
         HIDDEN_NOW := 1
         Menu, Tray, Rename, Свернуть, Развернуть
@@ -10843,7 +10885,18 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         MobileServer_Start(8088)
         RefreshFluentWebData()
         SoundBeep, 900, 100
-        TrayTip, 📱 Мобильный планшет, Сервер перезапущен на порту 8088! IP: %A_IPAddress1%, 2, 1
+        bestIp := GetBestLocalIP()
+        TrayTip, 📱 Мобильный планшет, Сервер перезапущен на порту 8088! IP: %bestIp%, 2, 1
+        Return
+    }
+    if (action = "allow_firewall") {
+        try {
+            Run *RunAs netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
+            SoundBeep, 900, 120
+            TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 успешно открыт в брандмауэре!, 3, 1
+        } catch {
+            MsgBox, 48, Брандмауэр Windows, Требуются права администратора для разрешения входящего порта 8088!
+        }
         Return
     }
     if (action = "open_web_url") {
@@ -10985,6 +11038,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         RefreshFluentWebData()
         Return
     }
+    if (action = "suspend_hotkeys") {
+        if (arg1 = "1")
+            Suspend, On
+        else
+            Suspend, Off
+        Return
+    }
     if (action = "remap_hotkey") {
         if (arg1 != "" && HotkeyById.HasKey(arg1)) {
             OpenQuickHotkeyRemapModal(arg1)
@@ -11008,7 +11068,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         targetHk := arg1
         if (targetHk != "" && HotkeyById.HasKey(targetHk)) {
             SelectedHkId := targetHk
-            Gosub, ResetSingleHotkeyBtn
+            ApplySingleHotkeyUpdate(targetHk, HotkeyById[targetHk].DefaultKey)
             RefreshFluentWebData()
             SoundBeep, 800, 100
             TrayTip, 🔄 Клавиша сброшена, % HotkeyById[targetHk].Name . " возвращена по умолчанию", 2, 1
@@ -11105,6 +11165,8 @@ OpenQuickHotkeyRemapModal(hkId) {
     hasShift := InStr(curKey, "+") ? 1 : 0
     baseKey := RegExReplace(curKey, "[\^!+]", "")
 
+    Suspend, On
+
     Gui, 10:Destroy
     Gui, 10:+AlwaysOnTop +Owner8
     Gui, 10:Color, 0E1422, 162238
@@ -11147,6 +11209,7 @@ OpenQuickHotkeyRemapModal(hkId) {
 SaveQuickRemapBtn:
 Gui, 10:Submit, NoHide
 if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId)) {
+    Suspend, Off
     Gui, 10:Destroy
     Return
 }
@@ -11155,23 +11218,29 @@ targetObj := HotkeyById[QuickRemapTargetId]
 newKey := ""
 specChosen := (QuickSpecDDL != "" && QuickSpecDDL != "(Нет)" && QuickSpecDDL != "(Не выбрано)")
 
-; Если пользователь ввёл новую комбинацию в поле Способ 1:
-if (QuickHkBox != "" && QuickHkBox != targetObj.CurrentKey) {
-    newKey := QuickHkBox
-} else if (specChosen) {
-    newKey := BuildSpecialKeyString(QuickModCtrl, QuickModAlt, QuickModShift, QuickSpecDDL)
-} else if (QuickHkBox != "") {
-    newKey := QuickHkBox
+normHkBox := NormalizeAhkHotkey(QuickHkBox)
+builtSpecKey := specChosen ? BuildSpecialKeyString(QuickModCtrl, QuickModAlt, QuickModShift, QuickSpecDDL) : ""
+
+; Если выбрана спецклавиша в Способе 2 и она отличается от текущей комбинации:
+if (specChosen && builtSpecKey != "" && NormalizeAhkHotkey(builtSpecKey) != NormalizeAhkHotkey(targetObj.CurrentKey)) {
+    newKey := builtSpecKey
+} else if (normHkBox != "" && normHkBox != NormalizeAhkHotkey(targetObj.CurrentKey)) {
+    newKey := normHkBox
+} else if (builtSpecKey != "") {
+    newKey := builtSpecKey
+} else if (normHkBox != "") {
+    newKey := normHkBox
 }
 
 newKey := NormalizeAhkHotkey(newKey)
 if (newKey = "") {
-    MsgBox, 48, Настройка клавиши, Пожалуйста, нажмите нужную клавишу в поле «Способ 1» или выберите клавишу в списке «Способ 2»!
+    MsgBox, 48, Настройка клавиши, Пожалуйста, нажмите нужную комбинацию в поле «Способ 1» или выберите спецклавишу в списке «Способ 2»!
     Return
 }
 
 ; Если клавиша не изменилась
 if (Format("{:L}", newKey) = Format("{:L}", targetObj.CurrentKey)) {
+    Suspend, Off
     Gui, 10:Destroy
     TrayTip, ⌨️ Горячая клавиша осталась прежней, % targetObj.Name . ": [" . FormatHotkeyReadable(newKey) . "]", 2, 1
     Return
@@ -11187,6 +11256,7 @@ for idx, otherHk in HotkeyDefs {
     }
 }
 
+Suspend, Off
 Gui, 10:Destroy
 ApplySingleHotkeyUpdate(QuickRemapTargetId, newKey)
 RefreshFluentWebData()
@@ -11196,11 +11266,13 @@ Return
 
 ResetQuickRemapBtn:
 if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId)) {
+    Suspend, Off
     Gui, 10:Destroy
     Return
 }
 targetObj := HotkeyById[QuickRemapTargetId]
 defKey := targetObj.DefaultKey
+Suspend, Off
 Gui, 10:Destroy
 ApplySingleHotkeyUpdate(QuickRemapTargetId, defKey)
 RefreshFluentWebData()
@@ -11211,6 +11283,7 @@ Return
 CloseQuickRemapBtn:
 10GuiClose:
 10GuiEscape:
+Suspend, Off
 Gui, 10:Destroy
 Return
 
