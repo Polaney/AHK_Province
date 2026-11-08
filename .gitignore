@@ -1,10 +1,18 @@
-# AutoHotkey backup and temporary files
+# Backups and temporary files
+backup_*.ahk
 *.bak
 *.bak.*
 *.tmp
 *.7z
 scratch/
+test_*.ahk
 
-# Local cache / user logs
+# User runtime data & local logs
 *.log
 gibdd.egl
+gibdd_journal.ini
+updater_res.txt
+
+# Internal workspace metadata
+.agents/
+AGENTS.md
