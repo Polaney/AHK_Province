@@ -2061,30 +2061,33 @@ html, body {
 </div>
 
 <!-- МОДАЛКА: МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ -->
-<div id="tablet-modal" class="modal-overlay">
-    <div class="modal-box" style="max-width:540px; text-align:center;">
-        <div class="modal-header" style="justify-content:center; position:relative;">
-            <div style="font-size:16px; font-weight:800; color:#58A6FF;">📱 Бортовой планшет МВД (Второй экран)</div>
-            <div style="position:absolute; right:0; cursor:pointer; color:#8B949E; font-size:18px;" onclick="closeTabletModal()">✕</div>
+<div id="tablet-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:560px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">📱</span>
+                <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Бортовой планшет МВД (Второй экран)</div>
+            </div>
+            <div class="win-btn close" onclick="closeTabletModal()" style="font-size:14px;">✕</div>
         </div>
         
-        <div style="font-size:12.5px; color:#C9D1D9; margin:12px 0 16px 0; line-height:1.4;">
+        <div style="font-size:12.5px; color:#C9D1D9; margin:10px 0 14px 0; line-height:1.4;">
             Управляйте патрулем, мегафоном, задержанием и статьями прямо с экрана смартфона или планшета рядом с монитором!
         </div>
 
         <div style="display:flex; justify-content:center; margin-bottom:14px;">
-            <div style="background:#FFF; padding:10px; border-radius:12px; display:inline-block; box-shadow:0 0 20px rgba(56,139,253,0.3);">
+            <div style="background:#FFF; padding:10px; border-radius:12px; display:inline-block; box-shadow:0 0 20px rgba(56,139,253,0.35);">
                 <img id="tablet-qr-img" src="" alt="QR Код" style="width:180px; height:180px; display:block;">
             </div>
         </div>
 
         <div style="background:rgba(10,16,30,0.85); border:1px solid rgba(56,139,253,0.3); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
-            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">http://...:8088</span>
+            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">http://127.0.0.1:8088</span>
             <button class="btn-fluent" onclick="copyTabletUrl()" style="padding:4px 12px; font-size:11px;">📋 Скопировать</button>
         </div>
 
-        <div style="display:flex; justify-content:center; gap:8px; margin-bottom:16px;">
-            <div class="status-pill green" id="tablet-server-status">🟢 Сервер активен (Порт 8088)</div>
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px;">
+            <div style="background:rgba(46,160,67,0.18); border:1px solid rgba(46,160,67,0.45); color:#7EE787; font-weight:700; font-size:11.5px; padding:4px 12px; border-radius:12px;" id="tablet-server-status">🟢 Сервер активен (Порт 8088)</div>
             <button class="btn-glass" onclick="callAhk('restart_mobile_server')" style="padding:3px 10px; font-size:11px;">🔄 Перезапустить</button>
         </div>
 
@@ -2133,8 +2136,14 @@ function closeLinksModal() {
 }
 
 function openTabletModal() {
-    var ip = (APP_DATA && APP_DATA.profile && APP_DATA.profile.localIp) ? APP_DATA.profile.localIp : '127.0.0.1';
-    var port = (APP_DATA && APP_DATA.profile && APP_DATA.profile.tabletPort) ? APP_DATA.profile.tabletPort : 8088;
+    var ip = '127.0.0.1';
+    var port = 8088;
+    if (APP_DATA) {
+        if (APP_DATA.localIp) ip = APP_DATA.localIp;
+        else if (APP_DATA.profile && APP_DATA.profile.localIp) ip = APP_DATA.profile.localIp;
+        if (APP_DATA.tabletPort) port = APP_DATA.tabletPort;
+        else if (APP_DATA.profile && APP_DATA.profile.tabletPort) port = APP_DATA.profile.tabletPort;
+    }
     var url = 'http://' + ip + ':' + port;
 
     var txt = document.getElementById('tablet-url-txt');
