@@ -70,17 +70,16 @@ ApplySendEngineMode(ModeStr := "AUTO") {
     global IsWin11_24H2_OrNewer, ActiveSendEngine
     if (ModeStr = "SendPlay") {
         SendMode, Play
-        SetKeyDelay, 0, 10, Play
         ActiveSendEngine := "SendPlay (Классика)"
-    } else if (ModeStr = "SendInput") {
-        SendMode, Input
-        ActiveSendEngine := "SendInput"
-    } else {
-        ; По умолчанию для всех версий Windows (23H2 и 24H2+) используется SendEvent (DirectX)
-        ; SendPlay использует устаревший хук Journal Playback, вызывающий сбои DirectInput и краши античита MTA!
+    } else if (ModeStr = "SendEvent") {
         SendMode, Event
-        SetKeyDelay, 0, 10
-        ActiveSendEngine := "SendEvent (DirectX Стабильный)"
+        SetKeyDelay, -1, 0
+        ActiveSendEngine := "SendEvent (DirectX)"
+    } else {
+        ; По умолчанию: SendInput (Мгновенный аппаратный ввод без видимой печати по буквам и без хука Journal Playback)
+        ; Исключает детекты античита MTA 1.6 (AC #4) и отправляет команды мгновенно
+        SendMode, Input
+        ActiveSendEngine := "SendInput (Мгновенный)"
     }
 }
 
@@ -349,7 +348,7 @@ ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.3.1ж
+    Vers = 2.3.2ж
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -366,7 +365,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.3.1м
+    Vers = 2.3.2м
     Ok1 =
     Ok2 =
     Ok2 =
@@ -1049,7 +1048,7 @@ Gui, 1:Font, S9 CFFB84D Bold, Segoe UI
 Gui, 1:Add, CheckBox, x507 y49 w170 h24 vOnlyInGameChk gToggleOnlyInGameMode Checked%OnlyInGameMode%, 🛡️ Только в игре
 Gui, 1:Add, CheckBox, x682 y49 w185 h24 vAutoScreenChk gToggleAutoScreenMode Checked%AutoScreenMode%, 📸 Автоскрин (/timestamp)
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, DropDownList, x872 y48 w250 r4 vSendEngineDDL gChangeSendEngine, Авто (23H2: Play / 24H2: Event)|SendPlay (Классика 23H2)|SendEvent (DirectX 24H2+)|SendInput (Быстрый)
+Gui, 1:Add, DropDownList, x872 y48 w250 r4 vSendEngineDDL gChangeSendEngine, Авто (SendInput: Мгновенный)|SendInput (Мгновенный)|SendEvent (DirectX)|SendPlay (Классика)
 
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
 Gui, 1:Add, ListView, x218 y80 w904 h335 +Grid -Multi Background1B2234 cE6EDF3 vHotkeysLV gHotkeysLVSelect AltSubmit, Код|Действие / Отыгровка|Текущая клавиша|По умолчанию|Категория
@@ -1261,11 +1260,11 @@ ExecuteSmartMegaphoneStep() {
         SetLocaleRu()
         SmartSleep(100)
         Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 800, 150
         TrayTip, 🚔 Мегафон 1/3 отправлен, До 2-го мегафона: 15 секунд по ст. 15 ФЗоП., 3, 1
@@ -1285,11 +1284,11 @@ ExecuteSmartMegaphoneStep() {
         SetLocaleRu()
         SmartSleep(100)
         Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 950, 150
         TrayTip, 🚔 Мегафон 2/3 отправлен, До финального предупреждения: 15 сек., 3, 1
@@ -1309,11 +1308,11 @@ ExecuteSmartMegaphoneStep() {
         SetLocaleRu()
         SmartSleep(100)
         Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
-        SmartSleep(10)
+        SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         SoundBeep, 1100, 200
         TrayTip, ⚠️ Мегафон 3/3 отправлен!, ТРЕБОВАНИЯ ВЫПОЛНЕНЫ! ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП)!, 4, 2
@@ -4781,11 +4780,11 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(350)
 Send, {F8} me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
-SmartSleep(10)
+SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
-SmartSleep(10)
+SmartSleep(200)
 Send, {F8} fracvoice 1{Enter}{F8}
 Return
 Bind_VoiceOff:
@@ -4793,11 +4792,11 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
-SmartSleep(10)
+SmartSleep(200)
 SoundPlay, %A_Scriptdir%\1.mp3, wait
-SmartSleep(10)
+SmartSleep(200)
 Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(350)
 Send, {F8} fracvoice 2{Enter}{F8}
 Return
 Bind_Megaphone1:
@@ -4806,11 +4805,11 @@ StartChaseTimer(1)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_Megaphone2:
@@ -4819,11 +4818,11 @@ StartChaseTimer(2)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_Megaphone3:
@@ -4832,11 +4831,11 @@ StartChaseTimer(3)
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_MegaphoneWay:
@@ -4844,11 +4843,11 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}{Space}{Backspace} m {#}e7950dУступите проезд спец. транспорту{!}{Enter}{F8}
-SmartSleep(10)
+SmartSleep(600)
 Send, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 Return
 Bind_FootChase:
@@ -10365,8 +10364,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion := "2.3.1"
-global AppVersionCode    := 231
+global AppNumericVersion := "2.3.2"
+global AppVersionCode    := 232
 global UpdateCheckUrl    := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateMirrorUrl   := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
 global PendingUpdateUrl  := ""
