@@ -428,6 +428,7 @@ InitArticlesDB()
 InitBindsCatalog()
 InitTimersAndLogReader()
 InitAutoUpdater()
+TabletRelay_Init()
 
 ; -------------------------------------------------------------------------------------------------
 ; ГЛАВНОЕ ОКНО (GUI 1) — ТЁМНАЯ ТЕМА МВД / УГИБДД + ПОИСК + НАСТРОЙКА КЛАВИШ
@@ -10649,6 +10650,7 @@ GetBestLocalIP() {
 BuildFluentInitialJson() {
     global Fio1, Rank, Otdel, Znak, Teg, Prop2, Frak, Gibdd, Gender, CheckMB, Vers, WinVerDescription, ActiveSendEngine
     global OnlyInGameMode, AutoScreenMode, HotkeyDefs, ArticlesDB, JournalEntries
+    global TabletRelayHost, TabletRelayPin, TabletRelayOnline
 
     heroPath := StrReplace(A_ScriptDir . "\assets\fluent_hero.jpg", "\", "/")
     crestPath := StrReplace(A_ScriptDir . "\assets\fluent_crest.jpg", "\", "/")
@@ -10678,7 +10680,10 @@ BuildFluentInitialJson() {
     j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
     j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
     j .= """localIp"":""" . JsonEscapeStr(GetBestLocalIP()) . ""","
-    j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088)
+    j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088) . ","
+    j .= """relayUrl"":""" . JsonEscapeStr(TabletRelayHost) . ""","
+    j .= """tabletPin"":""" . JsonEscapeStr(TabletRelayPin) . ""","
+    j .= """relayOnline"":" . (TabletRelayOnline ? 1 : 0)
     j .= "},"
 
     j .= """hotkeys"":["
@@ -11319,7 +11324,7 @@ ApplySingleHotkeyUpdate(hkId, newKey) {
 }
 
 ; =================================================================================================
-; МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ МВД (HTTP МИКРО-СЕРВЕР НА WINSOCK)
+; МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ МВД (ОБЛАЧНЫЙ РЕЛЕЙ + ЛОКАЛЬНЫЙ WINSOCK)
 ; =================================================================================================
 global MobileServerSock := -1
 global MobileServerPort := 8088
@@ -11328,6 +11333,115 @@ global LiveForumPoints := 0
 global LiveFinesCount := 0
 global LiveArrestsCount := 0
 global LiveTargetId := "—"
+
+global TabletRelayHost := "http://152.234.229.245:3000"
+global TabletRelayPin := "7788"
+global TabletRelayOnline := 0
+global TabletRegCounter := 0
+
+TabletRelay_Init() {
+    global TabletRelayHost, TabletRelayPin
+    iniPath := A_Temp . "\gibdd.egl"
+    IniRead, savedHost, %iniPath%, Tablet, RelayHost, http://152.234.229.245:3000
+    if (savedHost != "" && savedHost != "ERROR")
+        TabletRelayHost := savedHost
+    IniRead, savedPin, %iniPath%, Tablet, Pin, ERROR
+    if (savedPin = "" || savedPin = "ERROR") {
+        Random, randPin, 1000, 9999
+        TabletRelayPin := randPin . ""
+        IniWrite, %TabletRelayPin%, %iniPath%, Tablet, Pin
+    } else {
+        TabletRelayPin := savedPin
+    }
+    SetTimer, TabletRelaySyncTick, 1000
+}
+
+TabletRelaySyncTick:
+TabletRelay_Sync()
+Return
+
+TabletRelay_Sync() {
+    global TabletRelayHost, TabletRelayPin, TabletRelayOnline, TabletRegCounter
+    global Fio1, Rank, Teg, Prop2, Gibdd
+    global LiveShiftDuration, LiveForumPoints, LiveFinesCount, LiveArrestsCount, LiveTargetId
+
+    if (!TabletRelayHost || !TabletRelayPin)
+        Return
+
+    TabletRegCounter++
+    isFullRegister := (TabletRegCounter >= 8 || TabletRegCounter = 1)
+    if (isFullRegister)
+        TabletRegCounter := 1
+
+    try {
+        http := ComObjCreate("MSXML2.ServerXMLHTTP.6.0")
+        http.setTimeouts(600, 600, 600, 600)
+
+        if (isFullRegister) {
+            regPayload := "{"
+            regPayload .= """pin"":""" . TabletRelayPin . ""","
+            regPayload .= """profile"":{"
+            regPayload .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
+            regPayload .= """rank"":""" . JsonEscapeStr(Rank) . ""","
+            regPayload .= """teg"":""" . JsonEscapeStr(Teg) . ""","
+            regPayload .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
+            regPayload .= """gibdd"":""" . JsonEscapeStr(Gibdd) . """"
+            regPayload .= "},"
+            regPayload .= """live"":{"
+            regPayload .= """dutyClock"":""" . JsonEscapeStr(LiveShiftDuration) . ""","
+            regPayload .= """finesCnt"":" . (LiveFinesCount + 0) . ","
+            regPayload .= """arrestsCnt"":" . (LiveArrestsCount + 0) . ","
+            regPayload .= """forumPts"":" . (LiveForumPoints + 0) . ","
+            regPayload .= """targetId"":""" . JsonEscapeStr(LiveTargetId) . """"
+            regPayload .= "}"
+            regPayload .= "}"
+
+            http.open("POST", TabletRelayHost . "/api/agent/register", false)
+            http.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+            http.send(regPayload)
+        } else {
+            pushPayload := "{"
+            pushPayload .= """pin"":""" . TabletRelayPin . ""","
+            pushPayload .= """live"":{"
+            pushPayload .= """dutyClock"":""" . JsonEscapeStr(LiveShiftDuration) . ""","
+            pushPayload .= """finesCnt"":" . (LiveFinesCount + 0) . ","
+            pushPayload .= """arrestsCnt"":" . (LiveArrestsCount + 0) . ","
+            pushPayload .= """forumPts"":" . (LiveForumPoints + 0) . ","
+            pushPayload .= """targetId"":""" . JsonEscapeStr(LiveTargetId) . """"
+            pushPayload .= "}"
+            pushPayload .= "}"
+
+            http.open("POST", TabletRelayHost . "/api/agent/push-telemetry", false)
+            http.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+            http.send(pushPayload)
+        }
+
+        if (http.status = 200)
+            TabletRelayOnline := 1
+        else
+            TabletRelayOnline := 0
+
+        ; Опрашиваем очередь команд от смартфона
+        pollHttp := ComObjCreate("MSXML2.ServerXMLHTTP.6.0")
+        pollHttp.setTimeouts(500, 500, 500, 500)
+        pollHttp.open("GET", TabletRelayHost . "/api/agent/poll-commands?pin=" . TabletRelayPin . "&t=" . A_TickCount, false)
+        pollHttp.send()
+
+        if (pollHttp.status = 200) {
+            resp := pollHttp.responseText
+            pos := 1
+            while (RegExMatch(resp, "i)""cmd""\s*:\s*""([^""]+)""", m, pos)) {
+                pos := m.Pos(0) + StrLen(m[0])
+                cmdName := m1
+                if (cmdName != "") {
+                    ExecuteMobilePatrolCommand(cmdName)
+                }
+            }
+        }
+    } catch {
+        TabletRelayOnline := 0
+    }
+}
 
 MobileServer_Start(Port := 8088) {
     global MobileServerSock, MobileServerPort
