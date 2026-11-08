@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#070B14">
+<meta name="theme-color" content="#060913">
 <title>Бортовой планшет УГИБДД МВД</title>
 <style>
 * {
@@ -20,7 +20,7 @@
 html, body {
     width: 100%;
     height: 100%;
-    background: #070B14;
+    background: #060913;
     color: #E6EDF3;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     overflow: hidden;
@@ -32,19 +32,50 @@ html, body {
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: radial-gradient(circle at 50% 0%, rgba(31,111,235,0.18) 0%, rgba(7,11,20,0.98) 75%);
+    background: radial-gradient(circle at 50% -20%, rgba(31,111,235,0.22) 0%, rgba(6,9,19,0.98) 75%);
+}
+
+/* TOP POLICE STROBE LIGHTS */
+.strobe-bar {
+    display: flex;
+    height: 3px;
+    width: 100%;
+    opacity: 0.85;
+}
+.strobe-red {
+    flex: 1;
+    background: linear-gradient(90deg, #F85149, #FF7B72);
+    box-shadow: 0 0 10px #F85149;
+    animation: strobeR 1.2s infinite;
+}
+.strobe-blue {
+    flex: 1;
+    background: linear-gradient(90deg, #388BFD, #58A6FF);
+    box-shadow: 0 0 10px #388BFD;
+    animation: strobeB 1.2s infinite;
+}
+@keyframes strobeR {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; filter: brightness(1.4); }
+}
+@keyframes strobeB {
+    0%, 100% { opacity: 1; filter: brightness(1.4); }
+    50% { opacity: 0.3; }
 }
 
 /* TOP STATUS HUD */
 .hud-header {
-    background: rgba(13, 20, 36, 0.92);
-    border-bottom: 1px solid rgba(56, 139, 253, 0.3);
+    background: rgba(10, 16, 32, 0.94);
+    border-bottom: 1px solid rgba(56, 139, 253, 0.28);
     padding: 10px 14px;
-    padding-top: max(10px, env(safe-area-inset-top));
+    padding-top: max(8px, env(safe-area-inset-top));
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    gap: 8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 50;
 }
 
 .hud-top-row {
@@ -56,25 +87,51 @@ html, body {
 .hud-title-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
 }
 
 .hud-badge-icon {
-    font-size: 20px;
+    font-size: 22px;
+    filter: drop-shadow(0 0 8px rgba(56, 139, 253, 0.5));
 }
 
 .hud-title {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 800;
     color: #58A6FF;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .hud-sub {
     font-size: 11px;
     color: #8B949E;
     font-weight: 600;
+    margin-top: 1px;
+}
+
+.hud-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-tool-btn {
+    background: rgba(22, 34, 62, 0.6);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: #C9D1D9;
+    border-radius: 8px;
+    padding: 4px 7px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.icon-tool-btn:active {
+    background: rgba(88, 166, 255, 0.3);
+    color: #FFF;
 }
 
 .status-indicator {
@@ -82,12 +139,13 @@ html, body {
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 12px;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 14px;
     background: rgba(46, 160, 67, 0.15);
-    border: 1px solid rgba(46, 160, 67, 0.4);
+    border: 1px solid rgba(46, 160, 67, 0.45);
     color: #7EE787;
+    letter-spacing: 0.3px;
 }
 
 .status-dot {
@@ -104,33 +162,102 @@ html, body {
     50% { opacity: 0.4; transform: scale(0.85); }
 }
 
+/* TARGET ID SELECTOR BAR */
+.hud-target-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(22, 34, 62, 0.55);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 9px;
+    padding: 4px 8px;
+    gap: 8px;
+}
+
+.target-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #79C0FF;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.target-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.target-step-btn {
+    background: rgba(31, 111, 235, 0.25);
+    border: 1px solid rgba(56, 139, 253, 0.4);
+    color: #79C0FF;
+    border-radius: 6px;
+    width: 26px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.target-step-btn:active {
+    background: #1f6feb;
+    color: #FFF;
+}
+
+.target-id-input {
+    width: 58px;
+    height: 24px;
+    background: rgba(10, 16, 30, 0.95);
+    border: 1px solid rgba(88, 166, 255, 0.5);
+    border-radius: 6px;
+    color: #FFF;
+    font-family: Consolas, monospace;
+    font-size: 13.5px;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+}
+.target-id-input:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 10px rgba(56,139,253,0.5);
+}
+
 .hud-stats-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     justify-content: space-between;
 }
 
 .kpi-card {
     flex: 1;
-    background: rgba(22, 34, 62, 0.6);
-    border: 1px solid rgba(88, 166, 255, 0.2);
+    background: rgba(22, 34, 62, 0.5);
+    border: 1px solid rgba(88, 166, 255, 0.18);
     border-radius: 8px;
-    padding: 5px 8px;
+    padding: 4px 6px;
     text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .kpi-card-num {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 800;
     color: #FFF;
     font-family: Consolas, monospace;
 }
 
 .kpi-card-lbl {
-    font-size: 9.5px;
+    font-size: 9px;
     color: #8B949E;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-top: 1px;
 }
 
 /* MAIN CONTENT AREA */
@@ -139,7 +266,7 @@ html, body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 12px 14px;
-    padding-bottom: 85px;
+    padding-bottom: 95px;
 }
 
 .tab-pane {
@@ -152,24 +279,24 @@ html, body {
     display: flex;
 }
 
-/* TOUCH BUTTONS GRID */
+/* BUTTONS GRID */
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 9px;
 }
 
 .grid-1 {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 9px;
 }
 
 .btn-tablet {
-    background: rgba(18, 28, 52, 0.85);
-    border: 1px solid rgba(56, 139, 253, 0.35);
+    background: linear-gradient(145deg, rgba(20, 32, 58, 0.85) 0%, rgba(12, 20, 38, 0.9) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.3);
     border-radius: 12px;
-    padding: 14px 10px;
+    padding: 13px 10px;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -177,48 +304,54 @@ html, body {
     font-size: 13.5px;
     font-weight: 700;
     text-align: left;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
 }
 
 .btn-tablet:active {
     transform: scale(0.96);
     background: rgba(31, 111, 235, 0.35);
     border-color: #58A6FF;
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.4);
 }
 
 .btn-tablet.danger {
-    background: rgba(248, 81, 73, 0.15);
+    background: linear-gradient(145deg, rgba(248, 81, 73, 0.18) 0%, rgba(130, 25, 22, 0.25) 100%);
     border-color: rgba(248, 81, 73, 0.45);
     color: #FF7B72;
 }
 
 .btn-tablet.danger:active {
-    background: rgba(248, 81, 73, 0.35);
+    background: rgba(248, 81, 73, 0.4);
+    box-shadow: 0 0 16px rgba(248, 81, 73, 0.4);
 }
 
 .btn-tablet.warning {
-    background: rgba(210, 153, 34, 0.15);
+    background: linear-gradient(145deg, rgba(210, 153, 34, 0.18) 0%, rgba(120, 85, 15, 0.25) 100%);
     border-color: rgba(210, 153, 34, 0.45);
     color: #FFD33D;
 }
 
 .btn-tablet.warning:active {
-    background: rgba(210, 153, 34, 0.35);
+    background: rgba(210, 153, 34, 0.4);
+    box-shadow: 0 0 16px rgba(210, 153, 34, 0.4);
 }
 
 .btn-tablet.primary {
-    background: linear-gradient(135deg, rgba(31,111,235,0.4) 0%, rgba(17,88,199,0.5) 100%);
+    background: linear-gradient(135deg, rgba(31, 111, 235, 0.45) 0%, rgba(17, 88, 199, 0.6) 100%);
     border-color: #58A6FF;
+    box-shadow: 0 4px 16px rgba(31, 111, 235, 0.35);
 }
 
 .btn-tablet.primary:active {
-    background: linear-gradient(135deg, rgba(31,111,235,0.6) 0%, rgba(17,88,199,0.7) 100%);
+    background: linear-gradient(135deg, rgba(31, 111, 235, 0.7) 0%, rgba(17, 88, 199, 0.85) 100%);
 }
 
 .btn-icon {
     font-size: 24px;
     flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 .btn-text-wrap {
@@ -228,7 +361,7 @@ html, body {
 }
 
 .btn-main-text {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 700;
     line-height: 1.25;
 }
@@ -248,34 +381,66 @@ html, body {
     letter-spacing: 0.8px;
     margin-top: 4px;
     margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-/* SEARCH IN ARTICLES */
+/* ARTICLES SEARCH & FILTERS */
 .search-box {
     width: 100%;
-    background: rgba(13, 20, 36, 0.9);
+    background: rgba(10, 16, 32, 0.94);
     border: 1px solid rgba(56, 139, 253, 0.4);
     color: #FFF;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 12px 14px;
     font-size: 14px;
     outline: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
 }
 
 .search-box:focus {
     border-color: #58A6FF;
-    box-shadow: 0 0 12px rgba(56, 139, 253, 0.4);
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.45);
+}
+
+.filter-pill {
+    background: rgba(22, 34, 62, 0.75);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    color: #8B949E;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-pill.active {
+    background: #1f6feb;
+    border-color: #58A6FF;
+    color: #FFF;
+    box-shadow: 0 0 12px rgba(31, 111, 235, 0.5);
 }
 
 .law-card {
-    background: rgba(18, 28, 52, 0.7);
+    background: linear-gradient(145deg, rgba(16, 26, 48, 0.8) 0%, rgba(10, 18, 36, 0.85) 100%);
     border: 1px solid rgba(56, 139, 253, 0.25);
-    border-radius: 10px;
-    padding: 10px 12px;
+    border-radius: 12px;
+    padding: 11px 13px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+    transition: all 0.15s ease;
+}
+
+.law-card.selected {
+    border-color: #58A6FF;
+    background: rgba(31, 111, 235, 0.22);
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.35);
 }
 
 .law-card-top {
@@ -285,23 +450,36 @@ html, body {
 }
 
 .law-code-badge {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 800;
-    padding: 2px 7px;
-    border-radius: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
     background: rgba(210, 153, 34, 0.2);
-    border: 1px solid rgba(210, 153, 34, 0.4);
+    border: 1px solid rgba(210, 153, 34, 0.45);
     color: #FFD33D;
+    letter-spacing: 0.3px;
 }
 
 .law-code-badge.uk {
     background: rgba(248, 81, 73, 0.2);
-    border-color: rgba(248, 81, 73, 0.4);
+    border-color: rgba(248, 81, 73, 0.45);
     color: #FF7B72;
 }
 
+.law-code-badge.fzop {
+    background: rgba(163, 113, 247, 0.2);
+    border-color: rgba(163, 113, 247, 0.45);
+    color: #D2A8FF;
+}
+
+.law-code-badge.pdd {
+    background: rgba(56, 139, 253, 0.2);
+    border-color: rgba(56, 139, 253, 0.45);
+    color: #79C0FF;
+}
+
 .law-fine-sum {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 800;
     color: #7EE787;
     font-family: Consolas, monospace;
@@ -310,7 +488,120 @@ html, body {
 .law-desc {
     font-size: 12px;
     color: #C9D1D9;
-    line-height: 1.3;
+    line-height: 1.35;
+}
+
+.law-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    gap: 8px;
+}
+
+.law-speak-btn {
+    background: rgba(31, 111, 235, 0.2);
+    border: 1px solid rgba(88, 166, 255, 0.45);
+    color: #79C0FF;
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.law-speak-btn:active {
+    background: #1f6feb;
+    color: #FFF;
+    transform: scale(0.96);
+}
+
+.law-select-btn {
+    background: rgba(22, 34, 62, 0.7);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: #8B949E;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.law-select-btn.active {
+    background: rgba(46, 160, 67, 0.25);
+    border-color: #3FB950;
+    color: #7EE787;
+}
+
+/* FLOATING COMBO FINE BAR */
+#combo-fine-bar {
+    display: none;
+    position: fixed;
+    bottom: 74px;
+    left: 10px;
+    right: 10px;
+    background: rgba(13, 20, 38, 0.96);
+    border: 1px solid #58A6FF;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.65), 0 0 20px rgba(56,139,253,0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 90;
+    animation: slideUp 0.2s ease-out;
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.combo-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.combo-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #79C0FF;
+}
+.combo-total {
+    font-size: 14px;
+    font-weight: 900;
+    color: #7EE787;
+    font-family: Consolas, monospace;
+}
+.combo-btns {
+    display: flex;
+    gap: 8px;
+}
+.combo-action-btn {
+    flex: 1;
+    padding: 8px;
+    font-size: 11.5px;
+    font-weight: 800;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+.combo-action-btn.speak {
+    background: rgba(88, 166, 255, 0.25);
+    border: 1px solid #58A6FF;
+    color: #79C0FF;
+}
+.combo-action-btn.ticket {
+    background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    color: #FFF;
+    box-shadow: 0 0 12px rgba(46,160,67,0.4);
+}
+.combo-action-btn.clear {
+    flex: 0 0 32px;
+    background: rgba(248, 81, 73, 0.2);
+    border: 1px solid rgba(248,81,73,0.4);
+    color: #FF7B72;
 }
 
 /* BOTTOM NAVIGATION BAR */
@@ -319,7 +610,7 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(10, 16, 30, 0.96);
+    background: rgba(10, 16, 32, 0.96);
     border-top: 1px solid rgba(56, 139, 253, 0.3);
     display: flex;
     justify-content: space-around;
@@ -343,35 +634,41 @@ html, body {
     font-size: 10px;
     font-weight: 700;
     cursor: pointer;
-    transition: color 0.15s ease;
+    transition: all 0.15s ease;
 }
 
 .tab-btn.active {
     color: #58A6FF;
+    transform: translateY(-1px);
 }
 
 .tab-btn-icon {
-    font-size: 20px;
+    font-size: 21px;
+    transition: transform 0.15s ease;
+}
+.tab-btn.active .tab-btn-icon {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 6px rgba(88,166,255,0.6));
 }
 
 /* TOAST NOTIFICATION */
 #toast {
     position: fixed;
-    top: 75px;
+    top: 80px;
     left: 50%;
     transform: translateX(-50%) translateY(-20px);
-    background: rgba(13, 20, 36, 0.95);
+    background: rgba(13, 20, 38, 0.96);
     border: 1px solid #58A6FF;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 10px;
+    padding: 9px 18px;
     color: #FFF;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 12.5px;
+    font-weight: 800;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 999;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 15px rgba(56,139,253,0.3);
 }
 
 #toast.show {
@@ -383,21 +680,46 @@ html, body {
 <body>
 
 <div id="app">
+    <!-- TOP STROBE LIGHTS -->
+    <div class="strobe-bar">
+        <div class="strobe-red"></div>
+        <div class="strobe-blue"></div>
+    </div>
+
     <!-- TOP POLICE HUD -->
     <header class="hud-header">
         <div class="hud-top-row">
             <div class="hud-title-wrap">
                 <span class="hud-badge-icon">🚔</span>
                 <div>
-                    <div class="hud-title" id="hud-unit">УГИБДД МВД • БОРТ-61</div>
-                    <div class="hud-sub" id="hud-officer">Инспектор ОР [61-000]</div>
+                    <div class="hud-title" id="hud-unit">УГИБДД МВД • БОРТ-51</div>
+                    <div class="hud-sub" id="hud-officer">Сержант [51-000]</div>
                 </div>
             </div>
-            <div class="status-indicator" id="hud-conn">
-                <span class="status-dot"></span>
-                <span>БОРТ ON</span>
+            <div class="hud-actions-right">
+                <button class="icon-tool-btn" id="sound-btn" onclick="toggleSound()" title="Звук">🔊</button>
+                <button class="icon-tool-btn" onclick="toggleFullscreen()" title="Полный экран">⛶</button>
+                <div class="status-indicator" id="hud-conn">
+                    <span class="status-dot"></span>
+                    <span>БОРТ ON</span>
+                </div>
             </div>
         </div>
+
+        <!-- TARGET ID SELECTOR BAR -->
+        <div class="hud-target-bar">
+            <div class="target-label">
+                <span>🎯 Цель ID:</span>
+            </div>
+            <div class="target-input-wrap">
+                <button class="target-step-btn" onclick="stepTargetId(-1)">-</button>
+                <input type="text" id="target-id-val" class="target-id-input" placeholder="0" maxlength="4" onchange="syncTargetId(this.value)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                <button class="target-step-btn" onclick="stepTargetId(1)">+</button>
+                <button class="icon-tool-btn" style="padding:4px 8px; font-weight:700;" onclick="triggerAction('target_info')">🔍 Пробить</button>
+            </div>
+        </div>
+
+        <!-- KPI STATS -->
         <div class="hud-stats-row">
             <div class="kpi-card">
                 <div class="kpi-card-num" id="kpi-duty">00:00</div>
@@ -500,9 +822,9 @@ html, body {
             </div>
 
             <div style="margin-top:10px;">
-                <button class="btn-tablet danger" style="width:100%; justify-content:center; padding:16px;" onclick="triggerAction('stop_bind')">
+                <button class="btn-tablet danger" style="width:100%; justify-content:center; padding:15px;" onclick="triggerAction('stop_bind')">
                     <span class="btn-icon">⛔</span>
-                    <span class="btn-main-text" style="font-size:15px;">ЭКСТРЕННО ОСТАНОВИТЬ БИНД</span>
+                    <span class="btn-main-text" style="font-size:14.5px;">ЭКСТРЕННО ОСТАНОВИТЬ БИНД</span>
                 </button>
             </div>
         </div>
@@ -522,57 +844,41 @@ html, body {
                     <span class="btn-icon">🪪</span>
                     <div class="btn-text-wrap">
                         <span class="btn-main-text">Попросить ВУ</span>
-                        <span class="btn-sub-text">Документы на авто</span>
+                        <span class="btn-sub-text">Водительские права</span>
                     </div>
                 </button>
             </div>
             <div class="grid-2">
                 <button class="btn-tablet" onclick="triggerAction('take_docs')">
-                    <span class="btn-icon">📄</span>
+                    <span class="btn-icon">📥</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">Изучить ВУ</span>
-                        <span class="btn-sub-text">Проверка данных</span>
+                        <span class="btn-main-text">Взять доки</span>
+                        <span class="btn-sub-text">Осмотр бумаг</span>
                     </div>
                 </button>
                 <button class="btn-tablet" onclick="triggerAction('return_docs')">
-                    <span class="btn-icon">↩️</span>
+                    <span class="btn-icon">📤</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">Вернуть ВУ</span>
-                        <span class="btn-sub-text">Отдать документы</span>
+                        <span class="btn-main-text">Вернуть доки</span>
+                        <span class="btn-sub-text">Отдать гражданину</span>
                     </div>
                 </button>
             </div>
 
-            <div class="section-title" style="margin-top:6px;">📱 Пробитие и штрафы</div>
+            <div class="section-title" style="margin-top:6px;">💻 Бортовой КПК</div>
             <div class="grid-2">
-                <button class="btn-tablet primary" onclick="triggerAction('kpk_vu')">
-                    <span class="btn-icon">📲</span>
+                <button class="btn-tablet primary" onclick="triggerAction('kpk_open')">
+                    <span class="btn-icon">💻</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">КПК: Скан ВУ</span>
-                        <span class="btn-sub-text">Пробить по базе</span>
+                        <span class="btn-main-text">Открыть КПК</span>
+                        <span class="btn-sub-text">Достать планшет</span>
                     </div>
                 </button>
-                <button class="btn-tablet warning" onclick="triggerAction('tsu')">
-                    <span class="btn-icon">💳</span>
+                <button class="btn-tablet" onclick="triggerAction('kpk_vu')">
+                    <span class="btn-icon">🔍</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">Выписать штраф</span>
-                        <span class="btn-sub-text">Команда /tsu</span>
-                    </div>
-                </button>
-            </div>
-            <div class="grid-2">
-                <button class="btn-tablet warning" onclick="triggerAction('su_fast')">
-                    <span class="btn-icon">⚡</span>
-                    <div class="btn-text-wrap">
-                        <span class="btn-main-text">Розыск быстро</span>
-                        <span class="btn-sub-text">Команда /su</span>
-                    </div>
-                </button>
-                <button class="btn-tablet" onclick="triggerAction('admin_prot')">
-                    <span class="btn-icon">📝</span>
-                    <div class="btn-text-wrap">
-                        <span class="btn-main-text">Адм. протокол</span>
-                        <span class="btn-sub-text">Оформление</span>
+                        <span class="btn-main-text">Пробить ВУ</span>
+                        <span class="btn-sub-text">По базе розыска</span>
                     </div>
                 </button>
             </div>
@@ -691,12 +997,12 @@ html, body {
                 <button class="btn-tablet" onclick="triggerAction('clock')">
                     <span class="btn-icon">⏱️</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">Часы с гравировкой</span>
-                        <span class="btn-sub-text">/timestamp + /time</span>
+                        <span class="btn-main-text">Точное время</span>
+                        <span class="btn-sub-text">Часы на руке (/time)</span>
                     </div>
                 </button>
-                <button class="btn-tablet" onclick="triggerAction('shout_hands')">
-                    <span class="btn-icon">📢</span>
+                <button class="btn-tablet danger" onclick="triggerAction('shout_hands')">
+                    <span class="btn-icon">🖐️</span>
                     <div class="btn-text-wrap">
                         <span class="btn-main-text">Руки на капот!</span>
                         <span class="btn-sub-text">Крикнуть нарушителю</span>
@@ -705,6 +1011,19 @@ html, body {
             </div>
         </div>
     </main>
+
+    <!-- FLOATING COMBO FINE BAR (APPEARS WHEN ARTICLES SELECTED) -->
+    <div id="combo-fine-bar">
+        <div class="combo-top">
+            <span class="combo-title" id="combo-title-txt">🧾 ВЫБРАНО: 0 СТ.</span>
+            <span class="combo-total" id="combo-sum-txt">0 ₽</span>
+        </div>
+        <div class="combo-btns">
+            <button class="combo-action-btn speak" onclick="speakComboArticles()">📢 Зачитать выбранные</button>
+            <button class="combo-action-btn ticket" onclick="issueComboTicket()">💳 Оформить (/ticket)</button>
+            <button class="combo-action-btn clear" onclick="clearSelectedArticles()" title="Сбросить">✕</button>
+        </div>
+    </div>
 
     <!-- BOTTOM TAB BAR -->
     <nav class="tab-bar">
@@ -727,15 +1046,17 @@ html, body {
     </nav>
 </div>
 
-<div id="toast">✅ Команда исполнена</div>
+<div id="toast">⚡ Сигнал отправлен</div>
 
 <script>
-
 var EMBEDDED_ARTICLES = [{"code":"КоАП","num":"1.1","cmd":"/коап1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Задачами законодательства об административных правонарушениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, охрана здоровья граждан, санитарно-эпидемиологического благополучия населения, защита общественной нравственности, охрана окружающей среды, установленного порядка осуществления государственной власти, общественного порядка и общественной безопасности, собственности, защита законных экономических интересов физических и юридических лиц, общества и государства от административных правонарушений, а также предупреждение административных правонарушений. За соблюдением кодекса следят все служащие Министерства внутренних дел."},{"code":"КоАП","num":"1.2","cmd":"/коап1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Лица, совершившие административное правонарушение, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхождения, имущественного и должностного положения, места жительства, отношения к религии, убеждений, принадлежности к общественным объединениям, а также других обстоятельств. Незнание закона не освобождает лицо от ответственности."},{"code":"КоАП","num":"1.3","cmd":"/коап1.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо подлежит ответственности только за те административные правонарушения, в отношении которых установлена его вина."},{"code":"КоАП","num":"1.4","cmd":"/коап1.4","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо, совершившее административное правонарушение, подлежит ответственности на основании закона, действовавшего во время совершения административного правонарушения."},{"code":"КоАП","num":"2.1","cmd":"/коап2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Административным правонарушением признается противоправное, виновное действие (бездействие) физического или юридического лица, за которое настоящим Кодексом установлена ответственность, также почти везде описанная и в Правилах дорожного движения."},{"code":"КоАП","num":"2.1.1","cmd":"/коап2.1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Рецидив преступлений влечет более строгое наказание на основании и в пределах, предусмотренных настоящим Кодексом."},{"code":"КоАП","num":"2.1.2","cmd":"/коап2.1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Рецидивом преступления признается совершение преступления лицом настоящего Кодекса, наказание за которое он уже получал, и оно истекло менее, чем две недели назад."},{"code":"КоАП","num":"2.2","cmd":"/коап2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Существующие формы вины."},{"code":"КоАП","num":"2.2.1","cmd":"/коап2.2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Административное правонарушение признается совершенным умышленно, если лицо, его совершившее, сознавало противоправный характер своего действия (бездействия), предвидело его вредные последствия и желало наступления таких последствий или сознательно их допускало, либо относилось к ним безразлично."},{"code":"КоАП","num":"2.2.2","cmd":"/коап2.2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Административное правонарушение признается совершенным по неосторожности, если лицо, его совершившее, предвидело возможность наступления вредных последствий своего действия (бездействия), но без достаточных к тому оснований самонадеянно рассчитывало на предотвращение таких последствий, либо не предвидело возможности наступления таких последствий, хотя должно было и могло их предвидеть."},{"code":"КоАП","num":"2.3","cmd":"/коап2.3","fine":0,"sanction":"Разъяснение нормы","desc":"При малозначительности совершенного административного правонарушения сотрудник полиции может освободить лицо, совершившее административное правонарушение, от административной ответственности и ограничиться устным замечанием."},{"code":"КоАП","num":"3.1","cmd":"/коап3.1","fine":0,"sanction":"Разъяснение нормы","desc":"Предупреждение – мера, выраженная в пресечении правонарушения лицом без применения иных видов административных наказаний. После, если результатов оно не повлекло, то есть лицо не направило свои действия на устранение нарушения или отказалось в их пресечении со своей стороны, применяются иные виды административных наказаний. Предупреждение выносится в устной или письменной форме с просьбой лицу прекратить совершать тот или иной проступок, за который будет положена иная мера административной ответственности. Неисполнение требований, оговоренных в предупреждении, лицом могут приравниваться к неподчинению, на усмотрение служащего Министерства внутренних дел, и наказывается соответствующей статьей Уголовного Кодекса."},{"code":"КоАП","num":"3.2","cmd":"/коап3.2","fine":0,"sanction":"Разъяснение нормы","desc":"Штраф является денежным взысканием, выражается в рублях и устанавливается для граждан в размере, указанном в соответствующей статье настоящего Кодекса."},{"code":"КоАП","num":"3.3","cmd":"/коап3.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лишение права на управление транспортным средством устанавливается за грубое или систематическое нарушение порядка пользования этим правом в случаях, предусмотренных статьями настоящего Кодекса."},{"code":"КоАП","num":"3.4","cmd":"/коап3.4","fine":0,"sanction":"Разъяснение нормы","desc":"Административный арест заключается в содержании нарушителя в условиях изоляции от общества и устанавливается и назначается лишь в исключительных случаях за отдельные виды административных правонарушений."},{"code":"КоАП","num":"4.1","cmd":"/коап4.1","fine":0,"sanction":"Разъяснение нормы","desc":"Наказание за совершение административного правонарушения назначается в пределах, установленных законом, предусматривающим ответственность за данное административное правонарушение, в соответствии с настоящим Кодексом."},{"code":"КоАП","num":"4.2","cmd":"/коап4.2","fine":0,"sanction":"Разъяснение нормы","desc":"При назначении наказания физическому лицу учитываются характер совершенного им административного правонарушения, личность виновного, его имущественное положение, обстоятельства, смягчающие ответственность, и обстоятельства, отягчающие ответственность."},{"code":"КоАП","num":"4.3","cmd":"/коап4.3","fine":0,"sanction":"Разъяснение нормы","desc":"Никто не может нести ответственность дважды за одно и то же административное правонарушение подряд. Скрыть контент Служащий не вправе суммировать штраф за нарушения одного и того же пункта настоящего Кодекса. Если после оформления протокола лицо повторно совершает нарушение пункта, по которому уже было наказано, то оно может быть повторно привлечено к ответственности. Системный штраф не равен наказанию от сотрудника."},{"code":"КоАП","num":"4.4","cmd":"/коап4.4","fine":0,"sanction":"Разъяснение нормы","desc":"Возмещение имущественного ущерба и морального вреда, причиненных административным правонарушением."},{"code":"КоАП","num":"4.4.1","cmd":"/коап4.4.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уполномоченное лицо, рассматривая дело об административном правонарушении, вправе при отсутствии спора о возмещении имущественного ущерба одновременно с назначением наказания решить вопрос о возмещении имущественного ущерба."},{"code":"КоАП","num":"4.4.2","cmd":"/коап4.4.2","fine":0,"sanction":"Разъяснение нормы","desc":"Споры о возмещении морального вреда, причиненного административным правонарушением, рассматриваются на городском портале Республики Провинция."},{"code":"КоАП","num":"4.5","cmd":"/коап4.5","fine":0,"sanction":"Разъяснение нормы","desc":"Срок давности привлечения к административной ответственности составляет 14 месяцев."},{"code":"КоАП","num":"17.1","cmd":"/коап17.1","fine":0,"sanction":"Разъяснение нормы","desc":"Отстранение от управления транспортным средством, освидетельствование на состояние алкогольного опьянения и медицинское освидетельствование на состояние опьянения."},{"code":"УКРП","num":"1.1","cmd":"/укрп1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Задачами законодательства об уголовных преступлениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, охрана здоровья граждан, санитарно-эпидемиологического благополучия населения, защита общественной нравственности, охрана окружающей среды, установленного порядка осуществления государственной власти, общественного порядка и общественной безопасности, собственности, защита законных экономических интересов физических и юридических лиц, общества и государства от административных правонарушений, а также предупреждение уголовных правонарушений. За соблюдением настоящего Кодекса следят все служащие Министерства внутренних дел."},{"code":"УКРП","num":"1.2","cmd":"/укрп1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Лица, совершившие уголовное преступление, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхождения, имущественного и должностного положения, места жительства, отношения к религии, убеждений, принадлежности к общественным объединениям, а также других обстоятельств. Незнание закона не освобождает лицо от ответственности."},{"code":"УКРП","num":"1.3","cmd":"/укрп1.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо подлежит ответственности только за те уголовные преступления, в отношении которых установлена его вина."},{"code":"УКРП","num":"1.4","cmd":"/укрп1.4","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо, совершившее уголовное преступление, подлежит ответственности на основании закона, действовавшего во время совершения данного деяния."},{"code":"УКРП","num":"1.5","cmd":"/укрп1.5","fine":0,"sanction":"Разъяснение нормы","desc":"Если имеется возможность выбора наказания за определенное нарушение - сотрудник имеет право самостоятельно вынести решение."},{"code":"УКРП","num":"1.6","cmd":"/укрп1.6","fine":0,"sanction":"Разъяснение нормы","desc":"При совокупности преступлений лицо несет уголовную ответственность за каждое совершенное преступление по соответствующей статье или части статьи настоящего Кодекса."},{"code":"УКРП","num":"2.1","cmd":"/укрп2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовным преступлением признается противоправное, виновное действие (бездействие) физического лица, за которое настоящим Кодексом следует ответственность."},{"code":"УКРП","num":"2.2","cmd":"/укрп2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Существующие формы вины:"},{"code":"УКРП","num":"2.2.1","cmd":"/укрп2.2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовное преступление признается совершенным умышленно, если лицо, его совершившее, сознавало противоправный характер своего действия (бездействия), предвидело его вредные последствия и желало наступления таких последствий или сознательно их допускало, либо относилось к ним безразлично."},{"code":"УКРП","num":"2.2.2","cmd":"/укрп2.2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовное преступление признается совершенным по неосторожности, если лицо, его совершившее, предвидело возможность наступления вредных последствий своего действия (бездействия), но без достаточных к тому оснований самонадеянно рассчитывало на предотвращение таких последствий, либо не предвидело возможности наступления таких последствий, хотя должно было и могло их предвидеть."},{"code":"УКРП","num":"2.3","cmd":"/укрп2.3","fine":0,"sanction":"Разъяснение нормы","desc":"Соучастие в совершении уголовного преступления, предусмотренного настоящим Кодексом, прикрывательство, укрывательство преступника, является наказуемым и влечет такую же ответственность, которая бы наступала в случае самостоятельного совершения преступления."},{"code":"УКРП","num":"2.4","cmd":"/укрп2.4","fine":0,"sanction":"Разъяснение нормы","desc":"Срок давности привлечения к уголовной ответственности составляет 14 месяцев."},{"code":"УКРП","num":"2.5","cmd":"/укрп2.5","fine":0,"sanction":"Разъяснение нормы","desc":"Нелегальные предметы, обнаруженные у задержанного, подлежат конфискации."},{"code":"УКРП","num":"3.1","cmd":"/укрп3.1","fine":0,"sanction":"Разъяснение нормы","desc":"Штраф является денежным взысканием, выражается в рублях и устанавливается для граждан в размере, указанном в соответствующей статье."},{"code":"УКРП","num":"3.2","cmd":"/укрп3.2","fine":0,"sanction":"Разъяснение нормы","desc":"Арест – мера уголовного наказания, заключающаяся в содержании нарушителя в условиях изоляции от общества, и устанавливается на срок, предусмотренный статьями уголовного кодекса."},{"code":"ПДД","num":"211","cmd":"/пдд211","fine":0,"sanction":"Разъяснение нормы","desc":"Иметь при себе и по требованию служащих полиции передавать им, для проверки водительское удостоверение на право управления транспортным средством соответствующей категории или подкатегории, паспорт транспортного средства, на котором осуществляется передвижение."},{"code":"КоАП","num":"5.1","cmd":"/коап5.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"вождение без документов, предусмотренных пунктом 2.1.1 ПДД"},{"code":"КоАП","num":"5.2","cmd":"/коап5.2","fine":30000,"sanction":"Штраф 30.000 рублей или лишение права на управление ТС с возможностью моментального переобучения.","desc":"непредоставление по требованию сотрудника полиции документов предусмотренных пунктом 2.1.1 ПДД"},{"code":"КоАП","num":"5.3","cmd":"/коап5.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"управление ТС, не зарегистрированным в установленном порядке либо без гос. номеров, либо с изменёнными или закрытыми регистрационными знаками если прошло более 3 суток с момента покупки"},{"code":"КоАП","num":"5.4","cmd":"/коап5.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"управление ТС с тонировкой, светопропускаемость которой менее 70 процентов на боковых передних и лобовом стеклах включая запрещённые цветные пленки"},{"code":"КоАП","num":"5.5","cmd":"/коап5.5","fine":30000,"sanction":"Предупреждение или штраф от 10.000 до 30.000 рублей.","desc":"управление ТС при технической неисправности или в условиях, когда управление запрещено согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"5.6","cmd":"/коап5.6","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"управление мотоциклом или мопедом, либо перевозка пассажиров без мотошлемов согласно пунктом 2.1.3 ПДД"},{"code":"КоАП","num":"5.7","cmd":"/коап5.7","fine":15000,"sanction":"Предупреждение или штраф от 5.000 до 15.000 рублей.","desc":"нарушение ПДД пешеходами и велосипедистами согласно главе 4 ПДД"},{"code":"КоАП","num":"5.8","cmd":"/коап5.8","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"посадка или высадка пассажиров со стороны проезжей части в нарушение правил дорожного движения"},{"code":"КоАП","num":"5.9","cmd":"/коап5.9","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"игнорирование водителем требования об остановке с помощью жезла"},{"code":"КоАП","num":"5.10","cmd":"/коап5.10","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"несоблюдение требований дорожных знаков или разметки согласно приложению 1 и 2 ПДД"},{"code":"КоАП","num":"6.1","cmd":"/коап6.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"использование приоритета с включёнными маячками и звуковым сигналом без убедительности в безопасности манёвра согласно пунктом 3.1 ПДД"},{"code":"КоАП","num":"6.2","cmd":"/коап6.2","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"нарушение правил использования аварийных сигналов согласно пунктом 7.1 ПДД"},{"code":"КоАП","num":"6.3","cmd":"/коап6.3","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"нарушение правил использования знака аварийной остановки согласно пунктом 7.2 ПДД"},{"code":"КоАП","num":"6.4","cmd":"/коап6.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"управление ТС с выключенными фарами согласно пунктом 8.1 ПДД"},{"code":"КоАП","num":"6.5","cmd":"/коап6.5","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"использование звукового сигнала с нарушением ПДД согласно пунктом 8.3 ПДД"},{"code":"КоАП","num":"7.1","cmd":"/коап7.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"проезд на красный сигнал светофора, запрещающий жест регулировщика, или на жёлтый при возможности остановки без создания опасности согласно пунктом 6.1 ПДД"},{"code":"КоАП","num":"7.2","cmd":"/коап7.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"невыполнение требования остановки перед стоп-линией при запрещающем сигнале светофора или жесте регулировщика согласно пунктом 6.2 ПДД"},{"code":"КоАП","num":"8.1","cmd":"/коап8.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"начало движения, перестроение, поворот или остановка без использования сигнала поворота согласно пунктом 9.1 ПДД"},{"code":"КоАП","num":"8.2","cmd":"/коап8.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"непредоставление при перестроении преимущества транспортному средству попутного направления или справа согласно пунктом 9.4 ПДД"},{"code":"КоАП","num":"8.3","cmd":"/коап8.3","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"поворот направо, налево или разворот из полосы, не предназначенной для данного манёвра согласно пунктом 9.4 ПДД"},{"code":"КоАП","num":"8.4","cmd":"/коап8.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"поворот направо, налево, разворот или движение задним ходом с нарушением ПДД знаков или разметки согласно пунктам 9.4, 9.4.1, 9.6, 9.7 ПДД"},{"code":"КоАП","num":"9.1","cmd":"/коап9.1","fine":50000,"sanction":"Штраф 50.000 рублей с лишением права управления до 2 лет.","desc":"движение по полосе, предназначенной для встречного движения, с нарушением ПДД согласно пунктом 10.1 ПДД"},{"code":"КоАП","num":"9.2","cmd":"/коап9.2","fine":50000,"sanction":"Штраф 50.000 рублей.","desc":"выезд на полосу, предназначенную для встречного движения, с нарушением ПДД согласно пунктом 10.1 ПДД"},{"code":"КоАП","num":"9.3","cmd":"/коап9.3","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"движение вне населённых пунктов по левым полосам при свободных правых согласно пунктом 10.2 ПДД"},{"code":"КоАП","num":"9.4","cmd":"/коап9.4","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"движение по прерывистым линиям разметки с нарушением ПДД согласно пунктом 10.4 ПДД"},{"code":"КоАП","num":"9.5","cmd":"/коап9.5","fine":30000,"sanction":"Штраф 30.000 рублей.","desc":"движение по разделительным полосам, обочинам, тротуарам, пешеходным дорожкам и газону согласно пунктом 10.6 ПДД"},{"code":"КоАП","num":"9.6","cmd":"/коап9.6","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"несоблюдение дистанции до впереди идущего ТС и бокового интервала между движущимися ТС согласно пунктом 10.8 ПДД"},{"code":"КоАП","num":"10.1","cmd":"/коап10.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС с нанесёнными спец. цветографическими схемами с включённым синим проблесковым маячком и спец. звуковым сигналом согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"10.2","cmd":"/коап10.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС с спец. цветографическими схемами, с включёнными проблесковыми маячками синего и/или красного цветов, а также сопровождаемого ТС согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"10.3","cmd":"/коап10.3","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС в случаях, когда манёвр запрещён согласно пунктом 12.2 ПДД"},{"code":"КоАП","num":"10.4","cmd":"/коап10.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"препятствование обгону согласно пунктом 12.3 ПДД"},{"code":"КоАП","num":"11.1","cmd":"/коап11.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС на пешеходном переходе, ближе 5 м перед ним или на тротуаре согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.2","cmd":"/коап11.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС в местах остановки маршрутных ТС или ближе 15 м от них кроме посадки/высадки или вынужденной остановки согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.3","cmd":"/коап11.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС на трамвайных путях газоне или далее первого ряда от края проезжей части согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.4","cmd":"/коап11.4","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушение правил остановки или стоянки ТС на проезжей части или в тоннелях с созданием препятствий для движения других ТС согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.5","cmd":"/коап11.5","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушение правил остановки или стоянки ТС, за исключением случаев частей 1-4 настоящей статьи согласно главе 13 ПДД"},{"code":"КоАП","num":"12.1","cmd":"/коап12.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"нарушения правил проезда перекрёстков, не повлекшие опасности другим участникам движения согласно главе 14 ПДД"},{"code":"КоАП","num":"12.2","cmd":"/коап12.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушения правил проезда перекрёстков, повлекшие опасность другим участникам движения согласно главе 14 ПДД"},{"code":"КоАП","num":"13.1","cmd":"/коап13.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"пересечение железнодорожных путей в местах, не оборудованных для этого согласно пунктом 16.1 ПДД"},{"code":"КоАП","num":"13.2","cmd":"/коап13.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"выезд на железнодорожный переезд в случаях, когда это запрещено согласно пунктом 16.3 ПДД"},{"code":"КоАП","num":"13.3","cmd":"/коап13.3","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"остановка ТС ближе 5 м от шлагбаума, или при его отсутствии ближе 10м до ближайшего рельса согласно пунктом 16.4 ПДД"},{"code":"КоАП","num":"14.1","cmd":"/коап14.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"движение по автомагистрали ТС, скорость которых по характеристикам или состоянию менее 40 км/ч согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.2","cmd":"/коап14.2","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"движение по автомагистрали грузовых автомобилей далее второй полосы согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.3","cmd":"/коап14.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"движение по автомагистрали задним ходом согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.4","cmd":"/коап14.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"создание пешеходом помех для автомобилей при движении в жилых зонах согласно пунктом 18.1 ПДД"},{"code":"КоАП","num":"14.5","cmd":"/коап14.5","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"сквозное движение, учебная езда, стоянка с работающим двигателем а также стоянка грузовых ТС свыше 3,5 тонн вне спец выделенных мест согласно пунктом 18.2 ПДД"},{"code":"КоАП","num":"14.6","cmd":"/коап14.6","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"движение в колонне с нарушением правил дорожного движения согласно главе 19 ПДД"},{"code":"КоАП","num":"15.1","cmd":"/коап15.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"непредоставление преимущества ТС с включенным проблесковым маячком синего и/или красного цвета и спец. звуковым сигналом согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"15.2","cmd":"/коап15.2","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"непредоставление преимущества троллейбусам и автобусам начинающим движение от места остановки согласно пунктом 20.2 ПДД"},{"code":"КоАП","num":"15.3","cmd":"/коап15.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"непредоставление преимущества ТС, движущимся по главной дороге или при выезде с прилегающей территории согласно пунктом 9.3 ПДД"},{"code":"КоАП","num":"15.4","cmd":"/коап15.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"непредоставление преимущества пешеходам и/или велосипедистам при пересечении проезжей части согласно пунктом 15.1 ПДД"},{"code":"КоАП","num":"16.1","cmd":"/коап16.1","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления на 3-4 года и административный арест 20 суток.","desc":"оставление водителем места ДТП, участником которого он являлся, с нарушением ПДД согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"16.2","cmd":"/коап16.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"неоказание первой помощи при ДТП, если она необходима согласно пунктом 2.3 ПДД"},{"code":"КоАП","num":"16.3","cmd":"/коап16.3","fine":35000,"sanction":"Штраф от 10.000 до 35.000 рублей.","desc":"невыполнение водителем обязанностей при ДТП, участником которого он является кроме случаев статьи 16.1 согласно пунктом 2.3 ПДД"},{"code":"КоАП","num":"17.1.1","cmd":"/коап1711","fine":0,"sanction":"Разъяснение нормы","desc":"лицо, управляющее ТС и имеющее признаки опьянения или совершившее правонарушения по ст. 19.1 и 19.4 подлежит отстранению от управления до устранения причины"},{"code":"КоАП","num":"17.1.2","cmd":"/коап1712","fine":0,"sanction":"Разъяснение нормы","desc":"составляется протокол об отстранении от управления и направлении на медицинское освидетельствование копия вручается лицу"},{"code":"КоАП","num":"17.1.3","cmd":"/коап1713","fine":0,"sanction":"Разъяснение нормы","desc":"лицо с признаками опьянения подлежит освидетельствованию при отказе или несогласии направляется на медицинское освидетельствование"},{"code":"КоАП","num":"17.1.4","cmd":"/коап1714","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления до 1 года.","desc":"управление ТС в состоянии опьянения или передача управления лицу в состоянии опьянения согласно п. 2.4 ПДД"},{"code":"КоАП","num":"17.1.5","cmd":"/коап1715","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления до 1 года.","desc":"невыполнение законного требования о прохождении медицинского освидетельствования на состояние опьянения"},{"code":"КоАП","num":"17.2","cmd":"/коап17.2","fine":30000,"sanction":"Штраф до 30.000 рублей с лишением права управления до 2 лет.","desc":"опасное вождение согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"17.3","cmd":"/коап17.3","fine":0,"sanction":"Предупреждение.","desc":"управление ТС при неуплате штрафов до 10.000 рублей"},{"code":"КоАП","num":"17.4","cmd":"/коап17.4","fine":30000,"sanction":"Штраф 30.000 рублей.","desc":"управление ТС при неуплате штрафов от 10.000 до 50.000 рублей"},{"code":"КоАП","num":"17.5","cmd":"/коап17.5","fine":50000,"sanction":"Штраф 50.000 рублей с лишением права управления на 1 год.","desc":"управление ТС при неуплате штрафов от 50.000 до 100.000 рублей"},{"code":"КоАП","num":"17.6","cmd":"/коап17.6","fine":100000,"sanction":"Штраф 100.000 рублей с лишением права управления на 2 года.","desc":"управление ТС при неуплате штрафов свыше 100.000 рублей"},{"code":"КоАП","num":"18.1","cmd":"/коап18.1","fine":0,"sanction":"Предупреждение.","desc":"превышение скорости на 10-20 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.2","cmd":"/коап18.2","fine":2000,"sanction":"Штраф 2.000 рублей.","desc":"превышение скорости на 20-40 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.3","cmd":"/коап18.3","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"превышение скорости на 40-60 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.4","cmd":"/коап18.4","fine":7000,"sanction":"Штраф 7.000 рублей.","desc":"превышение скорости на 60-80 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.5","cmd":"/коап18.5","fine":10000,"sanction":"Штраф 10.000 рублей с лишением права управления на 1 год.","desc":"превышение скорости на 80+ км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"19.1","cmd":"/коап19.1","fine":10000,"sanction":"Штраф до 10.000 рублей или административный арест 10 суток.","desc":"мелкое хулиганство, нарушение общественного порядка с нецензурной лексикой оскорбительным поведением или повреждением чужого имущества а так же нахождение в нижнем белье вне водоёмов, бассейнов, спортзалов"},{"code":"КоАП","num":"19.2","cmd":"/коап19.2","fine":10000,"sanction":"Штраф до 10.000 рублей или административный арест 10 суток.","desc":"оскорбление, унижение чести и достоинства другого лица неприличной или аморальной формой"},{"code":"КоАП","num":"19.3","cmd":"/коап19.3","fine":20000,"sanction":"Штраф до 20.000 рублей или административный арест 10 суток.","desc":"нанесение побоев или иных насильственных действий, причиняющих физическую боль, не содержащих уголовно наказуемое деяние"},{"code":"КоАП","num":"19.4","cmd":"/коап19.4","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"распитие алкоголя в общественных местах или появление в состоянии опьянения оскорбляющем человеческое достоинство и общественную нравственность"},{"code":"КоАП","num":"19.5","cmd":"/коап19.5","fine":0,"sanction":"Предупреждение или административный арест 10 суток.","desc":"занятие попрошайничеством в общественных местах"},{"code":"КоАП","num":"19.6","cmd":"/коап19.6","fine":100000,"sanction":"Штраф 100.000 рублей.","desc":"предпринимательская деятельность без регистрации или лицензии, если она обязательна"},{"code":"КоАП","num":"19.7","cmd":"/коап19.7","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"заведомо ложный вызов пожарной охраны, полиции, скорой или иных служб"},{"code":"КоАП","num":"19.8","cmd":"/коап19.8","fine":20000,"sanction":"Штраф до 20.000 рублей или административный арест 10 суток.","desc":"организация, участие или призыв к несогласованному митингу с нарушением порядка и созданием помех движению"},{"code":"КоАП","num":"19.9","cmd":"/коап19.9","fine":20000,"sanction":"Штраф 20.000 рублей, или лишение права управления на 1 год, или административный арест до 20 суток.","desc":"неповиновение законному распоряжению сотрудника полиции или военнослужащего"},{"code":"КоАП","num":"19.10","cmd":"/коап19.10","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"клевета, распространение заведомо ложных сведений порочащих честь и достоинство или репутацию другого лица"},{"code":"УКРП","num":"4.1","cmd":"/укрп4.1","fine":0,"sanction":"Арест сроком на 1 год.","desc":"умышленное причинение вреда здоровью человека без летального исхода"},{"code":"УКРП","num":"4.2","cmd":"/укрп4.2","fine":0,"sanction":"Арест сроком на 2 года.","desc":"умышленное нанесение особо тяжких телесных повреждений по итогу которых человек был доведен до предсмертного положения"},{"code":"УКРП","num":"4.2.1","cmd":"/укрп421","fine":0,"sanction":"Арест сроком от 4 до 6 лет.","desc":"умышленное нанесение особо тяжких телесных повреждений двум или более лицам"},{"code":"УКРП","num":"4.2.2","cmd":"/укрп422","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"нанесение особо тяжких телесных повреждений по неосторожности или в состоянии аффекта вызванного насилием, издевательством или тяжким оскорблением со стороны потерпевшего либо иными противоправными или аморальными действиями потерпевшего"},{"code":"УКРП","num":"4.3","cmd":"/укрп4.3","fine":0,"sanction":"Арест сроком на 1 год.","desc":"угроза нанесения особо тяжких телесных повреждений или причинения вреда здоровью человека"},{"code":"УКРП","num":"4.4","cmd":"/укрп4.4","fine":0,"sanction":"Арест сроком от 4 до 6 лет.","desc":"похищение гражданина или незаконное лишение человека свободы, не связанное с похищением"},{"code":"УКРП","num":"4.5","cmd":"/укрп4.5","fine":0,"sanction":"Арест сроком от 3 до 6 лет.","desc":"действия, направленные против половой неприкосновенности и половой свободы личности"},{"code":"УКРП","num":"4.6","cmd":"/укрп4.6","fine":0,"sanction":"Арест сроком на 1 год.","desc":"незаконный сбор или распространение сведений о частной жизни лица без его согласия"},{"code":"УКРП","num":"5.1","cmd":"/укрп5.1","fine":50000,"sanction":"или 50.000 рублей, а также арест сроком на 3 года.","desc":"получение должностным лицом взятки за осуществление очевидно незаконных действий Штраф в полуторакратном размере от полученной взятки"},{"code":"УКРП","num":"5.2","cmd":"/укрп5.2","fine":0,"sanction":"Арест сроком на 3 года.","desc":"дача взятки должностному лицу лично или через посредника"},{"code":"УКРП","num":"5.3","cmd":"/укрп5.3","fine":0,"sanction":"Арест сроком от 3 до 6 лет.","desc":"посягательство на жизнь и здоровье сотрудника полиции военнослужащего или работника инкассации"},{"code":"УКРП","num":"5.4","cmd":"/укрп5.4","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"применение насилия или угроза применения насилия в отношении представителя власти"},{"code":"УКРП","num":"5.5","cmd":"/укрп5.5","fine":0,"sanction":"Арест сроком на 1 год.","desc":"хамство или дерзость по отношению к сотруднику правоохранительных органов"},{"code":"УКРП","num":"5.6","cmd":"/укрп5.6","fine":0,"sanction":"Арест сроком на 2 года.","desc":"публичное оскорбление или неоднократное неуважение к представителям власти"},{"code":"УКРП","num":"5.7","cmd":"/укрп5.7","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"провокационные действия в отношении сотрудников государственных структур"},{"code":"УКРП","num":"5.7.1","cmd":"/укрп571","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"длительное преследование экипажа сотрудников правоохранительных органов или создание помех их работе"},{"code":"УКРП","num":"5.8","cmd":"/укрп5.8","fine":0,"sanction":"Арест сроком на 2 года.","desc":"неоднократное неповиновение законным требованиям служащего полиции"},{"code":"УКРП","num":"5.8.1","cmd":"/укрп581","fine":0,"sanction":"Арест сроком на 3 года.","desc":"уход от правоохранительных органов с нанесением ущерба имуществу"},{"code":"УКРП","num":"5.8.2","cmd":"/укрп582","fine":0,"sanction":"Арест сроком на 4 года.","desc":"уход от правоохранительных органов с причинением телесных повреждений средней тяжести и выше"},{"code":"УКРП","num":"5.9","cmd":"/укрп5.9","fine":0,"sanction":"Арест сроком на 2 года.","desc":"умышленное уничтожение или повреждение имущества государственных организаций"},{"code":"УКРП","num":"5.10","cmd":"/укрп5.10","fine":0,"sanction":"Арест сроком на 2 года.","desc":"заведомо ложный донос или ложные показания по уголовному, административному делу"},{"code":"УКРП","num":"5.11","cmd":"/укрп5.11","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"разглашение секретных данных или сведений о предстоящих операциях"},{"code":"УКРП","num":"5.12","cmd":"/укрп5.12","fine":0,"sanction":"Арест сроком на 1 год.","desc":"представление себя служащим государственной организации если это не соответствует действительности"},{"code":"УКРП","num":"5.13","cmd":"/укрп5.13","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"халатность, повлекшая крупный ущерб или нарушение прав граждан"},{"code":"УКРП","num":"6.1","cmd":"/укрп6.1","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"терроризм, совершение взрыва, поджога или иных действий создающих опасность гибели людей или тяжкие последствия"},{"code":"УКРП","num":"6.2","cmd":"/укрп6.2","fine":0,"sanction":"Арест на 3 года.","desc":"ложное сообщение о готовящихся взрыве, поджоге или иных опасных действиях"},{"code":"УКРП","num":"6.3","cmd":"/укрп6.3","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"захват или удержание лица в качестве заложника"},{"code":"УКРП","num":"6.4","cmd":"/укрп6.4","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"организация массовых беспорядков, сопровождающихся насилием и разрушениями"},{"code":"УКРП","num":"6.5","cmd":"/укрп6.5","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"создание банды, руководство ею или участие в её деятельности"},{"code":"УКРП","num":"6.6","cmd":"/укрп6.6","fine":0,"sanction":"Арест на 1 год.","desc":"вандализм, порча имущества или осквернение сооружений"},{"code":"УКРП","num":"6.7","cmd":"/укрп6.7","fine":0,"sanction":"Арест сроком на 2 года.","desc":"незаконное проникновение в жилище или частную территорию"},{"code":"УКРП","num":"6.8","cmd":"/укрп6.8","fine":0,"sanction":"Арест на 2 года.","desc":"проникновение на охраняемый объект"},{"code":"УКРП","num":"6.9","cmd":"/укрп6.9","fine":0,"sanction":"Арест на 3 года.","desc":"незаконное обращение с огнестрельным оружием или боеприпасами"},{"code":"УКРП","num":"6.10","cmd":"/укрп6.10","fine":0,"sanction":"Арест на 3 года.","desc":"незаконный оборот наркотических средств или психотропных веществ"},{"code":"УКРП","num":"6.11","cmd":"/укрп6.11","fine":0,"sanction":"Арест на 1 год.","desc":"неоказание первой или медицинской помощи без уважительных причин"},{"code":"УКРП","num":"6.12","cmd":"/укрп6.12","fine":0,"sanction":"Арест сроком на 3 года.","desc":"попытка срыва мероприятий или помеха их проведению"},{"code":"УКРП","num":"6.13","cmd":"/укрп6.13","fine":0,"sanction":"Арест на 3 года.","desc":"подделка или использование поддельных лицензий или удостоверений"},{"code":"УКРП","num":"6.14","cmd":"/укрп6.14","fine":0,"sanction":"Арест до 3 лет.","desc":"превышение должностных полномочий, повлекшее существенные нарушения"},{"code":"УКРП","num":"7.1","cmd":"/укрп7.1","fine":50000,"sanction":"Штраф 50.000 рублей и возмещение ущерба или арест на 3 года.","desc":"мошенничество, хищение имущества путем обмана или злоупотребления доверием"},{"code":"УКРП","num":"7.2","cmd":"/укрп7.2","fine":0,"sanction":"Арест на 2 года.","desc":"грабеж или кража чужого имущества"},{"code":"УКРП","num":"7.3","cmd":"/укрп7.3","fine":0,"sanction":"Арест на 3 года.","desc":"вымогательство, требование передачи имущества под угрозами"},{"code":"УКРП","num":"7.4","cmd":"/укрп7.4","fine":50000,"sanction":"Штраф 50.000 рублей и возмещение ущерба или арест на 2 года.","desc":"умышленное уничтожение или повреждение имущества, повлекшее значительный ущерб"},{"code":"УКРП","num":"7.5","cmd":"/укрп7.5","fine":0,"sanction":"Арест на 2 года.","desc":"организация или проведение азартных игр в общественных местах"},{"code":"ПДД","num":"2.2.1","cmd":"/пдд221","fine":0,"sanction":"Разъяснение нормы","desc":"Перед выездом и в пути обеспечивать исправное техническое состояние ТС. Запрещено движение при неисправности тормозной системы, рулевого управления, сцепного устройства фар и задних габаритных огней в тёмное время суток а также стеклоочистителя во время дождя или снегопада. При прочих неисправностях нужно устранить их либо следовать к месту ремонта с соблюдением мер предосторожности."},{"code":"ПДД","num":"2.3.5","cmd":"/пдд235","fine":0,"sanction":"Разъяснение нормы","desc":"Если установлена вина одного из участников ДТП, виновник обязан выплатить пострадавшему компенсацию в размере, не превышающем полной стоимости ремонта ТС."},{"code":"ПДД","num":"2.4","cmd":"/пдд2.4","fine":0,"sanction":"Разъяснение нормы","desc":"Водителю запрещается Управлять ТС в состоянии опьянения, под воздействием препаратов, ухудшающих реакцию а также в болезненном или утомлённом состоянии. Передавать управление ТС лицу, находящемуся в состоянии опьянения. Управлять ТС при наличии неисправностей, при которых эксплуатация запрещена. Пересекать организованные колонны и занимать место в них. Допускать опасное вождение: опасные перестроения, несоблюдение дистанции или бокового интервала, управляемые заносы, резкое торможение без необходимости, препятствование обгону и другие действия создающие угрозу ДТП, жизни, здоровью или имуществу."},{"code":"ФЗоП","num":"2.4.4.1","cmd":"/фзопобр","fine":0,"sanction":"Обязанность при обращении","desc":"При обращении к гражданину сотрудник обязан: назвать должность, звание, фамилию, предъявить по обоснованному требованию удостоверение, сообщить причину и цель обращения."},{"code":"ФЗоП","num":"2.4.4.2","cmd":"/фзопправа","fine":0,"sanction":"Разъяснение причины и прав","desc":"При ограничении прав и свобод разъяснить причину и основания таких мер после задержания, а также права и обязанности гражданина."},{"code":"ФЗоП","num":"2.4.6","cmd":"/фзопмат","fine":0,"sanction":"Ознакомление с материалами","desc":"Полиция обязана обеспечить гражданину возможность ознакомления с документами и материалами, непосредственно затрагивающими его права и свободы."},{"code":"ФЗоП","num":"3.8.1.11","cmd":"/фзопнадзор","fine":0,"sanction":"Надзор за БДД","desc":"Обязанность полиции осуществлять государственный контроль (надзор) в области обеспечения безопасности дорожного движения и пресекать АПН."},{"code":"ФЗоП","num":"3.8.1.13","cmd":"/фзопконф","fine":0,"sanction":"Конфискация нелегала","desc":"Обязанность конфисковывать нелегальные предметы, обнаруженные у задержанного (согласно ст. 2.5 УК РП), и изымать поддельные документы (п. 3.8.1.12)."},{"code":"ФЗоП","num":"3.9.1.1","cmd":"/фзоптреб","fine":0,"sanction":"Прекращение нарушений","desc":"Право требовать от граждан и должностных лиц прекращения противоправных действий."},{"code":"ФЗоП","num":"3.9.1.2","cmd":"/фзоп912","fine":0,"sanction":"Проверка документов и штрафов","desc":"Право проверять документы (паспорт, ВУ, ПТС) при подозрении в преступлении/розыске/АПН, при признаках нарушения п. 2.4 ПДД, а также проверять наличие неоплаченных штрафов."},{"code":"ФЗоП","num":"3.9.1.4","cmd":"/фзопотойти","fine":0,"sanction":"Покинуть место проц. действий","desc":"Право требовать от граждан покинуть место процессуальных действий (оформление, допрос, опрос). Сотрудник имеет право НЕ разглашать, какие именно процессуальные действия он проводит."},{"code":"ФЗоП","num":"3.9.1.7","cmd":"/фзопдост","fine":0,"sanction":"Доставление в отдел МВД","desc":"Право доставлять граждан в служебное помещение полиции для решения вопроса о задержании или установления личности, если есть основания полагать, что он в розыске."},{"code":"ФЗоП","num":"3.9.1.8","cmd":"/фзопдосмотр","fine":0,"sanction":"Личный досмотр и досмотр ТС","desc":"Право осуществлять личный досмотр граждан, досмотр их вещей и ТС при наличии данных о запрещенных предметах/веществах, а также при задержании (п. 4.10.5)."},{"code":"ФЗоП","num":"3.9.1.9","cmd":"/фзопост","fine":0,"sanction":"Остановка ТС и проверка ВУ/ПТС","desc":"Право останавливать ТС для обеспечения безопасности дорожного движения, проверять ВУ и ПТС, задерживать ТС в розыске и временно ограничивать движение."},{"code":"ФЗоП","num":"3.9.1.11","cmd":"/фзопотстр","fine":0,"sanction":"Отстранение от управления ТС","desc":"Право задерживать ТС и отстранять водителей от управления ТС в случаях, предусмотренных законодательством (опьянение, отсутствие прав и др.)."},{"code":"ФЗоП","num":"3.9.1.12","cmd":"/фзопкамера","fine":0,"sanction":"Видеофиксация и спецприборы","desc":"Право использовать информационные базы, видео- и аудиотехнику, фотоаппаратуру, а также технические и специальные средства (регистратор, тауметр, алкотестер)."},{"code":"ФЗоП","num":"3.9.1.14","cmd":"/фзопдоступтс","fine":0,"sanction":"Доступ к ТС для проверки","desc":"Право требовать от водителя предоставить доступ к ТС для проведения проверок (например, замер тонировки), если есть основания полагать, что ТС неисправно или совершается АПН."},{"code":"ФЗоП","num":"3.9.1.17","cmd":"/фзопмаяк","fine":0,"sanction":"Маячки и СГУ (п. 17–18)","desc":"Маячки + СГУ: погоня, срочный вызов, колонна (ведущий/замыкающий), раненый, спецмероприятие. Маячки без СГУ: патруль/пост, стоянка в нарушение ПДД, ДТП/оцепление."},{"code":"ФЗоП","num":"3.9.2","cmd":"/фзопост9","fine":0,"sanction":"9 оснований остановки ТС","desc":"1) Признаки нарушения БДД; 2) Причастность к ДТП/АПН/преступлению; 3) ТС в розыске; 4) Опрос очевидцев; 5) Ограничение ДД; 6–7) Пропуск спецтранспорта; 8) Помощь; 9) Проверка документов."},{"code":"ФЗоП","num":"4.10.2","cmd":"/фзопзадерж","fine":0,"sanction":"10 оснований задержания","desc":"Подозреваемые в преступлении; побег; в розыске; дело об АПН; проникновение на охраняемый объект; до выяснения обстоятельств; невыполнение законных требований сотрудника (ст. 9)."},{"code":"ФЗоП","num":"4.10.7","cmd":"/фзопзвонок","fine":0,"sanction":"Право на 1 телефонный звонок","desc":"Задержанный перед допросом имеет право на 1 телефонный разговор в присутствии сотрудника (не предоставляется, если может сообщить информацию преступнику — п. 4.10.8)."},{"code":"ФЗоП","num":"4.11.2","cmd":"/фзопоцеп","fine":0,"sanction":"Оцепление и блокирование","desc":"Право проводить оцепление/блокирование при авариях, массовых беспорядках, розыске беглецов, преследовании преступников и КТО с ограничением движения ТС и пешеходов."},{"code":"ФЗоП","num":"5.13.2","cmd":"/фзопбезпред","fine":0,"sanction":"Сила/оружие БЕЗ предупреждения","desc":"Без предупреждения: 1) Провокация; 2) Проникновение на охраняемый объект после предупреждения; 3) Непосредственная угроза жизни/здоровью; 4) Застигнут в момент преступления/арестного АПН."},{"code":"ФЗоП","num":"5.14.1","cmd":"/фзопсила","fine":0,"sanction":"Применение физической силы","desc":"Право применять физ. силу и боевые приемы борьбы для пресечения преступлений/АПН, доставления и задержания лиц, а также преодоления противодействия законным требованиям."},{"code":"ФЗоП","num":"5.15.1","cmd":"/фзопспец","fine":0,"sanction":"Применение спецсредств","desc":"Наручники (п. 3,4,6): сопротивление, застигнут при преступлении/попытка скрыться, конвоирование/побег. Дубинка и тайзер (п. 1–5,7,8): нападение, пресечение АПН/преступления, сопротивление."},{"code":"ФЗоП","num":"5.17.1","cmd":"/фзопоружие","fine":0,"sanction":"Применение огнестрельного оружия","desc":"Защита жизни/здоровья, пресечение захвата оружия/патрульки, вооруженное сопротивление, встраивание в колонну, остановка ТС путем повреждения при отказе остановиться и угрозе гражданам (п. 5.17.3.1)."},{"code":"ФЗоП","num":"5.17.8","cmd":"/фзопзапретор","fine":0,"sanction":"Запреты по оружию (п. 5–9)","desc":"Запрещено: 1) Стрелять с водительского места при наличии вооруженного напарника (п. 8); 2) Останавливать ТС тяжелым/автоматическим/гладкоствольным оружием (п. 9); 3) При скоплении людей (п. 6)."},{"code":"ФЗоП","num":"6.19.7","cmd":"/фзопстрой","fine":0,"sanction":"Правила в строю и Онлайн-протокол","desc":"В строю запрещено: разговаривать, доставать телефон/оружие, вставать/покидать без разрешения, спать (AFK) > 60 сек. Ст. 20: каждую субботу до 23:59 МСК сдавать онлайн-протокол."}];
 
 var urlParams = new URLSearchParams(window.location.search);
 var currentPin = urlParams.get('pin') || '51';
 var currentLawFilter = 'ALL';
+var currentTargetId = '';
+var selectedArticlesMap = {};
+var soundEnabled = true;
 
 var TABLET_DATA = {
     profile: null,
@@ -745,7 +1066,58 @@ var TABLET_DATA = {
 
 var tabletWs = null;
 
+// Sound Synthesizer via Web Audio API
+var audioCtx = null;
+function playSoundEffect(type) {
+    if (!soundEnabled) return;
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        var now = audioCtx.currentTime;
+
+        if (type === 'beep') {
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.06);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        } else if (type === 'roger') {
+            osc.frequency.setValueAtTime(1400, now);
+            osc.frequency.setValueAtTime(950, now + 0.05);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
+        }
+    } catch(e) {}
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    var btn = document.getElementById('sound-btn');
+    if (btn) btn.innerText = soundEnabled ? '🔊' : '🔇';
+    showToast(soundEnabled ? '🔊 Звук включен' : '🔇 Звук выключен');
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(function(){});
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(function(){});
+        }
+    }
+}
+
 function switchMobileTab(num) {
+    playSoundEffect('beep');
     if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
     for (var i = 1; i <= 4; i++) {
         var pane = document.getElementById('pane-' + i);
@@ -771,15 +1143,18 @@ function setConnStatus(online, text) {
     if (online) {
         conn.innerHTML = '<span class="status-dot"></span><span>' + (text || 'БОРТ ON') + '</span>';
         conn.style.color = '#7EE787';
-        conn.style.borderColor = 'rgba(46, 160, 67, 0.4)';
+        conn.style.borderColor = 'rgba(46, 160, 67, 0.45)';
+        conn.style.background = 'rgba(46, 160, 67, 0.15)';
     } else if (text && text.indexOf('ОЖИДАНИЕ') !== -1) {
         conn.innerHTML = '<span class="status-dot" style="background:#D29922; box-shadow:0 0 8px #D29922;"></span><span>' + text + '</span>';
         conn.style.color = '#FFD33D';
-        conn.style.borderColor = 'rgba(210, 153, 34, 0.4)';
+        conn.style.borderColor = 'rgba(210, 153, 34, 0.45)';
+        conn.style.background = 'rgba(210, 153, 34, 0.15)';
     } else {
         conn.innerHTML = '<span class="status-dot" style="background:#F85149; box-shadow:0 0 8px #F85149;"></span><span>' + (text || 'ПЕРЕПОДКЛЮЧЕНИЕ...') + '</span>';
         conn.style.color = '#FF7B72';
-        conn.style.borderColor = 'rgba(248, 81, 73, 0.4)';
+        conn.style.borderColor = 'rgba(248, 81, 73, 0.45)';
+        conn.style.background = 'rgba(248, 81, 73, 0.15)';
     }
 }
 
@@ -788,7 +1163,7 @@ function updateTabletHud(data) {
     if (data.agentOnline === true) {
         setConnStatus(true, 'БОРТ ON');
     } else if (data.agentOnline === false) {
-        setConnStatus(false, 'ОЖИДАНИЕ БОРТА (' + currentPin + ')');
+        setConnStatus(false, 'ОЖИДАНИЕ (' + currentPin + ')');
     }
 
     if (data.profile) {
@@ -804,15 +1179,37 @@ function updateTabletHud(data) {
         document.getElementById('kpi-fines').innerText = (l.finesCnt || 0) + ' шт.';
         document.getElementById('kpi-arrests').innerText = (l.arrestsCnt || 0) + ' чел.';
         document.getElementById('kpi-pts').innerText = (l.forumPts || 0) + '/20';
+
+        if (l.targetId && !document.getElementById('target-id-val').matches(':focus')) {
+            currentTargetId = l.targetId;
+            document.getElementById('target-id-val').value = l.targetId;
+        }
+    }
+}
+
+function stepTargetId(delta) {
+    playSoundEffect('beep');
+    var el = document.getElementById('target-id-val');
+    var val = parseInt(el.value, 10) || 0;
+    val = Math.max(0, val + delta);
+    el.value = val;
+    syncTargetId(val);
+}
+
+function syncTargetId(val) {
+    currentTargetId = String(val).trim();
+    if (currentTargetId) {
+        triggerAction('set_target_id|' + currentTargetId);
     }
 }
 
 function triggerAction(actionName) {
-    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(30);
+    playSoundEffect('roger');
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(25);
 
     if (tabletWs && tabletWs.readyState === 1) {
         tabletWs.send(JSON.stringify({ type: 'action', cmd: actionName, pin: currentPin }));
-        showToast('⚡ Сигнал отправлен на борт');
+        showToast('⚡ Сигнал отправлен: ' + actionName);
         return;
     }
 
@@ -828,7 +1225,7 @@ function triggerAction(actionName) {
     .catch(function(err) {
         fetch('/api/action?cmd=' + encodeURIComponent(actionName))
             .then(function(r) { return r.json(); })
-            .then(function() { showToast('⚡ Сигнал отправлен: ' + actionName); })
+            .then(function() { showToast('⚡ Сигнал отправлен'); })
             .catch(function() { showToast('❌ Ошибка связи с бортом!'); });
     });
 }
@@ -886,6 +1283,7 @@ function fetchState() {
 }
 
 function setLawFilter(code) {
+    playSoundEffect('beep');
     if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
     currentLawFilter = code;
     var pills = document.querySelectorAll('.filter-pill');
@@ -899,7 +1297,59 @@ function setLawFilter(code) {
     filterLaws();
 }
 
+function toggleSelectArticle(artCmd, fineVal) {
+    playSoundEffect('beep');
+    if (selectedArticlesMap[artCmd]) {
+        delete selectedArticlesMap[artCmd];
+    } else {
+        selectedArticlesMap[artCmd] = fineVal || 0;
+    }
+    updateComboFineBar();
+    renderLaws(lastFilteredList);
+}
+
+function clearSelectedArticles() {
+    selectedArticlesMap = {};
+    updateComboFineBar();
+    renderLaws(lastFilteredList);
+}
+
+function updateComboFineBar() {
+    var bar = document.getElementById('combo-fine-bar');
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    var totalSum = 0;
+    for (var i = 0; i < keys.length; i++) {
+        totalSum += (selectedArticlesMap[keys[i]] || 0);
+    }
+    document.getElementById('combo-title-txt').innerText = '🧾 ВЫБРАНО СТАТЕЙ: ' + keys.length;
+    document.getElementById('combo-sum-txt').innerText = totalSum.toLocaleString('ru-RU') + ' ₽';
+    bar.style.display = 'block';
+}
+
+function speakComboArticles() {
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) return;
+    triggerAction('speak_arts|' + keys.join(','));
+}
+
+function issueComboTicket() {
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) return;
+    var totalSum = 0;
+    for (var i = 0; i < keys.length; i++) {
+        totalSum += (selectedArticlesMap[keys[i]] || 0);
+    }
+    triggerAction('fine_calc|' + totalSum + '|' + keys.join(', '));
+}
+
+var lastFilteredList = TABLET_DATA.articles;
+
 function renderLaws(list) {
+    lastFilteredList = list || [];
     var c = document.getElementById('laws-list');
     if (!c) return;
     if (!list || list.length === 0) {
@@ -917,8 +1367,9 @@ function renderLaws(list) {
 
         var fineText = a.sanction || (a.fine ? a.fine + ' ₽' : '');
         var cmdDisplay = a.cmd || '';
+        var isSelected = !!selectedArticlesMap[a.cmd || a.num];
 
-        html.push('<div class="law-card">');
+        html.push('<div class="law-card ' + (isSelected ? 'selected' : '') + '">');
         html.push('  <div class="law-card-top">');
         html.push('    <span class="' + badgeClass + '">' + a.code + ' • ст. ' + a.num + '</span>');
         if (fineText) {
@@ -926,9 +1377,10 @@ function renderLaws(list) {
         }
         html.push('  </div>');
         html.push('  <div class="law-desc">' + a.desc + '</div>');
-        html.push('  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">');
+        html.push('  <div class="law-actions-row">');
+        html.push('    <button class="law-select-btn ' + (isSelected ? 'active' : '') + '" onclick="toggleSelectArticle(\'' + (a.cmd || a.num) + '\', ' + (a.fine || 0) + ')">' + (isSelected ? '✓ В расчёте' : '+ В расчёт') + '</button>');
         html.push('    <span style="font-size:11px; color:#58A6FF; font-family:Consolas,monospace;">' + cmdDisplay + '</span>');
-        html.push('    <button class="law-speak-btn" onclick="triggerAction(\'speak_art|' + (a.cmd || a.num) + '\')">📢 Зачитать в игре</button>');
+        html.push('    <button class="law-speak-btn" onclick="triggerAction(\'speak_art|' + (a.cmd || a.num) + '\')">📢 Зачитать</button>');
         html.push('  </div>');
         html.push('</div>');
     }

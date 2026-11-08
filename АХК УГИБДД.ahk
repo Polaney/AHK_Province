@@ -11536,7 +11536,28 @@ MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
 }
 
 ExecuteMobilePatrolCommand(cmd, arg := "") {
-    global Fio1, Rank, Teg, Prop2, Vers, AbortBindFlag, ArticlesDB
+    global Fio1, Rank, Teg, Prop2, Vers, AbortBindFlag, ArticlesDB, TargetId, IdMan
+
+    if (InStr(cmd, "set_target_id|") = 1) {
+        newT := SubStr(cmd, 15)
+        TargetId := newT
+        IdMan := newT
+        SoundBeep, 850, 80
+        TrayTip, 🎯 Цель обновлена, Установлен ID: %newT%, 2, 1
+        return
+    }
+
+    if (cmd = "target_info") {
+        tid := (TargetId != "") ? TargetId : IdMan
+        if (tid != "") {
+            SetLocaleRu()
+            SetCapsOff()
+            SendPlay {F8}^A{Delete}/id %tid%{Enter}{F8}
+        } else {
+            TrayTip, ⚠️ Планшет, Сначала укажите ID цели в поле сверху!, 2, 2
+        }
+        return
+    }
 
     if (InStr(cmd, "speak_art|") = 1) {
         artCmd := SubStr(cmd, 11)
@@ -11554,6 +11575,49 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
                 break
             }
         }
+        return
+    }
+
+    if (InStr(cmd, "speak_arts|") = 1) {
+        artsList := StrSplit(SubStr(cmd, 12), ",")
+        SetLocaleRu()
+        SetCapsOff()
+        for cIdx, cName in artsList {
+            for aIdx, art in ArticlesDB {
+                if (art.Cmd = cName || art.Num = cName || art.Cmd = "/" . cName) {
+                    parts := StrSplit(art.RawLines, "||")
+                    for pIdx, lineText in parts {
+                        Send, {F6}
+                        SmartSleep(350)
+                        Send, %lineText%{Enter}
+                        SmartSleep(1800)
+                    }
+                    break
+                }
+            }
+        }
+        return
+    }
+
+    if (InStr(cmd, "fine_calc|") = 1) {
+        payload := SubStr(cmd, 11)
+        pipeIdx := InStr(payload, "|")
+        if (pipeIdx > 0) {
+            sumVal := SubStr(payload, 1, pipeIdx - 1)
+            artsVal := SubStr(payload, pipeIdx + 1)
+        } else {
+            sumVal := payload
+            artsVal := ""
+        }
+        tid := (TargetId != "") ? TargetId : IdMan
+        if (tid = "") {
+            TrayTip, ⚠️ Калькулятор штрафов, Сначала укажите ID нарушителя в поле Цель ID!, 3, 2
+            return
+        }
+        SetLocaleRu()
+        SetCapsOff()
+        SendPlay {F8}^A{Delete}/ticket %tid% %sumVal% %artsVal%{Enter}{F8}
+        SoundBeep, 750, 150
         return
     }
 
