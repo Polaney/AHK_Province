@@ -4706,8 +4706,8 @@ SmartSleep(250)
 Send,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
 SmartSleep(250)
 Send,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
-SmartSleep(250)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+SmartSleep(200)
+PlayRadioSfx("radio_start.wav")
 SmartSleep(50)
 Send,{F6}
 SmartSleep(100)
@@ -4866,9 +4866,9 @@ SmartSleep(250)
 Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
 SmartSleep(350)
 Send, {F8} me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
-SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
-SmartSleep(200)
+SmartSleep(150)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(150)
 Send, {F8} fracvoice 1{Enter}{F8}
 Return
 Bind_VoiceOff:
@@ -4876,9 +4876,9 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8} me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
-SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
-SmartSleep(200)
+SmartSleep(150)
+PlayRadioSfx("radio_stop.wav")
+SmartSleep(150)
 Send, {F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
 SmartSleep(350)
 Send, {F8} fracvoice 2{Enter}{F8}
@@ -5102,7 +5102,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
@@ -5133,7 +5133,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
@@ -5164,7 +5164,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
 SmartSleep(200)
@@ -5182,7 +5182,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /ro [%Gibdd%][МВД] Выехал в областное патрулирование. {Enter}{F6}
 SmartSleep(200)
@@ -5211,7 +5211,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /ro [%Gibdd%][МВД] Контролирую город %Gorod%. {Enter}{F6}
 SmartSleep(200)
@@ -5228,7 +5228,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /ro [%Gibdd%][МВД] Закончил областное патрулирование. {Enter}{F6}
 SmartSleep(200)
@@ -5255,7 +5255,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /ro [%Gibdd% %MB%][МВД] Начали рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
@@ -5281,7 +5281,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /ro [%Gibdd% %MB%][МВД] Продолжаем рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
@@ -5307,7 +5307,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /ro [%Gibdd% %MB%][МВД] Закончили рейд по отлову граждан с неоплаченными штрафами.{Enter}{F6}
 SmartSleep(200)
@@ -5328,7 +5328,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][%GorodVizova%] Кто примет нарушителя{?}{Enter}{F6}
 SmartSleep(500)
@@ -5344,7 +5344,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-П] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5360,7 +5360,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-М] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5376,7 +5376,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-Н] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5392,7 +5392,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-П] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5408,7 +5408,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-М] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5424,7 +5424,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-Н] Принял%ok1%{!}{Enter}{F6}
 SmartSleep(500)
@@ -5442,7 +5442,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /d [%Gibdd% ВП] Начал%ok1% воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
@@ -5460,7 +5460,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send,  /d [%Gibdd% ВП] Продолжаю воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
@@ -5478,7 +5478,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /d [%Gibdd% ВП] Закончил%ok1% воздушное патрулирование.{Enter}{F6}
 SmartSleep(200)
@@ -5513,7 +5513,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-4 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
@@ -5545,7 +5545,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-4-4 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
@@ -5576,7 +5576,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-4-1 %Posst%-%Post%{Enter}{F6}
 SmartSleep(200)
@@ -5599,7 +5599,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-11 %Mesto%{Enter}{F6}
 SmartSleep(200)
@@ -5616,7 +5616,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-11-1 {Enter}{F6}
 SmartSleep(200)
@@ -5639,7 +5639,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-10 %Mesto%{Enter}{F6}
 SmartSleep(200)
@@ -5656,7 +5656,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-10-1 {Enter}{F6}
 SmartSleep(200)
@@ -5681,7 +5681,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(200)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-24{Enter}{F6}
 SmartSleep(200)
@@ -5699,7 +5699,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(200)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-25{Enter}{F6}
 SmartSleep(200)
@@ -5717,7 +5717,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(200)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-26{Enter}{F6}
 SmartSleep(200)
@@ -5735,7 +5735,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(200)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(200)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-26ЛВ{Enter}{F6}
 SmartSleep(200)
@@ -5907,7 +5907,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 SmartSleep(500)
@@ -5923,7 +5923,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 SmartSleep(500)
@@ -5940,7 +5940,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /r %Teg%-%Prop2% 10-13{Enter}{F6} 
 SmartSleep(500)
@@ -7746,7 +7746,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][МВД]{Space}
 Return
@@ -7761,7 +7761,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД]{Space}
 Return
@@ -7776,7 +7776,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][ОАО «РЖД»]{Space}
 Return
@@ -7791,7 +7791,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][МЗ]{Space}
 Return
@@ -7806,7 +7806,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][МО]{Space}
 Return
@@ -7821,7 +7821,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-П]{Space}
 Return
@@ -7836,7 +7836,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-М]{Space}
 Return
@@ -7851,7 +7851,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][УГИБДД-Н]{Space}
 Return
@@ -7866,7 +7866,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-П]{Space}
 Return
@@ -7881,7 +7881,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-М]{Space}
 Return
@@ -7896,7 +7896,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][ГУ МВД-Н]{Space}
 Return
@@ -7911,7 +7911,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][ЦГБ-П]{Space}
 Return
@@ -7926,7 +7926,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][ОКБ-М]{Space}
 Return
@@ -7941,7 +7941,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /d [%Gibdd%][ЦГБ-Н]{Space}
 Return
@@ -7967,13 +7967,13 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(160)
 Send, /d [%Gibdd%][МВД|МЗ|МО] Требуются сотрудники для помощи в проведении собеседования...{Enter}{F6}
 SmartSleep(500)
 Send, /d [%Gibdd%][МВД|МЗ|МО] ...Ожидаем на парковке ДЧ-%Park%.{Enter}{F6}
 SmartSleep(160)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
@@ -7999,7 +7999,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
 Send, /ro [%Gibdd%][%Gorod%] {Space}
 Return
@@ -8019,13 +8019,13 @@ Send,  /do Рация ТАКТ-363 П45 закреплена на нагрудн
 SmartSleep(500)
 Send,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 Send, /ro [%Gibdd%][МВД] Проверьте гражданина с серией паспорта %Pass%...{Enter}{F6}
 SmartSleep(500)
 Send, /ro [%Gibdd%][МВД] ...на наличие в базе розыска.{Enter}{F6}
 SmartSleep(160)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(1000)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
@@ -8179,7 +8179,7 @@ Send, /do Рация ТАКТ-363 П45 закреплена на нагрудн�
 SmartSleep(500)
 Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 SmartSleep(500)
-SoundPlay, %A_Scriptdir%\1.mp3, wait
+PlayRadioSfx("radio_start.wav")
 SmartSleep(500)
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 Send, /d [%Gibdd%][МЗ] Требуется продление медкарты для сотрудника с серией паспорта %id%.{Enter}
@@ -11824,16 +11824,21 @@ global LastBroadcastMessageId := ""
 
 PlayRadioSfx(soundName) {
     global RadioSfxEnabled
-    if (!RadioSfxEnabled)
+    if (RadioSfxEnabled = 0)
         return
     soundPath := A_ScriptDir . "\assets\" . soundName
     if (!FileExist(soundPath))
+        soundPath := A_ScriptDir . "\" . soundName
+    if (!FileExist(soundPath))
         return
     ; 0x00020001 = SND_ASYNC (0x1) | SND_FILENAME (0x20000)
-    DllCall("winmm\PlaySoundW", "WStr", soundPath, "Ptr", 0, "UInt", 0x00020001)
+    res := DllCall("winmm\PlaySoundW", "WStr", soundPath, "Ptr", 0, "UInt", 0x00020001)
+    if (!res) {
+        SoundPlay, %soundPath%
+    }
 }
 
-#IfWinActive ahk_group ProvinceGameGroup
+#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
 ~*z::
 if (RadioSfxEnabled) {
     PlayRadioSfx("radio_start.wav")
@@ -11845,7 +11850,27 @@ if (RadioSfxEnabled) {
     PlayRadioSfx("radio_stop.wav")
 }
 return
-#IfWinActive
+
+~*b::
+if (RadioSfxEnabled) {
+    PlayRadioSfx("radio_start.wav")
+}
+return
+
+~*b Up::
+if (RadioSfxEnabled) {
+    PlayRadioSfx("radio_stop.wav")
+}
+return
+
+; Тестовый хоткей проверки звука рации (Ctrl + Alt + S)
+^!s::
+PlayRadioSfx("radio_start.wav")
+Sleep, 300
+PlayRadioSfx("radio_stop.wav")
+TrayTip, 📻 Проверка рации УГИБДД, Щелчок тангенты и Roger Beep работают исправно!, 3, 1
+return
+#If
 
 ; =================================================================================================
 ; КЛИЕНТСКИЙ ТЕЛЕМЕТРИЧЕСКИЙ ПУЛЬС В КОМАНДНЫЙ ЦЕНТР (ADMIN DASHBOARD)
