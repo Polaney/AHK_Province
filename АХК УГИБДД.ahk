@@ -10519,12 +10519,11 @@ PerformDownloadAndUpdate() {
 }
 
 FetchUrlText(Url, TimeoutSec := 6) {
+    ComObjError(false)
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
         ; Таймауты: Resolve 5s, Connect 5s, Send 10s, Receive 10s
         whr.SetTimeouts(5000, 5000, TimeoutSec * 1000, TimeoutSec * 1000)
-        ; Включаем TLS 1.2 (0x0800) и TLS 1.3 (0x2000)
-        whr.Option(9) := 0x2800
         whr.Open("GET", Url . "?t=" . A_TickCount, false)
         whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
         whr.Send()
