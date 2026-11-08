@@ -10431,14 +10431,16 @@ Return
 
 
 ; =================================================================================================
-; СИСТЕМА АВТООБНОВЛЕНИЯ (GITHUB RAW & RELEASES)
+; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion := "2.4.0"
-global AppVersionCode    := 240
-global UpdateCheckUrl    := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
-global UpdateMirrorUrl   := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
-global PendingUpdateUrl  := ""
-global PendingUpdateVer  := ""
+global AppNumericVersion    := "2.5.0"
+global AppVersionCode       := 250
+global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
+global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
+global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
+global PendingUpdateUrl     := ""
+global PendingUpdateMirror  := ""
+global PendingUpdateVer     := ""
 
 InitAutoUpdater() {
     ; Отложенная фоновая проверка через 5 секунд после старта (не блокирует загрузку GUI)
@@ -10454,23 +10456,33 @@ CheckForUpdates(0) ; 0 = Интерактивный режим по кнопке
 Return
 
 CheckForUpdates(IsSilent := 1) {
-    global UpdateCheckUrl, UpdateMirrorUrl, AppVersionCode, AppNumericVersion, PendingUpdateUrl, PendingUpdateVer
+    global UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl, AppVersionCode, AppNumericVersion
+    global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
+
     if (!IsSilent)
         TrayTip, AHK УГИБДД, Проверка наличия обновлений на сервере..., 2, 1
 
-    ; Шаг 1: Пробуем прямой адрес GitHub Raw с увеличенным таймаутом (6 сек)
-    jsonStr := FetchUrlText(UpdateCheckUrl, 6)
-    ; Шаг 2: Если GitHub замедлен или блокируется провайдером в РФ, пробуем сверхбыстрое CDN-зеркало jsDelivr
-    if (jsonStr = "")
-        jsonStr := FetchUrlText(UpdateMirrorUrl, 6)
+    ; Шаг 1: Пробуем быстрый Cloud VPS релей (без замедлений и блокировок)
+    jsonStr := FetchUrlText(UpdatePrimaryUrl, 4)
 
-    ; Шаг 3: Если COM-объект не сработал, делаем fallback через UrlDownloadToFile во временный файл
+    ; Шаг 2: Если VPS недоступен, пробуем GitHub Raw
+    if (jsonStr = "")
+        jsonStr := FetchUrlText(UpdateGithubRawUrl, 5)
+
+    ; Шаг 3: Если GitHub замедлен, пробуем CDN-зеркало jsDelivr
+    if (jsonStr = "")
+        jsonStr := FetchUrlText(UpdateCdnUrl, 5)
+
+    ; Шаг 4: Fallback через UrlDownloadToFile во временный файл
     if (jsonStr = "") {
         tmpJson := A_Temp . "\ahk_ver_" . A_TickCount . ".json"
         try {
-            UrlDownloadToFile, %UpdateCheckUrl%, %tmpJson%
-            if (!FileExist(tmpJson))
-                UrlDownloadToFile, %UpdateMirrorUrl%, %tmpJson%
+            UrlDownloadToFile, %UpdatePrimaryUrl%, %tmpJson%
+            if (!FileExist(tmpJson) || FileOpen(tmpJson, "r").Length < 50)
+                UrlDownloadToFile, %UpdateGithubRawUrl%, %tmpJson%
+            if (!FileExist(tmpJson) || FileOpen(tmpJson, "r").Length < 50)
+                UrlDownloadToFile, %UpdateCdnUrl%, %tmpJson%
+
             if (FileExist(tmpJson)) {
                 FileRead, jsonStr, %tmpJson%
                 FileDelete, %tmpJson%
@@ -10480,28 +10492,37 @@ CheckForUpdates(IsSilent := 1) {
 
     if (jsonStr = "") {
         if (!IsSilent)
-            MsgBox, 48, AHK УГИБДД, Не удалось связаться с сервером обновлений GitHub.`nПроверьте подключение к интернету или доступность репозитория.
+            MsgBox, 48, AHK УГИБДД, Не удалось связаться с сервером обновлений.`nПроверьте подключение к интернету или доступность сервера.
         Return
     }
 
-    ; Парсинг JSON через RegEx
+    ; Парсинг JSON параметров
     RegExMatch(jsonStr, """version"":\s*""([^""]+)""", mVer)
     RegExMatch(jsonStr, """version_code"":\s*(\d+)", mCode)
     RegExMatch(jsonStr, """title"":\s*""([^""]+)""", mTitle)
     RegExMatch(jsonStr, """download_url"":\s*""([^""]+)""", mDown)
+    RegExMatch(jsonStr, """download_mirror"":\s*""([^""]+)""", mDownMirror)
     RegExMatch(jsonStr, """ahk_url"":\s*""([^""]+)""", mAhk)
-    RegExMatch(jsonStr, """changelog"":\s*""([^""]+)""", mLog)
+    RegExMatch(jsonStr, """ahk_mirror"":\s*""([^""]+)""", mAhkMirror)
+    RegExMatch(jsonStr, """changelog"":\s*""((?:[^""\\]|\\.)*)""", mLog)
 
     newVer := mVer1
     newCode := mCode1 + 0
-    newTitle := mTitle1
-    newChangelog := StrReplace(mLog1, "\n", "`n")
-    downloadUrl := A_IsCompiled ? mDown1 : mAhk1
+    newTitle := mTitle1 ? mTitle1 : "Новая версия программы"
+    newChangelog := StrReplace(StrReplace(mLog1, "\n", "`n"), "\""", """")
+
+    if (A_IsCompiled) {
+        PendingUpdateUrl := mDown1
+        PendingUpdateMirror := mDownMirror1 ? mDownMirror1 : "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe"
+    } else {
+        PendingUpdateUrl := mAhk1
+        PendingUpdateMirror := mAhkMirror1 ? mAhkMirror1 : "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
+    }
+
+    PendingUpdateVer := newVer
 
     if (newCode > AppVersionCode) {
-        PendingUpdateUrl := downloadUrl
-        PendingUpdateVer := newVer
-        ShowUpdateDialog(newVer, newTitle, newChangelog, downloadUrl)
+        ShowUpdateDialog(newVer, newTitle, newChangelog, PendingUpdateUrl)
     } else {
         if (!IsSilent)
             MsgBox, 64, AHK УГИБДД, У вас установлена актуальная версия биндера (v%AppNumericVersion%)!
@@ -10532,7 +10553,7 @@ Return
 
 StartUpdateInstallation:
 GuiControl, 7:Disable, StartUpdateInstallation
-GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка файлов обновления с GitHub...
+GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка файлов обновления...
 SetTimer, PerformUpdateAction, -100
 Return
 
@@ -10541,34 +10562,33 @@ PerformDownloadAndUpdate()
 Return
 
 PerformDownloadAndUpdate() {
-    global PendingUpdateUrl, PendingUpdateVer
-    if (PendingUpdateUrl = "") {
+    global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
+
+    if (PendingUpdateUrl = "" && PendingUpdateMirror = "") {
         MsgBox, 48, Ошибка, Ссылка для загрузки не определена.
         Return
     }
 
-    tempFile := A_Temp . "\ahk_update_" . A_TickCount . (A_IsCompiled ? ".exe" : ".ahk")
-    try {
-        UrlDownloadToFile, %PendingUpdateUrl%, %tempFile%
-    } catch {
-        FileDelete, %tempFile%
-        MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте доступность GitHub или скачайте вручную.
-        Return
-    }
+    ext := A_IsCompiled ? ".exe" : ".ahk"
+    tempFile := A_Temp . "\ahk_update_" . A_TickCount . ext
 
-    FileGetSize, fSize, %tempFile%
-    if (fSize < 1000) {
+    ; Скачивание через отказоустойчивую функцию
+    success := DownloadBinaryFile(PendingUpdateUrl, PendingUpdateMirror, tempFile)
+
+    if (!success) {
         FileDelete, %tempFile%
-        MsgBox, 16, Ошибка загрузки, Скачанный файл повреждён или недоступен (размер: %fSize% байт).
+        MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте подключение к сети или скачайте архив вручную.
         Return
     }
 
     currentPath := A_ScriptFullPath
+
     if (A_IsCompiled) {
-        ; Создаём bat-скрипт для бесшовной замены заблокированного исполняемого файла
+        ; Создаём bat-скрипт с принудительной UTF-8 кодировкой для поддержки кириллицы в путях
         batScript := A_Temp . "\replace_gibdd_" . A_TickCount . ".bat"
         batContent := "@echo off`r`n"
-        batContent .= "ping 127.0.0.1 -n 2 > nul`r`n"
+        batContent .= "chcp 65001 > nul`r`n"
+        batContent .= "ping 127.0.0.1 -n 3 > nul`r`n"
         batContent .= ":retry`r`n"
         batContent .= "move /y """ . tempFile . """ """ . currentPath . """ > nul 2>&1`r`n"
         batContent .= "if exist """ . tempFile . """ (`r`n"
@@ -10577,24 +10597,77 @@ PerformDownloadAndUpdate() {
         batContent .= ")`r`n"
         batContent .= "start """" """ . currentPath . """`r`n"
         batContent .= "del ""%~f0""`r`n"
+
         FileDelete, %batScript%
-        FileAppend, %batContent%, %batScript%
+        FileAppend, %batContent%, %batScript%, UTF-8
         Run, "%batScript%",, Hide
         ExitApp
     } else {
         FileCopy, %tempFile%, %currentPath%, 1
         FileDelete, %tempFile%
         TrayTip, AHK УГИБДД, Биндер успешно обновлён до v%PendingUpdateVer%!, 3, 1
+        Sleep, 500
         Reload
     }
+}
+
+DownloadBinaryFile(Url1, Url2, OutPath) {
+    FileDelete, %OutPath%
+
+    ; Попытка 1: Скачивание через WinHttp (наиболее надежно)
+    for idx, targetUrl in [Url1, Url2] {
+        if (targetUrl = "")
+            continue
+        try {
+            whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+            whr.SetTimeouts(5000, 5000, 30000, 30000)
+            whr.Open("GET", targetUrl, false)
+            whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
+            whr.Send()
+            if (whr.Status = 200) {
+                ado := ComObjCreate("ADODB.Stream")
+                ado.Type := 1 ; Binary
+                ado.Open()
+                ado.Write(whr.ResponseBody)
+                ado.SaveToFile(OutPath, 2) ; Overwrite
+                ado.Close()
+
+                FileGetSize, sz, %OutPath%
+                if (sz > 5000)
+                    return true
+            }
+        }
+    }
+
+    ; Попытка 2: UrlDownloadToFile
+    for idx, targetUrl in [Url1, Url2] {
+        if (targetUrl = "")
+            continue
+        UrlDownloadToFile, %targetUrl%, %OutPath%
+        FileGetSize, sz, %OutPath%
+        if (sz > 5000)
+            return true
+    }
+
+    ; Попытка 3: PowerShell WebClient (штатный fallback Windows)
+    activeUrl := Url1 ? Url1 : Url2
+    if (activeUrl != "") {
+        psCmd := "powershell -WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object Net.WebClient).DownloadFile('" . activeUrl . "', '" . OutPath . "')"""
+        RunWait, %psCmd%,, Hide
+        FileGetSize, sz, %OutPath%
+        if (sz > 5000)
+            return true
+    }
+
+    return false
 }
 
 FetchUrlText(Url, TimeoutSec := 5) {
     ComObjError(false)
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(3000, 3000, TimeoutSec * 1000, TimeoutSec * 1000)
-        whr.Open("GET", Url . "?t=" . A_TickCount, false)
+        whr.SetTimeouts(2000, 2000, TimeoutSec * 1000, TimeoutSec * 1000)
+        whr.Open("GET", Url . (InStr(Url, "?") ? "&" : "?") . "t=" . A_TickCount, false)
         whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
         whr.Send()
         if (whr.Status = 200)
@@ -10903,9 +10976,9 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         try {
             Run *RunAs "%A_ComSpec%" /c netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
             SoundBeep, 900, 120
-            TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 открыт (или используется VPS релей), 3, 1
+            TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 успешно открыт в брандмауэре!, 3, 1
         } catch {
-            TrayTip, ☁️ Бортовой планшет, Используется облачный релей VPS (входящий порт не требуется), 3, 1
+            MsgBox, 48, Брандмауэр Windows, Требуются права администратора для разрешения входящего порта 8088!
         }
         Return
     }

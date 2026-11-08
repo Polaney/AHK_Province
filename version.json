@@ -2,8 +2,10 @@
   "version": "2.5.0",
   "version_code": 250,
   "release_date": "2026-11-08",
-  "title": "Бортовой мобильный планшет УГИБДД & Облачный WebSocket-релей",
-  "changelog": "- Полнофункциональный сенсорный бортовой терминал для смартфонов (iOS / Android) с реактивной синхронизацией по WebSockets\n- Полная база из 189 статей (КоАП 102, УКРП 58, ФЗоП 25, ПДД 4) с категориями, поиском и кнопкой озвучки в игровой чат\n- Смарт-комбо калькулятор штрафов прямо на телефоне с мультивыбором и оформлением /ticket\n- Интерактивная панель цели ID в шапке с быстрой пробивкой по базе\n- Полицейская строб-панель спецсигналов, звуковой синтезатор рации и полноэкранный режим\n- Полная отвязка от локального брандмауэра и портов благодаря облачному VPS релею",
-  "download_url": "https://github.com/Polaney/AHK_Province/releases/latest/download/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
-  "ahk_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
+  "title": "Мобильный бортовой планшет ДПС (WebSockets + Cloud Relay)",
+  "changelog": "- 📱 Мобильный бортовой планшет ДПС (WebSockets + Cloud Relay)\n- 🚔 Мгновенное управление патрулем с телефона без задержек основного потока\n- 📚 189 статей (КоАП 102, УК 58, ФЗоП 25, ПДД 4) с кнопкой «Зачитать в игре»\n- ⚡ Сверхбыстрое автоматическое обновление через облачный VPS и GitHub\n- 🔄 Полноценная поддержка запущенного .exe и .ahk",
+  "download_url": "http://152.234.229.245:3000/download/exe",
+  "download_mirror": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
+  "ahk_url": "http://152.234.229.245:3000/download/ahk",
+  "ahk_mirror": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
 }
