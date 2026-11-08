@@ -12,7 +12,11 @@ test_*.ahk
 gibdd.egl
 gibdd_journal.ini
 updater_res.txt
+gibdd_profile.ini
+gibdd_custom_binds.ini
 
 # Internal workspace metadata
 .agents/
 AGENTS.md
+.github
+ФзОП.txt
