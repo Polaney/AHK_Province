@@ -1,0 +1,3013 @@
+<!-- saved from url=(0016)http://localhost -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="utf-8">
+<title>ГУ МВД РОССИИ — Fluent Police Glass</title>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -ms-user-select: none;
+}
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #070B14;
+    color: #E6EDF3;
+    font-size: 13px;
+}
+
+/* ФОНОВЫЙ АРТ И GLASS-ОВЕРЛЕЙ */
+#app-bg {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    z-index: 0;
+}
+#app-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(6, 10, 20, 0.90) 0%, rgba(10, 17, 34, 0.84) 50%, rgba(6, 10, 22, 0.93) 100%);
+    z-index: 1;
+}
+
+/* ГЛАВНЫЙ КОНТЕЙНЕР */
+#app-shell {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(56, 139, 253, 0.38);
+}
+
+/* ВЕРХНЯЯ КАСТОМНАЯ ШАПКА (TITLEBAR) */
+.titlebar {
+    height: 52px;
+    background: linear-gradient(90deg, rgba(11, 18, 35, 0.96) 0%, rgba(16, 26, 48, 0.92) 50%, rgba(11, 18, 35, 0.96) 100%);
+    border-bottom: 1px solid rgba(56, 139, 253, 0.32);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    cursor: default;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+.tb-left {
+    display: flex;
+    align-items: center;
+}
+.tb-crest {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(88, 166, 255, 0.65);
+    margin-right: 11px;
+    box-shadow: 0 0 12px rgba(56, 139, 253, 0.45);
+}
+.tb-brand-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.4px;
+    text-shadow: 0 0 10px rgba(56, 139, 253, 0.5);
+}
+.tb-brand-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: #58A6FF;
+    letter-spacing: 1px;
+}
+
+.tb-center {
+    display: flex;
+    align-items: center;
+}
+.status-pill {
+    background: rgba(20, 32, 58, 0.78);
+    border: 1px solid rgba(56, 139, 253, 0.28);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #C9D1D9;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+}
+.status-pill.highlight {
+    border-color: rgba(63, 185, 80, 0.5);
+    color: #7EE787;
+    background: rgba(18, 42, 32, 0.75);
+}
+.status-pill.amber {
+    border-color: rgba(255, 184, 77, 0.5);
+    color: #FFB84D;
+    background: rgba(45, 32, 16, 0.75);
+}
+
+.tb-right {
+    display: flex;
+    align-items: center;
+}
+.tb-action-btn {
+    background: rgba(26, 40, 72, 0.78);
+    border: 1px solid rgba(88, 166, 255, 0.35);
+    color: #E6EDF3;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 6px;
+    transition: all 0.18s ease;
+}
+.tb-action-btn:hover {
+    background: rgba(56, 139, 253, 0.32);
+    border-color: #58A6FF;
+    color: #FFFFFF;
+    box-shadow: 0 0 12px rgba(56, 139, 253, 0.4);
+}
+.win-btn {
+    width: 30px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(22, 30, 48, 0.75);
+    color: #C9D1D9;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 4px;
+    text-align: center;
+    line-height: 26px;
+    transition: all 0.18s ease;
+}
+.win-btn:hover {
+    background: rgba(56, 139, 253, 0.3);
+    color: #FFF;
+}
+.win-btn.close:hover {
+    background: #E74C3C;
+    border-color: #FF6B6B;
+    color: #FFF;
+}
+
+/* РАБОЧАЯ ОБЛАСТЬ (САЙДБАР + КОНТЕНТ) */
+.workspace {
+    flex: 1;
+    display: flex;
+    height: calc(100% - 52px);
+    overflow: hidden;
+}
+
+/* ЛЕВЫЙ FLUENT САЙДБАР */
+.sidebar {
+    width: 256px;
+    background: rgba(10, 16, 30, 0.85);
+    border-right: 1px solid rgba(56, 139, 253, 0.25);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 10px;
+}
+
+/* КАРТОЧКА ПРОФИЛЯ СОТРУДНИКА */
+.officer-card {
+    background: linear-gradient(145deg, rgba(20, 33, 62, 0.88) 0%, rgba(13, 21, 40, 0.92) 100%);
+    border: 1px solid rgba(88, 166, 255, 0.38);
+    border-radius: 10px;
+    padding: 11px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+.oc-top {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.oc-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 9px;
+    border: 1px solid #58A6FF;
+    margin-right: 10px;
+    box-shadow: 0 0 12px rgba(56, 139, 253, 0.4);
+}
+.oc-rank-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, #1F6FEB, #388BFD);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+}
+.oc-fio {
+    font-size: 12px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.25;
+}
+.oc-meta {
+    font-size: 11px;
+    color: #8B949E;
+    margin-bottom: 3px;
+}
+.oc-meta span {
+    color: #79C0FF;
+    font-weight: 600;
+}
+.oc-btn-row {
+    display: flex;
+    margin-top: 8px;
+}
+.oc-btn {
+    flex: 1;
+    background: rgba(56, 139, 253, 0.18);
+    border: 1px solid rgba(88, 166, 255, 0.4);
+    color: #79C0FF;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s ease;
+}
+.oc-btn:hover {
+    background: rgba(56, 139, 253, 0.38);
+    color: #FFFFFF;
+    box-shadow: 0 0 10px rgba(56, 139, 253, 0.35);
+}
+
+/* МЕНЮ НАВИГАЦИИ */
+.nav-list {
+    flex: 1;
+    overflow-y: auto;
+}
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 9px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    color: #C9D1D9;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+}
+.nav-item:hover {
+    background: rgba(30, 48, 86, 0.55);
+    border-color: rgba(88, 166, 255, 0.25);
+    color: #FFFFFF;
+}
+.nav-item.active {
+    background: linear-gradient(90deg, rgba(31, 111, 235, 0.38) 0%, rgba(22, 42, 82, 0.65) 100%);
+    border-color: rgba(88, 166, 255, 0.65);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(31, 111, 235, 0.28), inset 3px 0 0 #58A6FF;
+}
+.nav-icon {
+    width: 24px;
+    font-size: 14px;
+    margin-right: 8px;
+    text-align: center;
+}
+.nav-badge {
+    margin-left: auto;
+    background: rgba(56, 139, 253, 0.22);
+    border: 1px solid rgba(88, 166, 255, 0.35);
+    color: #79C0FF;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.sidebar-footer {
+    border-top: 1px solid rgba(56, 139, 253, 0.2);
+    padding-top: 8px;
+}
+.sf-btn {
+    width: 100%;
+    background: rgba(20, 31, 56, 0.75);
+    border: 1px solid rgba(56, 139, 253, 0.28);
+    color: #C9D1D9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 5px;
+    text-align: left;
+    transition: all 0.18s ease;
+}
+.sf-btn:hover {
+    background: rgba(56, 139, 253, 0.28);
+    color: #FFF;
+    border-color: #58A6FF;
+}
+
+/* ОСНОВНАЯ ОБЛАСТЬ КОНТЕНТА */
+.main-content {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px 18px;
+}
+
+.tab-pane {
+    display: none;
+}
+.tab-pane.active {
+    display: block;
+}
+
+/* HERO-БАННЕР ДАШБОРДА */
+.hero-banner {
+    position: relative;
+    height: 168px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(88, 166, 255, 0.45);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    margin-bottom: 16px;
+    background-size: cover;
+    background-position: center 55%;
+}
+.hero-gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(7, 12, 24, 0.94) 0%, rgba(11, 20, 42, 0.80) 52%, rgba(8, 14, 28, 0.35) 100%);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.hero-tag {
+    display: inline-block;
+    background: rgba(56, 139, 253, 0.25);
+    border: 1px solid #58A6FF;
+    color: #79C0FF;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 12px;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+}
+.hero-title {
+    font-size: 21px;
+    font-weight: 800;
+    color: #FFFFFF;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+    margin-bottom: 4px;
+}
+.hero-sub {
+    font-size: 12px;
+    color: #C9D1D9;
+    max-width: 580px;
+}
+.hero-actions {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+.btn-fluent {
+    background: linear-gradient(135deg, #1F6FEB 0%, #388BFD 100%);
+    border: 1px solid #79C0FF;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin-right: 8px;
+    box-shadow: 0 4px 15px rgba(31, 111, 235, 0.45);
+    transition: all 0.18s ease;
+}
+.btn-fluent:hover {
+    background: linear-gradient(135deg, #388BFD 0%, #58A6FF 100%);
+    box-shadow: 0 6px 20px rgba(56, 139, 253, 0.65);
+}
+.btn-glass {
+    background: rgba(18, 29, 54, 0.82);
+    border: 1px solid rgba(88, 166, 255, 0.4);
+    color: #E6EDF3;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin-right: 8px;
+    transition: all 0.18s ease;
+}
+.btn-glass:hover {
+    background: rgba(56, 139, 253, 0.28);
+    border-color: #79C0FF;
+    color: #FFFFFF;
+}
+
+/* СЕТКА КАРТОЧЕК (ROW / COL) */
+.grid-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -7px;
+    margin-right: -7px;
+}
+.col-4 {
+    width: 33.333%;
+    padding: 0 7px;
+    margin-bottom: 14px;
+}
+.col-6 {
+    width: 50%;
+    padding: 0 7px;
+    margin-bottom: 14px;
+}
+.col-12 {
+    width: 100%;
+    padding: 0 7px;
+    margin-bottom: 14px;
+}
+
+/* СТЕКЛЯННАЯ КАРТОЧКА (GLASS CARD) */
+.glass-card {
+    background: linear-gradient(160deg, rgba(16, 25, 46, 0.84) 0%, rgba(11, 17, 32, 0.88) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.28);
+    border-radius: 11px;
+    padding: 13px 15px;
+    height: 100%;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-card:hover {
+    border-color: rgba(88, 166, 255, 0.52);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 139, 253, 0.12);
+}
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.2);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+.card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #58A6FF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.card-subtitle {
+    font-size: 11px;
+    color: #8B949E;
+}
+
+/* СТРОКА БИНДА В КАРТОЧКЕ */
+.bind-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 6px;
+    border-radius: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s ease;
+}
+.bind-row:hover {
+    background: rgba(56, 139, 253, 0.13);
+}
+.bind-name {
+    font-size: 12px;
+    color: #E6EDF3;
+    font-weight: 500;
+}
+.bind-key {
+    background: rgba(255, 184, 77, 0.14);
+    border: 1px solid rgba(255, 184, 77, 0.45);
+    color: #FFB84D;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.bind-key:hover {
+    background: rgba(255, 184, 77, 0.32);
+    border-color: #FFD166;
+    color: #FFFFFF;
+    box-shadow: 0 0 10px rgba(255, 184, 77, 0.4);
+}
+.bind-key.cmd {
+    background: rgba(56, 139, 253, 0.16);
+    border-color: rgba(88, 166, 255, 0.45);
+    color: #79C0FF;
+}
+.bind-key.cmd:hover {
+    background: rgba(56, 139, 253, 0.38);
+    border-color: #79C0FF;
+    color: #FFFFFF;
+    box-shadow: 0 0 10px rgba(56, 139, 253, 0.4);
+}
+
+/* ПРОГРЕСС-БАРЫ И ВИДЖЕТЫ ТЕЛЕМЕТРИИ */
+.progress-track {
+    width: 100%;
+    height: 8px;
+    background: rgba(10, 15, 28, 0.9);
+    border: 1px solid rgba(56, 139, 253, 0.25);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 6px 0;
+}
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #1F6FEB, #58A6FF);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+}
+.progress-fill.green {
+    background: linear-gradient(90deg, #238636, #3FB950);
+}
+.progress-fill.amber {
+    background: linear-gradient(90deg, #D29922, #FFB84D);
+}
+.progress-fill.red {
+    background: linear-gradient(90deg, #DA3633, #F85149);
+}
+
+/* ПОИСКОВАЯ СТРОКА И ФИЛЬТРЫ */
+.search-bar-wrap {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    background: rgba(14, 22, 42, 0.88);
+    border: 1px solid rgba(88, 166, 255, 0.38);
+    border-radius: 9px;
+    padding: 8px 12px;
+}
+.search-input, .fluent-input, .fluent-select {
+    background: rgba(8, 13, 26, 0.92);
+    border: 1px solid rgba(56, 139, 253, 0.38);
+    color: #FFFFFF;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    outline: none;
+    user-select: text;
+    -ms-user-select: text;
+}
+.search-input {
+    flex: 1;
+    margin-right: 10px;
+}
+.search-input:focus, .fluent-input:focus, .fluent-select:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 10px rgba(56, 139, 253, 0.35);
+}
+.filter-pill {
+    background: rgba(22, 34, 62, 0.8);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    color: #C9D1D9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: all 0.15s ease;
+}
+.filter-pill:hover, .filter-pill.active {
+    background: #1F6FEB;
+    border-color: #79C0FF;
+    color: #FFFFFF;
+}
+
+/* ТАБЛИЦА ЗАКОНОВ И КЛАВИШ */
+.fluent-table-wrap {
+    max-height: 495px;
+    overflow-y: auto;
+    border: 1px solid rgba(56, 139, 253, 0.25);
+    border-radius: 9px;
+    background: rgba(10, 16, 30, 0.85);
+}
+.fluent-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.fluent-table th {
+    background: rgba(20, 33, 62, 0.95);
+    color: #58A6FF;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-align: left;
+    padding: 9px 11px;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.35);
+}
+.fluent-table td {
+    padding: 8px 11px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 12px;
+    color: #E6EDF3;
+    vertical-align: middle;
+}
+.fluent-table tr:hover td {
+    background: rgba(56, 139, 253, 0.12);
+}
+
+.code-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+.code-badge.koap { background: rgba(231, 76, 60, 0.22); border: 1px solid #E74C3C; color: #FF7B72; }
+.code-badge.uk { background: rgba(255, 184, 77, 0.22); border: 1px solid #FFB84D; color: #FFB84D; }
+.code-badge.fzop { background: rgba(56, 139, 253, 0.22); border: 1px solid #58A6FF; color: #79C0FF; }
+.code-badge.pdd { background: rgba(63, 185, 80, 0.22); border: 1px solid #3FB950; color: #7EE787; }
+
+/* KPI КАРТОЧКИ СТАТИСТИКИ */
+.kpi-box {
+    background: rgba(16, 26, 48, 0.85);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    border-radius: 9px;
+    padding: 10px 14px;
+    text-align: center;
+}
+.kpi-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: #58A6FF;
+}
+.kpi-lbl {
+    font-size: 11px;
+    color: #8B949E;
+    margin-top: 2px;
+}
+
+/* МОДАЛЬНОЕ ОКНО АНКЕТЫ СОТРУДНИКА (FLUENT MODAL) */
+.modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(4, 7, 15, 0.82);
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.modal-card {
+    width: 640px;
+    background: linear-gradient(155deg, rgba(16, 26, 48, 0.98) 0%, rgba(9, 15, 28, 0.99) 100%);
+    border: 1px solid #58A6FF;
+    border-radius: 12px;
+    padding: 18px 22px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 139, 253, 0.25);
+}
+.modal-card-large {
+    width: 1040px;
+    max-height: 94%;
+    display: flex;
+    flex-direction: column;
+}
+.calc-table-box {
+    max-height: 330px;
+    overflow-y: auto;
+    border: 1px solid rgba(56, 139, 253, 0.28);
+    border-radius: 8px;
+    background: rgba(8, 14, 26, 0.92);
+    margin-bottom: 12px;
+}
+.calc-summary-panel {
+    background: linear-gradient(135deg, rgba(14, 24, 46, 0.9) 0%, rgba(9, 16, 32, 0.95) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+.links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -6px;
+}
+.link-card {
+    width: 50%;
+    padding: 6px;
+    box-sizing: border-box;
+}
+.link-card-inner {
+    background: linear-gradient(145deg, rgba(16, 27, 50, 0.88) 0%, rgba(10, 17, 34, 0.92) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    border-radius: 9px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.link-card-inner:hover {
+    border-color: #58A6FF;
+    background: rgba(31, 111, 235, 0.22);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 139, 253, 0.25);
+}
+.link-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #58A6FF;
+}
+.link-desc {
+    font-size: 11.5px;
+    color: #8B949E;
+    margin-top: 2px;
+}
+.link-arrow {
+    color: #FFB84D;
+    font-size: 15px;
+    font-weight: bold;
+    margin-left: 10px;
+}
+.form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.form-lbl {
+    width: 210px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #C9D1D9;
+}
+.form-ctrl {
+    flex: 1;
+}
+
+/* ВСПЛЫВАЮЩЕЕ УВЕДОМЛЕНИЕ (TOAST) */
+#toast-box {
+    position: fixed;
+    bottom: 18px;
+    right: 22px;
+    background: linear-gradient(135deg, rgba(20, 36, 68, 0.96), rgba(12, 22, 44, 0.98));
+    border: 1px solid #58A6FF;
+    color: #FFFFFF;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 139, 253, 0.4);
+    z-index: 9999;
+    display: none;
+}
+
+.telemetry-img {
+    width: 100%;
+    height: 92px;
+    border-radius: 7px;
+    border: 1px solid rgba(56, 139, 253, 0.35);
+    margin-bottom: 8px;
+}
+
+/* ================= АДАПТИВНОСТЬ ДЛЯ ЭКРАНОВ 1366x768 И НОУТБУКОВ ================= */
+@media screen and (max-height: 768px), screen and (max-width: 1366px) {
+    .titlebar {
+        height: 44px;
+        padding: 0 10px;
+    }
+    .tb-crest {
+        width: 28px;
+        height: 28px;
+    }
+    .tb-brand-title {
+        font-size: 11.5px;
+    }
+    .tb-brand-sub {
+        font-size: 9.5px;
+    }
+    .status-pill {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    .tb-action-btn {
+        font-size: 10.5px;
+        padding: 4px 8px;
+    }
+    .workspace {
+        height: calc(100% - 44px);
+    }
+    .sidebar {
+        width: 230px;
+        padding: 8px;
+    }
+    .officer-card {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+    .oc-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    .oc-fio {
+        font-size: 11px;
+    }
+    .oc-meta {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+    .nav-item {
+        padding: 6px 9px;
+        font-size: 11.5px;
+        margin-bottom: 2px;
+    }
+    .main-content {
+        padding: 10px 12px;
+    }
+    .hero-banner {
+        height: 125px;
+        margin-bottom: 10px;
+    }
+    .hero-gradient {
+        padding: 10px 14px;
+    }
+    .hero-title {
+        font-size: 16px;
+        margin-bottom: 2px;
+    }
+    .hero-sub {
+        font-size: 10.5px;
+        line-height: 1.25;
+    }
+    .btn-fluent, .btn-glass {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+    .glass-card {
+        padding: 10px 12px;
+    }
+    .modal-card {
+        max-height: 94vh;
+        overflow-y: auto;
+        padding: 12px 16px;
+    }
+    .modal-card-large {
+        width: 95vw;
+        max-width: 1040px;
+        max-height: 92vh;
+    }
+    .calc-table-box {
+        max-height: 220px;
+    }
+    .calc-summary-panel {
+        padding: 8px 10px;
+        margin-bottom: 8px;
+    }
+    .telemetry-img {
+        height: 70px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div id="app-bg"></div>
+<div id="app-overlay"></div>
+
+<div id="app-shell">
+    <!-- ШАПКА ОКНА (ПЕРЕТАСКИВАЕМАЯ) -->
+    <div class="titlebar" onmousedown="onTitlebarDrag(event)">
+        <div class="tb-left">
+            <img id="tb-crest-img" class="tb-crest" src="" alt="Герб">
+            <div>
+                <div class="tb-brand-title">ГУ МВД РОССИИ • БОРТОВОЙ ТЕРМИНАЛ</div>
+                <div class="tb-brand-sub" id="tb-version-sub">FLUENT POLICE GLASS EDITION • MTA PROVINCE</div>
+            </div>
+        </div>
+
+        <div class="tb-center">
+            <div class="status-pill highlight" id="pill-target">🎯 Цель ID: ожидание</div>
+            <div class="status-pill" id="pill-engine">⚡ SendInput (Мгновенный)</div>
+            <div class="status-pill amber" id="pill-duty">⏱ Дежурство: нет</div>
+        </div>
+
+        <div class="tb-right" onmousedown="stopProp(event)">
+            <button class="tb-action-btn" onclick="callAhk('toggle_hud')">⏱️ HUD (Alt+H)</button>
+            <button class="tb-action-btn" onclick="callAhk('drag_hud')">🎯 Двигать HUD</button>
+            <button class="tb-action-btn" onclick="openTabletModal()" style="color:#79C0FF; border-color:rgba(88,166,255,0.4); font-weight:700;">📱 Планшет</button>
+            <button class="tb-action-btn" onclick="openCalcModal()">⚖️ Калькулятор (Alt+F1)</button>
+            <button class="tb-action-btn" onclick="openLinksModal()">🔗 Ссылки МВД</button>
+            <button class="tb-action-btn" onclick="callAhk('switch_classic')">🎛️ Классика</button>
+            <div class="win-btn" onclick="callAhk('win_minimize')" title="Свернуть">—</div>
+            <div class="win-btn close" onclick="callAhk('win_close')" title="Свернуть в трей">✕</div>
+        </div>
+    </div>
+
+    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ -->
+    <div class="workspace">
+        <!-- ЛЕВЫЙ САЙДБАР -->
+        <div class="sidebar">
+            <div>
+                <div class="officer-card">
+                    <div class="oc-top">
+                        <img id="sidebar-crest-img" class="oc-avatar" src="" alt="ГУ МВД">
+                        <div>
+                            <div class="oc-rank-badge" id="oc-rank">Старший лейтенант</div>
+                            <div class="oc-fio" id="oc-fio">Имя Фамилия</div>
+                        </div>
+                    </div>
+                    <div class="oc-meta">Подразделение: <span id="oc-dept">ГУ МВД-Н (Инспектор ОР)</span></div>
+                    <div class="oc-meta">Нагрудный знак: <span id="oc-badge">77-000000</span></div>
+                    <div class="oc-meta">Позывной рации: <span id="oc-callsign">[61-000]</span></div>
+                    <div class="oc-btn-row">
+                        <div class="oc-btn" onclick="openProfileModal()" style="margin-right:5px;">⚙️ Анкета</div>
+                        <div class="oc-btn" onclick="callAhk('export_backup')" style="margin-right:5px;">📤 Бэкап</div>
+                        <div class="oc-btn" onclick="callAhk('import_backup')">📥 Импорт</div>
+                    </div>
+                </div>
+
+                <!-- НАВИГАЦИЯ -->
+                <div class="nav-list">
+                    <div class="nav-item active" id="nav-1" onclick="switchTab(1)">
+                        <span class="nav-icon">🏠</span> Главный Дашборд
+                    </div>
+                    <div class="nav-item" id="nav-2" onclick="switchTab(2)">
+                        <span class="nav-icon">🚔</span> Патруль и СГУ
+                    </div>
+                    <div class="nav-item" id="nav-3" onclick="switchTab(3)">
+                        <span class="nav-icon">📻</span> Доклады и Рация
+                    </div>
+                    <div class="nav-item" id="nav-4" onclick="switchTab(4)">
+                        <span class="nav-icon">⛓️</span> Задержание и КПЗ
+                    </div>
+                    <div class="nav-item" id="nav-5" onclick="switchTab(5)">
+                        <span class="nav-icon">📚</span> Законы (КоАП / УК / ФЗоП)
+                        <span class="nav-badge" id="badge-laws-cnt">165</span>
+                    </div>
+                    <div class="nav-item" id="nav-6" onclick="switchTab(6)">
+                        <span class="nav-icon">🎓</span> Лекции (1–23) и ПМП
+                    </div>
+                    <div class="nav-item" id="nav-7" onclick="switchTab(7)">
+                        <span class="nav-icon">⌨️</span> Клавиши и Свои бинды
+                    </div>
+                    <div class="nav-item" id="nav-8" onclick="switchTab(8)">
+                        <span class="nav-icon">📊</span> Журнал смены и Отчёт
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="sf-btn" onclick="callAhk('check_updates')">🚀 Проверить обновления GitHub</button>
+                <button class="sf-btn" onclick="openLinksModal()">🔗 Полезные ссылки и Форум МВД</button>
+                <button class="sf-btn" onclick="openCalcModal()">⚖️ Калькулятор КоАП/УК (Alt+F1)</button>
+                <button class="sf-btn" onclick="callAhk('reload_app')">🔄 Перезапустить терминал (F11)</button>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ ОБЛАСТЬ ВКЛАДОК -->
+        <div class="main-content">
+
+            <!-- ================= ВКЛАДКА 1: ГЛАВНЫЙ ДАШБОРД ================= -->
+            <div class="tab-pane active" id="tab-1">
+                <div class="hero-banner" id="hero-banner-box">
+                    <div class="hero-gradient">
+                        <div>
+                            <span class="hero-tag">⚡ FLUENT POLICE GLASS • MTA 1.6 READY</span>
+                            <div class="hero-title" id="hero-greeting">Здравия желаю, Товарищ Инспектор!</div>
+                            <div class="hero-sub">Интеллектуальный бортовой терминал ГУ МВД РОССИИ Провинции. Мгновенный ввод без задержек, защита от античита, тактический HUD погони и полная база КоАП / УК РП / ФЗоП.</div>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="btn-fluent" onclick="openTabletModal()" style="background:linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);">📱 Планшет на телефоне</button>
+                            <button class="btn-fluent" onclick="openCalcModal()">⚖️ Открыть Калькулятор (Alt+F1)</button>
+                            <button class="btn-glass" onclick="callAhk('toggle_hud')">⏱️ Тактический HUD (Alt+H)</button>
+                            <button class="btn-glass" onclick="openProfileModal()">👤 Настроить анкету</button>
+                            <button class="btn-glass" onclick="openLinksModal()">🔗 Портал МВД</button>
+                            <button class="btn-glass" onclick="switchTab(5)">📕 База КоАП и УК</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 КАРТОЧКИ ЖИВОЙ ТЕЛЕМЕТРИИ -->
+                <div class="grid-row">
+                    <!-- Карточка 1: Тактический радар погони -->
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">🚨 Тактический Радар Погони</span>
+                                <span class="card-subtitle">ст. 15 ФЗоП</span>
+                            </div>
+                            <img id="telemetry-card-img" class="telemetry-img" src="" alt="Телеметрия">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                <span>Статус мегафонов:</span>
+                                <strong id="dash-chase-stage" style="color:#7EE787;">Погоня не активна (Готов)</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill green" id="dash-chase-bar" style="width:100%;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#8B949E; margin-top:6px;">
+                                <span>Умный мегафон: <strong style="color:#FFB84D;">Ctrl+Space</strong></span>
+                                <span>Сброс: <strong style="color:#79C0FF;">Alt+Space</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 2: Таймер патруля и поста -->
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">⏱️ Таймер Патруля и Поста</span>
+                                <span class="card-subtitle" id="dash-duty-mode">Режим ожидания</span>
+                            </div>
+                            <div style="text-align:center; padding: 10px 0;">
+                                <div id="dash-duty-clock" style="font-size:32px; font-weight:800; color:#58A6FF; font-family:Consolas, monospace;">00:00</div>
+                                <div style="font-size:11px; color:#8B949E; margin-top:2px;">Автозапуск по командам /п1, /пост1, /вп1, /обл1</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" id="dash-duty-bar" style="width:0%;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                                <span class="bind-key cmd" onclick="copyCmd('/п1')">/п1 Патруль</span>
+                                <span class="bind-key cmd" onclick="copyCmd('/п2')">/п2 Доклад</span>
+                                <span class="bind-key cmd" onclick="copyCmd('/пост1')">/пост1 Пост</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 3: Норма смены и Баллы на форум -->
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">⭐ Норма Смены и Баллы</span>
+                                <span class="card-subtitle" id="dash-shift-time">Смена: 00:00</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+                                <span style="font-size:12px;">Набрано баллов для отчёта:</span>
+                                <strong id="dash-forum-pts" style="font-size:18px; color:#FFB84D;">0 / 20</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill amber" id="dash-pts-bar" style="width:0%;"></div>
+                            </div>
+                            <div class="grid-row" style="margin-top:10px;">
+                                <div class="col-6" style="margin-bottom:6px;">
+                                    <div style="background:rgba(20,32,58,0.7); padding:6px 8px; border-radius:6px; display:flex; justify-content:space-between;">
+                                        <span style="color:#8B949E;">Штрафы:</span>
+                                        <strong id="dash-cnt-fines" style="color:#7EE787;">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6" style="margin-bottom:6px;">
+                                    <div style="background:rgba(20,32,58,0.7); padding:6px 8px; border-radius:6px; display:flex; justify-content:space-between;">
+                                        <span style="color:#8B949E;">Аресты КПЗ:</span>
+                                        <strong id="dash-cnt-arrests" style="color:#FF7B72;">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6" style="margin-bottom:0;">
+                                    <div style="background:rgba(20,32,58,0.7); padding:6px 8px; border-radius:6px; display:flex; justify-content:space-between;">
+                                        <span style="color:#8B949E;">Лишения ВУ:</span>
+                                        <strong id="dash-cnt-lic" style="color:#FFB84D;">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6" style="margin-bottom:0;">
+                                    <div style="background:rgba(20,32,58,0.7); padding:6px 8px; border-radius:6px; display:flex; justify-content:space-between;">
+                                        <span style="color:#8B949E;">Доклады:</span>
+                                        <strong id="dash-cnt-rep" style="color:#79C0FF;">0</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- БЫСТРЫЕ НАСТРОЙКИ И СПРАВОЧНИКИ -->
+                <div class="grid-row">
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">🛡️ Режимы безопасности и ввода</span>
+                                <span class="card-subtitle">Настройки на лету</span>
+                            </div>
+                            <div class="bind-row">
+                                <span class="bind-name">🛡️ Активность биндов только в окне игры (MTA / GTA SA)</span>
+                                <span class="bind-key" id="toggle-ingame-btn" onclick="callAhk('toggle_only_ingame')">ВКЛ / ВЫКЛ</span>
+                            </div>
+                            <div class="bind-row">
+                                <span class="bind-name">📸 Автоматический скриншот с /timestamp при действиях</span>
+                                <span class="bind-key" id="toggle-autoscreen-btn" onclick="callAhk('toggle_autoscreen')">ВКЛ / ВЫКЛ</span>
+                            </div>
+                            <div class="bind-row">
+                                <span class="bind-name">⚡ Экстренная остановка любой длинной отыгровки / лекции</span>
+                                <span class="bind-key" onclick="remapKey('HK_StopBind')" id="hk-disp-HK_StopBind">F12</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">📚 Быстрые шпаргалки законодательства</span>
+                                <span class="card-subtitle">Открытие в 1 клик</span>
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; padding-top:4px;">
+                                <button class="btn-glass" style="margin-bottom:8px;" onclick="callAhk('open_fzop')">📘 Памятка ФЗоП (/фзоп)</button>
+                                <button class="btn-glass" style="margin-bottom:8px;" onclick="callAhk('open_koap')">📕 Справочник КоАП (/коап)</button>
+                                <button class="btn-glass" style="margin-bottom:8px;" onclick="callAhk('open_uk')">📙 Справочник УК РП (/ук)</button>
+                                <button class="btn-fluent" style="margin-bottom:8px;" onclick="switchTab(5)">🔎 Живой поиск по статьям</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 2: ПАТРУЛЬ И СГУ ================= -->
+            <div class="tab-pane" id="tab-2">
+                <div class="grid-row">
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">👮 Основное (Клик = сменить)</span>
+                            </div>
+                            <div class="bind-row"><span class="bind-name">Приветствие гражданина</span><span class="bind-key" id="hk-HK_Greeting" onclick="remapKey('HK_Greeting')">Alt+1</span></div>
+                            <div class="bind-row"><span class="bind-name">Просить предъявить документы</span><span class="bind-key" id="hk-HK_AskDocs" onclick="remapKey('HK_AskDocs')">Ctrl+2</span></div>
+                            <div class="bind-row"><span class="bind-name">Взять и изучить документы</span><span class="bind-key" id="hk-HK_TakeDocs" onclick="remapKey('HK_TakeDocs')">Ctrl+3</span></div>
+                            <div class="bind-row"><span class="bind-name">Вернуть документы</span><span class="bind-key" id="hk-HK_ReturnDocs" onclick="remapKey('HK_ReturnDocs')">Ctrl+4</span></div>
+                            <div class="bind-row"><span class="bind-name">Передача конвоиру (/arrest)</span><span class="bind-key" id="hk-HK_Arrest" onclick="remapKey('HK_Arrest')">Ctrl+0</span></div>
+                            <div class="bind-row"><span class="bind-name">Выдать розыск быстро (/su)</span><span class="bind-key" id="hk-HK_SuFast" onclick="remapKey('HK_SuFast')">Ctrl+-</span></div>
+                            <div class="bind-row"><span class="bind-name">База штрафов (/fines)</span><span class="bind-key" id="hk-HK_Fines" onclick="remapKey('HK_Fines')">Alt+F10</span></div>
+                            <div class="bind-row"><span class="bind-name">База розыска (/wanted)</span><span class="bind-key" id="hk-HK_Wanted" onclick="remapKey('HK_Wanted')">Ctrl+F10</span></div>
+                            <div class="bind-row"><span class="bind-name">КПК достать</span><span class="bind-key" id="hk-HK_KpkOpen" onclick="remapKey('HK_KpkOpen')">Alt+3</span></div>
+                            <div class="bind-row"><span class="bind-name">КПК пробить ВУ (/skan)</span><span class="bind-key" id="hk-HK_KpkVu" onclick="remapKey('HK_KpkVu')">Alt+4</span></div>
+                            <div class="bind-row"><span class="bind-name">КПК убрать</span><span class="bind-key" id="hk-HK_KpkClose" onclick="remapKey('HK_KpkClose')">Alt+5</span></div>
+                            <div class="bind-row"><span class="bind-name">Посадить в авто (/putpl)</span><span class="bind-key" id="hk-HK_Putpl" onclick="remapKey('HK_Putpl')">Ctrl+F6</span></div>
+                            <div class="bind-row"><span class="bind-name">Вытащить из патрульки</span><span class="bind-key cmd" onclick="copyCmd('/вытащить')">/вытащить</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">📝 Оформление и Протоколы</span>
+                            </div>
+                            <div class="bind-row"><span class="bind-name">Составить адм. протокол</span><span class="bind-key" id="hk-HK_AdminProt" onclick="remapKey('HK_AdminProt')">Ctrl+6</span></div>
+                            <div class="bind-row"><span class="bind-name">Передать на подпись (1) / Забрать (2)</span><span class="bind-key" id="hk-HK_ProtocolSign" onclick="remapKey('HK_ProtocolSign')">Alt+6</span></div>
+                            <div class="bind-row"><span class="bind-name">Протокол задержания</span><span class="bind-key" id="hk-HK_DetainProt" onclick="remapKey('HK_DetainProt')">Ctrl+5</span></div>
+                            <div class="bind-row"><span class="bind-name">Выдать розыск с РП (/su)</span><span class="bind-key" id="hk-HK_SuSound" onclick="remapKey('HK_SuSound')">Ctrl+7</span></div>
+                            <div class="bind-row"><span class="bind-name">Выписать штраф (/tsu)</span><span class="bind-key" id="hk-HK_Tsu" onclick="remapKey('HK_Tsu')">Alt+7</span></div>
+                            <div class="bind-row"><span class="bind-name">Аннулировать и лишить ВУ</span><span class="bind-key" id="hk-HK_TakeLic" onclick="remapKey('HK_TakeLic')">Alt+F7</span></div>
+                            <div class="bind-row"><span class="bind-name">Открыть наручники</span><span class="bind-key" id="hk-HK_CuffsOpen" onclick="remapKey('HK_CuffsOpen')">Ctrl+=</span></div>
+                            <div class="bind-row"><span class="bind-name">Закрыть наручники</span><span class="bind-key" id="hk-HK_CuffsClose" onclick="remapKey('HK_CuffsClose')">Ctrl+Del</span></div>
+                            <div class="bind-row"><span class="bind-name">Пометка о несогласии</span><span class="bind-key cmd" onclick="copyCmd('/метка1')">/метка1</span></div>
+                            <div class="bind-row"><span class="bind-name">Пометка о невозможности</span><span class="bind-key cmd" onclick="copyCmd('/метка2')">/метка2</span></div>
+                            <div class="bind-row"><span class="bind-name">Вырвать и вручить копию</span><span class="bind-key cmd" onclick="copyCmd('/копия')">/копия</span></div>
+                            <div class="bind-row"><span class="bind-name">Нагрудная камера DOZOR</span><span class="bind-key cmd" onclick="copyCmd('/камера')">/камера</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">🚨 СГУ, Погоня и Приборы</span>
+                            </div>
+                            <div class="bind-row"><span class="bind-name">🚨 Умный мегафон (1 -> 2 -> 3)</span><span class="bind-key" id="hk-HK_SmartMegaphone" onclick="remapKey('HK_SmartMegaphone')">Ctrl+Space</span></div>
+                            <div class="bind-row"><span class="bind-name">🛑 Сброс режима погони</span><span class="bind-key" id="hk-HK_ChaseStop" onclick="remapKey('HK_ChaseStop')">Alt+Space</span></div>
+                            <div class="bind-row"><span class="bind-name">Мегафон 1 (Зелёный)</span><span class="bind-key" id="hk-HK_Megaphone1" onclick="remapKey('HK_Megaphone1')">Alt+0</span></div>
+                            <div class="bind-row"><span class="bind-name">Мегафон 2 (Жёлтый)</span><span class="bind-key" id="hk-HK_Megaphone2" onclick="remapKey('HK_Megaphone2')">Alt+-</span></div>
+                            <div class="bind-row"><span class="bind-name">Мегафон 3 (Огонь!)</span><span class="bind-key" id="hk-HK_Megaphone3" onclick="remapKey('HK_Megaphone3')">Alt+=</span></div>
+                            <div class="bind-row"><span class="bind-name">Уступите дорогу СГУ</span><span class="bind-key" id="hk-HK_MegaphoneWay" onclick="remapKey('HK_MegaphoneWay')">Alt+9</span></div>
+                            <div class="bind-row"><span class="bind-name">Пешая погоня (/s)</span><span class="bind-key" id="hk-HK_FootChase" onclick="remapKey('HK_FootChase')">Alt+8</span></div>
+                            <div class="bind-row"><span class="bind-name">Розыск авто (1) / База (2)</span><span class="bind-key" id="hk-HK_Wcar" onclick="remapKey('HK_Wcar')">Ctrl+F8</span></div>
+                            <div class="bind-row"><span class="bind-name">Пробить владельца авто</span><span class="bind-key cmd" onclick="copyCmd('/фкар')">/фкар</span></div>
+                            <div class="bind-row"><span class="bind-name">Тауметр (замер тонировки)</span><span class="bind-key cmd" onclick="copyCmd('/таум1')">/таум(1-6)</span></div>
+                            <div class="bind-row"><span class="bind-name">Видеорегистратор (показ)</span><span class="bind-key cmd" onclick="copyCmd('/рег1')">/рег(1-4)</span></div>
+                            <div class="bind-row"><span class="bind-name">Алкотестер (проверка)</span><span class="bind-key cmd" onclick="copyCmd('/алко1')">/алко(1-5)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-row">
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">💥 Силовые действия (/try) и Оружие</span></div>
+                            <div class="bind-row"><span class="bind-name">Дёрнуть ручку двери авто (/try)</span><span class="bind-key" id="hk-HK_TryDoor" onclick="remapKey('HK_TryDoor')">Alt+F12</span></div>
+                            <div class="bind-row"><span class="bind-name">Ударить дубинкой по стеклу (/try)</span><span class="bind-key" id="hk-HK_TryGlass" onclick="remapKey('HK_TryGlass')">Alt+PS</span></div>
+                            <div class="bind-row"><span class="bind-name">Открыть дверь изнутри и достать</span><span class="bind-key" id="hk-HK_UnlockIn" onclick="remapKey('HK_UnlockIn')">Alt+SL</span></div>
+                            <div class="bind-row"><span class="bind-name">Вытащить из авто (/try)</span><span class="bind-key" id="hk-HK_PullOutTry" onclick="remapKey('HK_PullOutTry')">Ctrl+PS</span></div>
+                            <div class="bind-row"><span class="bind-name">Приклад АК-74М / Рукоять пистолета</span><span class="bind-key cmd" onclick="copyCmd('/ударкалаш')">/ударкалаш | /ударпистолет</span></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">🛠️ Дополнения, Рация и ДТП</span></div>
+                            <div class="bind-row"><span class="bind-name">Часы с гравировкой (/timestamp + /time)</span><span class="bind-key" id="hk-HK_Clock" onclick="remapKey('HK_Clock')">Ctrl+END</span></div>
+                            <div class="bind-row"><span class="bind-name">Включить голосовую рацию (/fracvoice 1)</span><span class="bind-key" id="hk-HK_VoiceOn" onclick="remapKey('HK_VoiceOn')">Ctrl+INS</span></div>
+                            <div class="bind-row"><span class="bind-name">Рация прослушивание (/fracvoice 2)</span><span class="bind-key" id="hk-HK_VoiceOff" onclick="remapKey('HK_VoiceOff')">Ctrl+HOME</span></div>
+                            <div class="bind-row"><span class="bind-name">Приветствие коллег (честь)</span><span class="bind-key" id="hk-HK_GreetColleague" onclick="remapKey('HK_GreetColleague')">Ctrl+E</span></div>
+                            <div class="bind-row"><span class="bind-name">Оформление ДТП и камеры</span><span class="bind-key cmd" onclick="copyCmd('/дтп1')">/дтп(1-3) | /дтпкам</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 3: ДОКЛАДЫ И РАЦИЯ ================= -->
+            <div class="tab-pane" id="tab-3">
+                <div class="grid-row">
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">🚔 Патруль и Пост</span></div>
+                            <div class="bind-row"><span class="bind-name">Выехал в патруль (15 мин)</span><span class="bind-key cmd" onclick="copyCmd('/п1')">/п1</span></div>
+                            <div class="bind-row"><span class="bind-name">Продолжаю патруль</span><span class="bind-key cmd" onclick="copyCmd('/п2')">/п2</span></div>
+                            <div class="bind-row"><span class="bind-name">Закончил патруль</span><span class="bind-key cmd" onclick="copyCmd('/п3')">/п3</span></div>
+                            <div class="bind-row"><span class="bind-name">Воздушный патруль (/d)</span><span class="bind-key cmd" onclick="copyCmd('/вп1')">/вп1 | /вп2 | /вп3</span></div>
+                            <div class="bind-row"><span class="bind-name">Областной патруль (/ro)</span><span class="bind-key cmd" onclick="copyCmd('/обл1')">/обл1 | /обл2 | /обл3</span></div>
+                            <div class="bind-row"><span class="bind-name">Заступил на пост (20 мин)</span><span class="bind-key cmd" onclick="copyCmd('/пост1')">/пост1</span></div>
+                            <div class="bind-row"><span class="bind-name">Продолжаю пост</span><span class="bind-key cmd" onclick="copyCmd('/пост2')">/пост2</span></div>
+                            <div class="bind-row"><span class="bind-name">Сдал стационарный пост</span><span class="bind-key cmd" onclick="copyCmd('/пост3')">/пост3</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">📻 Вызовы, Рейды и 10-13</span></div>
+                            <div class="bind-row"><span class="bind-name">Выехал / Прибыл на вызов</span><span class="bind-key cmd" onclick="copyCmd('/в1')">/в1 | /в2</span></div>
+                            <div class="bind-row"><span class="bind-name">Вызов обработан / Ложный</span><span class="bind-key cmd" onclick="copyCmd('/в+')">/в+ | /в-</span></div>
+                            <div class="bind-row"><span class="bind-name">Оформляю / Закончил ДТП</span><span class="bind-key cmd" onclick="copyCmd('/дттп1')">/дттп1 | /дттп2</span></div>
+                            <div class="bind-row"><span class="bind-name">Оформляю / Закончил наруш.</span><span class="bind-key cmd" onclick="copyCmd('/он1')">/он1 | /он2</span></div>
+                            <div class="bind-row"><span class="bind-name">Проведение рейда</span><span class="bind-key cmd" onclick="copyCmd('/рейд1')">/рейд1..3</span></div>
+                            <div class="bind-row"><span class="bind-name">Кто примет задержанного</span><span class="bind-key cmd" onclick="copyCmd('/гун')">/гун</span></div>
+                            <div class="bind-row"><span class="bind-name">10-13 ГУМВД (П / М / Н)</span><span class="bind-key cmd" onclick="copyCmd('/13п')">/13п | /13м | /13н</span></div>
+                            <div class="bind-row"><span class="bind-name">10-13 ГУ МВД (П / М / Н)</span><span class="bind-key cmd" onclick="copyCmd('/13уп')">/13уп | /13ум | /13ун</span></div>
+                            <div class="bind-row"><span class="bind-name">Тревожная кнопка SOS</span><span class="bind-key cmd" onclick="copyCmd('/sos')">/sos</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">📡 Общий канал /ro</span></div>
+                            <div class="bind-row"><span class="bind-name">Экстренные Код-0 / Код-1 / Принял</span><span class="bind-key cmd" onclick="copyCmd('/код0')">/код0 | /код1 | /пр1</span></div>
+                            <div class="bind-row"><span class="bind-name">Вызов МВД / ГУ МВД</span><span class="bind-key cmd" onclick="copyCmd('/мвд')">/мвд | /угибдд</span></div>
+                            <div class="bind-row"><span class="bind-name">ГУ МВД по городам</span><span class="bind-key cmd" onclick="copyCmd('/угибддп')">/угибддп | м | н</span></div>
+                            <div class="bind-row"><span class="bind-name">ГУМВД по городам</span><span class="bind-key cmd" onclick="copyCmd('/гумвдп')">/гумвдп | м | н</span></div>
+                            <div class="bind-row"><span class="bind-name">Больницы (ЦГБ-П / ОКБ-М / ЦГБ-Н)</span><span class="bind-key cmd" onclick="copyCmd('/цгбп')">/цгбп | /окбм | /цгбн</span></div>
+                            <div class="bind-row"><span class="bind-name">Вызов МЗ / Армии / РЖД</span><span class="bind-key cmd" onclick="copyCmd('/мз')">/мз | /мо | /ржд</span></div>
+                            <div class="bind-row"><span class="bind-name">Проверка по базе розыска</span><span class="bind-key cmd" onclick="copyCmd('/прозыск')">/прозыск</span></div>
+                            <div class="bind-row"><span class="bind-name">Запрос на медкарту / ОСН</span><span class="bind-key cmd" onclick="copyCmd('/пмедкарта')">/пмедкарта | /зосн</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 4: ЗАДЕРЖАНИЕ И КПЗ ================= -->
+            <div class="tab-pane" id="tab-4">
+                <div class="grid-row">
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">⛓️ Процедура задержания и КПЗ</span></div>
+                            <div class="bind-row"><span class="bind-name">Крикнуть: Из машины, руки на капот!</span><span class="bind-key" onclick="remapKey('HK_ShoutHands')">Alt+X</span></div>
+                            <div class="bind-row"><span class="bind-name">Открыть наручники (пристегнуть)</span><span class="bind-key" onclick="remapKey('HK_CuffsOpen')">Ctrl+=</span></div>
+                            <div class="bind-row"><span class="bind-name">Закрыть наручники и вручить копию</span><span class="bind-key" onclick="remapKey('HK_CuffsClose')">Ctrl+Del</span></div>
+                            <div class="bind-row"><span class="bind-name">Сфотографировать и пробить (/wanted + /crimrec)</span><span class="bind-key cmd" onclick="copyCmd('/кпкфото')">/кпкфото</span></div>
+                            <div class="bind-row"><span class="bind-name">Посадить задержанного в авто (/putpl)</span><span class="bind-key" onclick="remapKey('HK_Putpl')">Ctrl+F6</span></div>
+                            <div class="bind-row"><span class="bind-name">Вытащить задержанного из патрульки</span><span class="bind-key cmd" onclick="copyCmd('/вытащить')">/вытащить</span></div>
+                            <div class="bind-row"><span class="bind-name">Составить протокол задержания</span><span class="bind-key" onclick="remapKey('HK_DetainProt')">Ctrl+5</span></div>
+                            <div class="bind-row"><span class="bind-name">Вырвать копию протокола задержания</span><span class="bind-key cmd" onclick="copyCmd('/зкопия')">/зкопия</span></div>
+                            <div class="bind-row"><span class="bind-name">Передать задержанного конвоиру в КПЗ (/arrest)</span><span class="bind-key" onclick="remapKey('HK_Arrest')">Ctrl+0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header"><span class="card-title">🎭 Снятие аксессуаров для опознания</span></div>
+                            <div class="bind-row"><span class="bind-name">Снять маску с лица задержанного</span><span class="bind-key cmd" onclick="copyCmd('/маска')">/маска</span></div>
+                            <div class="bind-row"><span class="bind-name">Снять головной убор</span><span class="bind-key cmd" onclick="copyCmd('/убор')">/убор</span></div>
+                            <div class="bind-row"><span class="bind-name">Снять солнцезащитные очки</span><span class="bind-key cmd" onclick="copyCmd('/очки')">/очки</span></div>
+                            <div class="bind-row"><span class="bind-name">Снять мотошлем</span><span class="bind-key cmd" onclick="copyCmd('/шлем')">/шлем</span></div>
+                            <div style="margin-top:16px; padding:12px; background:rgba(31,111,235,0.12); border:1px solid rgba(88,166,255,0.3); border-radius:8px;">
+                                <div style="font-weight:700; color:#79C0FF; margin-bottom:4px;">💡 Подсказка по статьям УК РП при задержании:</div>
+                                <div style="font-size:11.5px; color:#C9D1D9; margin-bottom:8px;">Введите в чат команду <strong>/укрп</strong> + номер статьи (например <strong>/укрп5.8</strong>) для автоматического разъяснения прав и статьи гражданину.</div>
+                                <button class="btn-fluent" onclick="switchTab(5)">📙 Открыть поиск по УК РП и КоАП</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 5: БАЗА ЗАКОНОВ (ЖИВОЙ ПОИСК) ================= -->
+            <div class="tab-pane" id="tab-5">
+                <div class="search-bar-wrap">
+                    <input type="text" id="law-search-input" class="search-input" placeholder="🔎 Введите статью, слово или нарушение (например: тонировка, 5.2, встречка, взятка, оружие)..." onkeyup="renderLawsTable()">
+                    <button class="filter-pill active" id="lfilt-ALL" onclick="setLawFilter('ALL')">Все</button>
+                    <button class="filter-pill" id="lfilt-КоАП" onclick="setLawFilter('КоАП')">📕 КоАП</button>
+                    <button class="filter-pill" id="lfilt-УКРП" onclick="setLawFilter('УКРП')">📙 УК РП</button>
+                    <button class="filter-pill" id="lfilt-ФЗоП" onclick="setLawFilter('ФЗоП')">📘 ФЗоП</button>
+                    <button class="filter-pill" id="lfilt-ПДД" onclick="setLawFilter('ПДД')">📗 ПДД</button>
+                    <button class="btn-fluent" style="margin-left:8px; margin-right:0;" onclick="callAhk('open_calc')">⚖️ Калькулятор</button>
+                </div>
+
+                <div class="fluent-table-wrap">
+                    <table class="fluent-table">
+                        <thead>
+                            <tr>
+                                <th style="width:85px;">Кодекс</th>
+                                <th style="width:80px;">Статья</th>
+                                <th style="width:110px;">Команда</th>
+                                <th style="width:210px;">Санкция / Наказание</th>
+                                <th>Описание правонарушения / нормы</th>
+                            </tr>
+                        </thead>
+                        <tbody id="laws-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 6: ЛЕКЦИИ И ПМП ================= -->
+            <div class="tab-pane" id="tab-6">
+                <div class="grid-row">
+                    <div class="col-6">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <span class="card-title">🎓 Лекции для состава (1–23)</span>
+                                <span class="card-subtitle">Отмена лекции: F12</span>
+                            </div>
+                            <div style="max-height:460px; overflow-y:auto; padding-right:4px;">
+                                <div class="bind-row"><span class="bind-name">1. Правила пользования рацией</span><span class="bind-key cmd" onclick="copyCmd('/лекция1')">/лекция1</span></div>
+                                <div class="bind-row"><span class="bind-name">2. Субординация и общение</span><span class="bind-key cmd" onclick="copyCmd('/лекция2')">/лекция2</span></div>
+                                <div class="bind-row"><span class="bind-name">3. Правила патрулирования</span><span class="bind-key cmd" onclick="copyCmd('/лекция3')">/лекция3</span></div>
+                                <div class="bind-row"><span class="bind-name">4. Спецсигналы (СГУ и маячок)</span><span class="bind-key cmd" onclick="copyCmd('/лекция4')">/лекция4</span></div>
+                                <div class="bind-row"><span class="bind-name">5. Правила поведения в строю</span><span class="bind-key cmd" onclick="copyCmd('/лекция5')">/лекция5</span></div>
+                                <div class="bind-row"><span class="bind-name">6. Тен-коды и маркировки</span><span class="bind-key cmd" onclick="copyCmd('/лекция6')">/лекция6</span></div>
+                                <div class="bind-row"><span class="bind-name">7. Ведение погони и стрельба</span><span class="bind-key cmd" onclick="copyCmd('/лекция7')">/лекция7</span></div>
+                                <div class="bind-row"><span class="bind-name">8. Составление адм. протокола</span><span class="bind-key cmd" onclick="copyCmd('/лекция8')">/лекция8</span></div>
+                                <div class="bind-row"><span class="bind-name">9. Культура общения с гражданами</span><span class="bind-key cmd" onclick="copyCmd('/лекция9')">/лекция9</span></div>
+                                <div class="bind-row"><span class="bind-name">10. Табельное оружие</span><span class="bind-key cmd" onclick="copyCmd('/лекция10')">/лекция10</span></div>
+                                <div class="bind-row"><span class="bind-name">11. Обработка вызовов</span><span class="bind-key cmd" onclick="copyCmd('/лекция11')">/лекция11</span></div>
+                                <div class="bind-row"><span class="bind-name">12. Заступление в патруль</span><span class="bind-key cmd" onclick="copyCmd('/лекция12')">/лекция12</span></div>
+                                <div class="bind-row"><span class="bind-name">13. Несение службы на посту</span><span class="bind-key cmd" onclick="copyCmd('/лекция13')">/лекция13</span></div>
+                                <div class="bind-row"><span class="bind-name">14. Правила после рабочего дня</span><span class="bind-key cmd" onclick="copyCmd('/лекция14')">/лекция14</span></div>
+                                <div class="bind-row"><span class="bind-name">15. Выписка штрафов (/tsu)</span><span class="bind-key cmd" onclick="copyCmd('/лекция15')">/лекция15</span></div>
+                                <div class="bind-row"><span class="bind-name">16. Конвоирование задержанных</span><span class="bind-key cmd" onclick="copyCmd('/лекция16')">/лекция16</span></div>
+                                <div class="bind-row"><span class="bind-name">17. Личный обыск</span><span class="bind-key cmd" onclick="copyCmd('/лекция17')">/лекция17</span></div>
+                                <div class="bind-row"><span class="bind-name">18. Извлечение нарушителя из ТС</span><span class="bind-key cmd" onclick="copyCmd('/лекция18')">/лекция18</span></div>
+                                <div class="bind-row"><span class="bind-name">19. Применение спецсредств</span><span class="bind-key cmd" onclick="copyCmd('/лекция19')">/лекция19</span></div>
+                                <div class="bind-row"><span class="bind-name">20. Угроза теракта</span><span class="bind-key cmd" onclick="copyCmd('/лекция20')">/лекция20</span></div>
+                                <div class="bind-row"><span class="bind-name">21. Если вы стали заложником</span><span class="bind-key cmd" onclick="copyCmd('/лекция21')">/лекция21</span></div>
+                                <div class="bind-row"><span class="bind-name">22. Оформление ДТП</span><span class="bind-key cmd" onclick="copyCmd('/лекция22')">/лекция22</span></div>
+                                <div class="bind-row"><span class="bind-name">23. Законные основания ФЗоП</span><span class="bind-key cmd" onclick="copyCmd('/лекция23')">/лекция23</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="glass-card" style="height:auto; margin-bottom:14px;">
+                            <div class="card-header"><span class="card-title">🩹 Первая Медицинская Помощь (ПМП)</span></div>
+                            <div class="bind-row"><span class="bind-name">Базовый комплекс ПМП (аптечка, осмотр, пульс, нашатырь)</span><span class="bind-key cmd" onclick="copyCmd('/пмп1')">/пмп1 .. /пмп6</span></div>
+                            <div class="bind-row"><span class="bind-name">Непрямой массаж сердца / Нет пульса (СЛР)</span><span class="bind-key cmd" onclick="copyCmd('/массаж')">/массаж | /пульс-</span></div>
+                            <div class="bind-row"><span class="bind-name">Остановка кровотечения / Пулевое ранение</span><span class="bind-key cmd" onclick="copyCmd('/кровь')">/кровь | /пулевое</span></div>
+                            <div class="bind-row"><span class="bind-name">Закрытый / Открытый перелом (шина)</span><span class="bind-key cmd" onclick="copyCmd('/переломз')">/переломз | /переломо</span></div>
+                            <div class="bind-row"><span class="bind-name">Осмотр ранений / Ушиб / Ожоги</span><span class="bind-key cmd" onclick="copyCmd('/оранения')">/оранения | /ушиб | /ожог</span></div>
+                        </div>
+
+                        <div class="glass-card" style="height:auto;">
+                            <div class="card-header"><span class="card-title">📋 Собеседование и Старший Состав</span></div>
+                            <div class="bind-row"><span class="bind-name">Помощь на собеседовании / Этапы I и II</span><span class="bind-key cmd" onclick="copyCmd('/помощьсобес')">/помощьсобес | /собес1..18</span></div>
+                            <div class="bind-row"><span class="bind-name">Проверка паспорта, трудовой, диплома, ВУ, медкарты, ВБ</span><span class="bind-key cmd" onclick="copyCmd('/пасс1')">/пасс1 | /труд1 | /ву1 | /вб1</span></div>
+                            <div class="bind-row"><span class="bind-name">Выдать форму / Выдать погоны</span><span class="bind-key cmd" onclick="copyCmd('/выдформу')">/выдформу | /выдпогоны</span></div>
+                            <div class="bind-row"><span class="bind-name">КПК: Принятие / Повышение / Понижение / Увольнение</span><span class="bind-key cmd" onclick="copyCmd('/кпкпринятие')">/кпкпринятие | /кпкувал</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 7: КЛАВИШИ И СВОИ БИНДЫ ================= -->
+            <div class="tab-pane" id="tab-7">
+                <div class="search-bar-wrap" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <input type="text" id="hk-search-input" class="search-input" placeholder="🔎 Поиск горячей клавиши, действия или команды (например: розыск, wcar, F8, штраф)..." oninput="renderHotkeysTable()" onkeyup="renderHotkeysTable()" onchange="renderHotkeysTable()">
+                    <button class="filter-pill active" id="hkfilt-ALL" onclick="setHkFilter('ALL')">Все</button>
+                    <button class="filter-pill" id="hkfilt-Основное" onclick="setHkFilter('Основное')">Основное</button>
+                    <button class="filter-pill" id="hkfilt-Оформление" onclick="setHkFilter('Оформление')">Оформление</button>
+                    <button class="filter-pill" id="hkfilt-Задержание" onclick="setHkFilter('Задержание')">Задержание</button>
+                    <button class="filter-pill" id="hkfilt-Патруль" onclick="setHkFilter('Патруль')">Патруль</button>
+                    <button class="filter-pill" id="hkfilt-Мегафон" onclick="setHkFilter('Мегафон')">Мегафон</button>
+                    <button class="filter-pill" id="hkfilt-Система" onclick="setHkFilter('Система')">Система</button>
+                    <button class="btn-fluent" onclick="callAhk('open_custom_binds')">➕ Создать свой бинд</button>
+                    <button class="btn-glass" onclick="callAhk('reset_all_hotkeys')" style="margin-right:0;">⚠️ Сбросить все по умолчанию</button>
+                </div>
+
+                <div class="fluent-table-wrap">
+                    <table class="fluent-table">
+                        <thead>
+                            <tr>
+                                <th style="width:140px;">Категория</th>
+                                <th>Действие / Отыгровка</th>
+                                <th style="width:150px;">Текущая клавиша</th>
+                                <th style="width:140px;">По умолчанию</th>
+                                <th style="width:120px;">Управление</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hotkeys-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= ВКЛАДКА 8: ЖУРНАЛ СМЕНЫ И ОТЧЁТ ================= -->
+            <div class="tab-pane" id="tab-8">
+                <div class="grid-row" style="margin-bottom:4px;">
+                    <div class="col-4">
+                        <div class="kpi-box">
+                            <div class="kpi-val" id="j-kpi-pts">0 / 20</div>
+                            <div class="kpi-lbl">Баллы нормы на форум</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="kpi-box">
+                            <div class="kpi-val" id="j-kpi-fines" style="color:#7EE787;">0 шт.</div>
+                            <div class="kpi-lbl">Выписано штрафов (/tsu)</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="kpi-box">
+                            <div class="kpi-val" id="j-kpi-arrests" style="color:#FFB84D;">0 / 0</div>
+                            <div class="kpi-lbl">Аресты КПЗ / Лишения ВУ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; margin-bottom:12px;">
+                    <button class="btn-fluent" onclick="callAhk('journal_copy_report')">📋 Скопировать отчёт для форума</button>
+                    <button class="btn-glass" onclick="callAhk('journal_export_csv')">📁 Экспорт в CSV</button>
+                    <button class="btn-glass" onclick="callAhk('journal_add_manual')">➕ Добавить запись</button>
+                    <button class="btn-glass" onclick="callAhk('journal_clear')">🗑️ Очистить смену</button>
+                </div>
+
+                <div class="fluent-table-wrap" style="max-height:390px;">
+                    <table class="fluent-table">
+                        <thead>
+                            <tr>
+                                <th style="width:95px;">Время</th>
+                                <th style="width:140px;">Тип фиксации</th>
+                                <th style="width:150px;">Нарушитель / Цель</th>
+                                <th>Детали / Статьи / Статус</th>
+                                <th style="width:110px;">Сумма (руб)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="journal-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР КоАП / УКРП ================= -->
+<div id="calc-modal" class="modal-backdrop">
+    <div class="modal-card modal-card-large">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">⚖️</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Интерактивный Калькулятор КоАП / УК РП / ПДД</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый расчёт протокола, лишение ВУ и автогенерация команд /tsu и /takecarlic</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeCalcModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <!-- ПОИСК И ФИЛЬТРЫ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
+            <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
+                <option value="ALL">Все кодексы</option>
+                <option value="КоАП">КоАП РП</option>
+                <option value="УКРП">УК РП</option>
+                <option value="ПДД">ПДД РП</option>
+                <option value="ФЗоП">ФЗ «О полиции»</option>
+            </select>
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:12px; font-weight:600; color:#C9D1D9; margin-right:6px;">ID цели:</span>
+                <input type="text" id="calc-target-id" class="fluent-input" style="width:75px; text-align:center; font-weight:bold; color:#FFB84D;" placeholder="ID" oninput="recalcArticles()">
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА СТАТЕЙ КАЛЬКУЛЯТОРА С ЧЕКБОКСАМИ -->
+        <div class="calc-table-box">
+            <table class="fluent-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">✓</th>
+                        <th style="width:70px;">Статья</th>
+                        <th style="width:65px;">Кодекс</th>
+                        <th style="width:105px;">Штраф</th>
+                        <th style="width:230px;">Санкция</th>
+                        <th>Описание нарушения</th>
+                    </tr>
+                </thead>
+                <tbody id="calc-articles-tbody">
+                    <!-- Заполняется динамически -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- СВОДНЫЕ СВЕТЯЩИЕСЯ ИНДИКАТОРЫ -->
+        <div class="calc-summary-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div id="calc-selected-count-txt" style="font-size:12px; font-weight:700; color:#58A6FF;">Выбрано статей: 0</div>
+                <div id="calc-fine-total-txt" style="font-size:13px; font-weight:800; color:#7EE787;">💰 ИТОГО ШТРАФ: 0 руб. (лимит /tsu — 100.000 руб.)</div>
+            </div>
+
+            <div style="display:flex; margin-bottom:6px;">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#8B949E;">Команда штрафа (/tsu до 100к):</span>
+                    <input type="text" id="calc-cmd-tsu" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#79C0FF;" readonly value="/tsu ID 0">
+                </div>
+                <div style="width:280px;">
+                    <span style="font-size:11px; color:#8B949E;">Лишение ВУ (/takecarlic):</span>
+                    <input type="text" id="calc-cmd-lic" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FF7B72;" readonly value="/takecarlic ID [Нет лишения]">
+                </div>
+            </div>
+
+            <div id="calc-overflow-row" style="display:none; align-items:center; padding-top:6px; border-top:1px dashed rgba(255,184,77,0.35);">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#FFB84D;">⚠️ Остаток штрафа (>100.000 руб.):</span>
+                    <input type="text" id="calc-cmd-overflow" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FFB84D;" readonly value="">
+                </div>
+                <button class="btn-glass" style="margin-top:14px;" onclick="copyOverflowCmd()">📋 Скопировать остаток</button>
+                <button class="btn-glass" style="margin-top:14px;" onclick="sendOverflowCmd()">📝 Ввести остаток в чат</button>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЙ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-fluent" onclick="executePlayAndTsu()">📝 Отыграть и выписать /tsu</button>
+                <button class="btn-glass" onclick="copyTsuCmd()">📋 Скопировать /tsu</button>
+                <button class="btn-fluent" style="background:linear-gradient(135deg, #DA3633, #F85149); border-color:#FF7B72;" onclick="executePlayAndLic()">🪪 Отыграть лишение ВУ</button>
+                <button class="btn-glass" onclick="speakSelectedArticles()">📢 Зачитать статьи вслух</button>
+            </div>
+            <div>
+                <button class="btn-glass" onclick="clearCalcSelections()">🧹 Сброс</button>
+                <button class="btn-glass" style="margin-right:0;" onclick="closeCalcModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ПОЛЕЗНЫЕ ССЫЛКИ И ПОРТАЛ МВД ================= -->
+<div id="links-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:780px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">🔗</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Полезные ссылки и материалы МВД Провинции</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый переход на официальные разделы форума, законы и карту радаров</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeLinksModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <div class="links-grid">
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2aYR', 'Форум МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🏛️ Общий раздел МВД</div>
+                        <div class="link-desc">Главный форумный раздел Министерства внутренних дел</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/czQG8U', 'ФЗ о полиции')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📜 ФЗ «О полиции» (ФЗоП)</div>
+                        <div class="link-desc">Закон о правах, обязанностях и применении оружия/силы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b82', 'ГУ МВД Приволжск')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-П (Приволжск)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы Приволжска</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94q1', 'КоАП РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📕 КоАП Республики Провинция</div>
+                        <div class="link-desc">Кодекс об административных правонарушениях и штрафы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b9H', 'ГУ МВД Мирный')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-М (Мирный)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и темы города Мирный</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94mS', 'УПК РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">⚖️ Уголовный Кодекс (УК РП)</div>
+                        <div class="link-desc">Статьи уголовных преступлений и сроки заключения</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/ceDIz5', 'ГУ МВД Невский')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-Н (Невский)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы города Невский</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94ui', 'ПДД РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚦 Правила Дорожного Движения</div>
+                        <div class="link-desc">ПДД Республики Провинция и правила проезда перекрёстков</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cO3BPY', 'Карта радаров')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📸 Камеры и радары Провинции</div>
+                        <div class="link-desc">Интерактивная карта скоростных радаров всех городов</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cAsupD', 'Методичка ГУ МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📘 Методичка сотрудника ГУ МВД</div>
+                        <div class="link-desc">Правила несения службы, процессуальные нормы и порядок</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-glass" onclick="callAhk('open_moyak_memo')">🚨 Режимы маячков (1–6)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.com/id218945813', 'ВК автора')">👨‍💻 Автор сборки</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeLinksModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<!-- FLUENT GLASS МОДАЛЬНОЕ ОКНО АНКЕТЫ СОТРУДНИКА -->
+<div class="modal-backdrop" id="profile-modal">
+    <div class="modal-card">
+        <div class="card-header" style="margin-bottom:14px;">
+            <span class="card-title" style="font-size:15px;">👤 Личная анкета сотрудника ГУ МВД</span>
+            <span class="card-subtitle" style="cursor:pointer; color:#FF7B72; font-weight:700;" onclick="closeProfileModal()">✕ ЗАКРЫТЬ</span>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Город управления:</div>
+            <div class="form-ctrl">
+                <select id="pf-frak" class="fluent-select" style="width:100%;" onchange="onModalCityChange()">
+                    <option value="Приволжск">Приволжск (ГУ МВД-П)</option>
+                    <option value="Мирный">Мирный (ГУ МВД-М)</option>
+                    <option value="Невский">Невский (ГУ МВД-Н)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">ФИО (Иванов Иван Иванович):</div>
+            <div class="form-ctrl">
+                <input type="text" id="pf-fio" class="fluent-input" style="width:100%;">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Специальное звание:</div>
+            <div class="form-ctrl">
+                <select id="pf-rank" class="fluent-select" style="width:100%;">
+                    <option value="Рядовой">Рядовой</option>
+                    <option value="Сержант">Сержант</option>
+                    <option value="Старшина">Старшина</option>
+                    <option value="Прапорщик">Прапорщик</option>
+                    <option value="Лейтенант">Лейтенант</option>
+                    <option value="Старший лейтенант">Старший лейтенант</option>
+                    <option value="Капитан">Капитан</option>
+                    <option value="Майор">Майор</option>
+                    <option value="Подполковник">Подполковник</option>
+                    <option value="Полковник">Полковник</option>
+                    <option value="Генерал-майор">Генерал-майор</option>
+                    <option value="Генерал-лейтенант">Генерал-лейтенант</option>
+                    <option value="Генерал-полковник">Генерал-полковник</option>
+                    <option value="Генерал МВД">Генерал МВД</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Код отдела / Тен-код (ID):</div>
+            <div class="form-ctrl" style="display:flex;">
+                <input type="text" id="pf-teg" class="fluent-input" style="width:48%; margin-right:4%;" placeholder="Код (напр. 61)">
+                <input type="text" id="pf-prop2" class="fluent-input" style="width:48%;" placeholder="ID (напр. 001)">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Нагрудный знак (жетон):</div>
+            <div class="form-ctrl">
+                <input type="text" id="pf-znak" class="fluent-input" style="width:100%;" placeholder="77-000000">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Должность (Инспектор ОР):</div>
+            <div class="form-ctrl">
+                <input type="text" id="pf-otdel" class="fluent-input" style="width:100%;">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-lbl">Подразделение / Пол / Взвод:</div>
+            <div class="form-ctrl" style="display:flex;">
+                <select id="pf-gibdd" class="fluent-select" style="width:34%; margin-right:3%;">
+                    <option value="ГУ МВД-П">ГУ МВД-П</option>
+                    <option value="ГУ МВД-М">ГУ МВД-М</option>
+                    <option value="ГУ МВД-Н">ГУ МВД-Н</option>
+                </select>
+                <select id="pf-gender" class="fluent-select" style="width:34%; margin-right:3%;">
+                    <option value="Я мужык">Мужской</option>
+                    <option value="Я девочка">Женский</option>
+                </select>
+                <select id="pf-checkmb" class="fluent-select" style="width:26%;">
+                    <option value="ОР/СР">ОР/СР</option>
+                    <option value="МР">МР</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:16px; padding-top:12px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div>
+                <button class="btn-fluent" onclick="saveProfileModal()">💾 Сохранить изменения</button>
+                <button class="btn-glass" onclick="callAhk('open_profile')">📂 Расширенная анкета (Лог MTA)</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeProfileModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР КоАП / УКРП ================= -->
+<div id="calc-modal" class="modal-backdrop">
+    <div class="modal-card modal-card-large">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">⚖️</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Интерактивный Калькулятор КоАП / УК РП / ПДД</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый расчёт протокола, лишение ВУ и автогенерация команд /tsu и /takecarlic</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeCalcModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <!-- ПОИСК И ФИЛЬТРЫ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
+            <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
+                <option value="ALL">Все кодексы</option>
+                <option value="КоАП">КоАП РП</option>
+                <option value="УКРП">УК РП</option>
+                <option value="ПДД">ПДД РП</option>
+                <option value="ФЗоП">ФЗ «О полиции»</option>
+            </select>
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:12px; font-weight:600; color:#C9D1D9; margin-right:6px;">ID цели:</span>
+                <input type="text" id="calc-target-id" class="fluent-input" style="width:75px; text-align:center; font-weight:bold; color:#FFB84D;" placeholder="ID" oninput="recalcArticles()">
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА СТАТЕЙ КАЛЬКУЛЯТОРА С ЧЕКБОКСАМИ -->
+        <div class="calc-table-box">
+            <table class="fluent-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">✓</th>
+                        <th style="width:70px;">Статья</th>
+                        <th style="width:65px;">Кодекс</th>
+                        <th style="width:105px;">Штраф</th>
+                        <th style="width:230px;">Санкция</th>
+                        <th>Описание нарушения</th>
+                    </tr>
+                </thead>
+                <tbody id="calc-articles-tbody">
+                    <!-- Заполняется динамически -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- СВОДНЫЕ СВЕТЯЩИЕСЯ ИНДИКАТОРЫ -->
+        <div class="calc-summary-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div id="calc-selected-count-txt" style="font-size:12px; font-weight:700; color:#58A6FF;">Выбрано статей: 0</div>
+                <div id="calc-fine-total-txt" style="font-size:13px; font-weight:800; color:#7EE787;">💰 ИТОГО ШТРАФ: 0 руб. (лимит /tsu — 100.000 руб.)</div>
+            </div>
+
+            <div style="display:flex; margin-bottom:6px;">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#8B949E;">Команда штрафа (/tsu до 100к):</span>
+                    <input type="text" id="calc-cmd-tsu" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#79C0FF;" readonly value="/tsu ID 0">
+                </div>
+                <div style="width:280px;">
+                    <span style="font-size:11px; color:#8B949E;">Лишение ВУ (/takecarlic):</span>
+                    <input type="text" id="calc-cmd-lic" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FF7B72;" readonly value="/takecarlic ID [Нет лишения]">
+                </div>
+            </div>
+
+            <div id="calc-overflow-row" style="display:none; align-items:center; padding-top:6px; border-top:1px dashed rgba(255,184,77,0.35);">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#FFB84D;">⚠️ Остаток штрафа (>100.000 руб.):</span>
+                    <input type="text" id="calc-cmd-overflow" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FFB84D;" readonly value="">
+                </div>
+                <button class="btn-glass" style="margin-top:14px;" onclick="copyOverflowCmd()">📋 Скопировать остаток</button>
+                <button class="btn-glass" style="margin-top:14px;" onclick="sendOverflowCmd()">📝 Ввести остаток в чат</button>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЙ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-fluent" onclick="executePlayAndTsu()">📝 Отыграть и выписать /tsu</button>
+                <button class="btn-glass" onclick="copyTsuCmd()">📋 Скопировать /tsu</button>
+                <button class="btn-fluent" style="background:linear-gradient(135deg, #DA3633, #F85149); border-color:#FF7B72;" onclick="executePlayAndLic()">🪪 Отыграть лишение ВУ</button>
+                <button class="btn-glass" onclick="speakSelectedArticles()">📢 Зачитать статьи вслух</button>
+            </div>
+            <div>
+                <button class="btn-glass" onclick="clearCalcSelections()">🧹 Сброс</button>
+                <button class="btn-glass" style="margin-right:0;" onclick="closeCalcModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ПОЛЕЗНЫЕ ССЫЛКИ И ПОРТАЛ МВД ================= -->
+<div id="links-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:780px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">🔗</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Полезные ссылки и материалы МВД Провинции</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый переход на официальные разделы форума, законы и карту радаров</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeLinksModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <div class="links-grid">
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2aYR', 'Форум МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🏛️ Общий раздел МВД</div>
+                        <div class="link-desc">Главный форумный раздел Министерства внутренних дел</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/czQG8U', 'ФЗ о полиции')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📜 ФЗ «О полиции» (ФЗоП)</div>
+                        <div class="link-desc">Закон о правах, обязанностях и применении оружия/силы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b82', 'ГУ МВД Приволжск')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-П (Приволжск)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы Приволжска</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94q1', 'КоАП РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📕 КоАП Республики Провинция</div>
+                        <div class="link-desc">Кодекс об административных правонарушениях и штрафы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b9H', 'ГУ МВД Мирный')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-М (Мирный)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и темы города Мирный</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94mS', 'УПК РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">⚖️ Уголовный Кодекс (УК РП)</div>
+                        <div class="link-desc">Статьи уголовных преступлений и сроки заключения</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/ceDIz5', 'ГУ МВД Невский')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 ГУ МВД-Н (Невский)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы города Невский</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94ui', 'ПДД РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚦 Правила Дорожного Движения</div>
+                        <div class="link-desc">ПДД Республики Провинция и правила проезда перекрёстков</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cO3BPY', 'Карта радаров')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📸 Камеры и радары Провинции</div>
+                        <div class="link-desc">Интерактивная карта скоростных радаров всех городов</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cAsupD', 'Методичка ГУ МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📘 Методичка сотрудника ГУ МВД</div>
+                        <div class="link-desc">Правила несения службы, процессуальные нормы и порядок</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-glass" onclick="callAhk('open_moyak_memo')">🚨 Режимы маячков (1–6)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.com/id218945813', 'ВК автора')">👨‍💻 Автор сборки</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeLinksModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: НАСТРОЙКА КЛАВИШИ ================= -->
+<div id="hotkey-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:580px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">⌨️</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Переназначение горячей клавиши</div>
+                    <div id="modal-hk-subname" style="font-size:11.5px; color:#FFB84D; font-weight:600;">Название бинда</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeHotkeyModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <div style="background:rgba(10,16,30,0.85); border:1px solid rgba(56,139,253,0.25); border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+            <div id="modal-hk-info" style="font-size:11.5px; color:#8B949E;">Текущая: <span style="color:#79C0FF; font-weight:bold;">[—]</span> | По умолчанию: <span style="color:#C9D1D9;">[—]</span></div>
+        </div>
+
+        <!-- СПОСОБ 1 -->
+        <div style="margin-bottom:12px;">
+            <div style="font-size:12px; font-weight:600; color:#C9D1D9; margin-bottom:5px;">Способ 1: Кликните в поле и нажмите любую клавишу:</div>
+            <input type="text" id="modal-hk-input" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-size:13px; font-weight:bold; color:#FFB84D;" placeholder="Нажмите клавишу или сочетание..." onkeydown="onHotkeyInputKeyDown(event)" readonly>
+        </div>
+
+        <!-- СПОСОБ 2 -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px; font-weight:600; color:#C9D1D9; margin-bottom:5px;">Способ 2: Спецклавиша или модификаторы:</div>
+            <div style="display:flex; align-items:center;">
+                <label style="font-size:12px; color:#E6EDF3; margin-right:12px; cursor:pointer;"><input type="checkbox" id="modal-hk-ctrl" onchange="buildManualHotkey()"> Ctrl</label>
+                <label style="font-size:12px; color:#E6EDF3; margin-right:12px; cursor:pointer;"><input type="checkbox" id="modal-hk-alt" onchange="buildManualHotkey()"> Alt</label>
+                <label style="font-size:12px; color:#E6EDF3; margin-right:14px; cursor:pointer;"><input type="checkbox" id="modal-hk-shift" onchange="buildManualHotkey()"> Shift</label>
+                <select id="modal-hk-spec" class="fluent-select" style="flex:1;" onchange="buildManualHotkey()">
+                    <option value="">(Нет спецклавиши)</option>
+                    <option value="PrintScreen">PrintScreen</option>
+                    <option value="ScrollLock">ScrollLock</option>
+                    <option value="Delete">Delete</option>
+                    <option value="Insert">Insert</option>
+                    <option value="Home">Home</option>
+                    <option value="End">End</option>
+                    <option value="Backspace">Backspace</option>
+                    <option value="Space">Space</option>
+                    <option value="Tab">Tab</option>
+                    <option value="sc29">sc29 (Ё / ~)</option>
+                    <option value="F1">F1</option>
+                    <option value="F2">F2</option>
+                    <option value="F3">F3</option>
+                    <option value="F4">F4</option>
+                    <option value="F5">F5</option>
+                    <option value="F6">F6</option>
+                    <option value="F7">F7</option>
+                    <option value="F8">F8</option>
+                    <option value="F9">F9</option>
+                    <option value="F10">F10</option>
+                    <option value="F11">F11</option>
+                    <option value="F12">F12</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЯ -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div>
+                <button class="btn-fluent" onclick="saveHotkeyModal()">✅ Сохранить клавишу</button>
+                <button class="btn-glass" onclick="resetHotkeyModal()">🔄 По умолчанию</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeHotkeyModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: МОБИЛЬНЫЙ БОРТОВОЙ ПЛАНШЕТ -->
+<div id="tablet-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:560px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">📱</span>
+                <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Бортовой планшет МВД (Второй экран)</div>
+            </div>
+            <div class="win-btn close" onclick="closeTabletModal()" style="font-size:14px;">✕</div>
+        </div>
+        
+        <div style="font-size:12.5px; color:#C9D1D9; margin:10px 0 14px 0; line-height:1.4;">
+            Управляйте патрулем, мегафоном, задержанием и статьями прямо с экрана смартфона или планшета рядом с монитором!
+        </div>
+
+        <div style="display:flex; justify-content:center; margin-bottom:14px;">
+            <div style="background:#FFF; padding:10px; border-radius:12px; display:inline-block; box-shadow:0 0 20px rgba(56,139,253,0.35);">
+                <img id="tablet-qr-img" src="" alt="QR Код" style="width:180px; height:180px; display:block;">
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="background:rgba(88,166,255,0.15); border:1px solid rgba(88,166,255,0.4); border-radius:8px; padding:6px 18px; font-size:16px; font-weight:800; color:#79C0FF; letter-spacing:1px;" id="tablet-pin-badge">PIN: 7788</div>
+        </div>
+
+        <div style="background:rgba(10,16,30,0.85); border:1px solid rgba(56,139,253,0.3); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">http://152.234.229.245:3000/?pin=7788</span>
+            <button class="btn-fluent" onclick="copyTabletUrl()" style="padding:4px 12px; font-size:11px;">📋 Скопировать</button>
+        </div>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+            <div style="background:rgba(46,160,67,0.18); border:1px solid rgba(46,160,67,0.45); color:#7EE787; font-weight:700; font-size:11.5px; padding:4px 12px; border-radius:12px;" id="tablet-server-status">☁️ Облачный релей VPS (152.234.229.245)</div>
+            <button class="btn-glass" onclick="callAhk('open_web_url', document.getElementById('tablet-url-txt').innerText)" style="padding:4px 10px; font-size:11px;">🌐 Открыть в браузере</button>
+        </div>
+
+        <div style="font-size:11.5px; color:#8B949E; text-align:left; background:rgba(22,34,62,0.4); border-radius:8px; padding:10px 12px; margin-bottom:16px;">
+            <div style="color:#79C0FF; font-weight:bold; margin-bottom:4px;">💡 Как подключить телефон или планшет:</div>
+            1. <b>Работает через любой интернет</b> — мобильный 4G/LTE, любой Wi-Fi или раздачу с телефона!<br>
+            2. Наведите камеру телефона на QR-код или откройте ссылку в мобильном браузере.<br>
+            3. Планшет мгновенно подключится к вашему борту по защищённому PIN-коду.<br>
+            4. Поставьте телефон на подставку под монитором и нажимайте отыгровки в 1 касание!
+        </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+            <button class="btn-glass" onclick="closeTabletModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-box">Скопировано!</div>
+
+<script>
+var APP_DATA = /*__AHK_INITIAL_DATA__*/ {};
+var currentLawFilter = 'ALL';
+var selectedCalcCmds = {};
+var lastKnownTargetId = '';
+
+function callAhk(action, arg1, arg2) {
+    try {
+        if (window.ahk_call) {
+            window.ahk_call(action, arg1 || '', arg2 || '');
+        }
+    } catch (e) {}
+}
+
+function openWebUrl(url, title) {
+    callAhk('open_web_url', url);
+    showToast('🌐 Открываю: ' + (title || url));
+}
+
+function openLinksModal() {
+    var m = document.getElementById('links-modal');
+    if (m) m.style.display = 'flex';
+}
+
+function closeLinksModal() {
+    var m = document.getElementById('links-modal');
+    if (m) m.style.display = 'none';
+}
+
+function openTabletModal() {
+    var relayUrl = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayUrl) ? APP_DATA.profile.relayUrl : 'http://152.234.229.245:3000';
+    var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+    var pin = p.tabletPin || p.teg || '51';
+    var url = relayUrl + '/?pin=' + pin;
+
+    var txt = document.getElementById('tablet-url-txt');
+    if (txt) txt.innerText = url;
+
+    var pinBadge = document.getElementById('tablet-pin-badge');
+    if (pinBadge) pinBadge.innerText = 'PIN экипажа: ' + pin;
+
+    var statusEl = document.getElementById('tablet-server-status');
+    if (statusEl) {
+        var isOnline = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayOnline);
+        statusEl.innerHTML = isOnline ? '🟢 Облачный релей активен (152.234.229.245)' : '☁️ Облачный релей VPS (152.234.229.245)';
+    }
+
+    var qr = document.getElementById('tablet-qr-img');
+    if (qr) {
+        qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(url);
+    }
+
+    var m = document.getElementById('tablet-modal');
+    if (m) m.style.display = 'flex';
+}
+
+function closeTabletModal() {
+    var m = document.getElementById('tablet-modal');
+    if (m) m.style.display = 'none';
+}
+
+function copyTabletUrl() {
+    var txt = document.getElementById('tablet-url-txt');
+    if (txt && window.clipboardData) {
+        window.clipboardData.setData('Text', txt.innerText);
+        showToast('📋 Ссылка скопирована: ' + txt.innerText);
+    } else if (txt) {
+        callAhk('copy_cmd', txt.innerText);
+        showToast('📋 Ссылка скопирована: ' + txt.innerText);
+    }
+}
+
+function openCalcModal() {
+    var m = document.getElementById('calc-modal');
+    if (!m) return;
+    m.style.display = 'flex';
+    var tidEl = document.getElementById('calc-target-id');
+    if (tidEl && (!tidEl.value || tidEl.value === 'ID')) {
+        tidEl.value = lastKnownTargetId || '';
+    }
+    filterCalcArticles();
+    var sInput = document.getElementById('calc-search');
+    if (sInput) {
+        setTimeout(function() {
+            try { sInput.focus(); sInput.select(); } catch(e){}
+        }, 100);
+    }
+}
+
+function closeCalcModal() {
+    var m = document.getElementById('calc-modal');
+    if (m) m.style.display = 'none';
+}
+
+function toggleCalcArticle(cmdStr) {
+    if (selectedCalcCmds[cmdStr]) {
+        delete selectedCalcCmds[cmdStr];
+    } else {
+        selectedCalcCmds[cmdStr] = true;
+    }
+    recalcArticles();
+}
+
+function filterCalcArticles() {
+    var q = (document.getElementById('calc-search').value || '').toLowerCase();
+    var code = document.getElementById('calc-filter-code').value;
+    var tbody = document.getElementById('calc-articles-tbody');
+    if (!tbody || !APP_DATA.articles) return;
+
+    var list = APP_DATA.articles;
+    var html = [];
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (code !== 'ALL' && a.code !== code) continue;
+        if (q) {
+            var hay = (a.code + ' ' + a.num + ' ' + a.cmd + ' ' + a.sanction + ' ' + a.desc).toLowerCase();
+            if (hay.indexOf(q) === -1) continue;
+        }
+
+        var isChecked = !!selectedCalcCmds[a.cmd];
+        var rowBg = isChecked ? ' style="background:rgba(56,139,253,0.18);"' : '';
+        var bClass = (a.code === 'КоАП') ? 'koap' : ((a.code === 'УКРП' || a.code === 'УК') ? 'uk' : ((a.code === 'ФЗоП') ? 'fzop' : 'pdd'));
+
+        html.push('<tr' + rowBg + ' onclick="toggleCalcArticle(\'' + a.cmd + '\')" style="cursor:pointer;">');
+        html.push('<td style="text-align:center;"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onclick="stopProp(event); toggleCalcArticle(\'' + a.cmd + '\');"></td>');
+        html.push('<td style="font-weight:700; color:#FFB84D; font-family:Consolas,monospace;">' + a.num + '</td>');
+        html.push('<td><span class="code-badge ' + bClass + '">' + a.code + '</span></td>');
+        html.push('<td style="color:' + (a.fine > 0 ? '#7EE787' : '#8B949E') + '; font-weight:700;">' + (a.fine > 0 ? a.fine + ' руб.' : '—') + '</td>');
+        html.push('<td style="color:#C9D1D9; font-size:11.5px;">' + a.sanction + '</td>');
+        html.push('<td style="color:#E6EDF3; font-size:11.5px;">' + a.desc + '</td>');
+        html.push('</tr>');
+    }
+
+    tbody.innerHTML = html.join('');
+    recalcArticles();
+}
+
+function recalcArticles() {
+    if (!APP_DATA.articles) return;
+    var list = APP_DATA.articles;
+    var targetId = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    var totalFine = 0;
+    var count = 0;
+    var koapNums = [];
+    var ukNums = [];
+    var pddNums = [];
+    var fzopNums = [];
+    var overKoapNums = [];
+    var overUkNums = [];
+    var hasLic = false;
+    var licYears = 0;
+
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (selectedCalcCmds[a.cmd]) {
+            count++;
+            var f = parseInt(a.fine, 10) || 0;
+            totalFine += f;
+
+            if (a.code === 'КоАП') {
+                koapNums.push(a.num);
+                if (totalFine > 100000 && f > 0) overKoapNums.push(a.num);
+            } else if (a.code === 'УКРП' || a.code === 'УК') {
+                ukNums.push(a.num);
+                if (totalFine > 100000 && f > 0) overUkNums.push(a.num);
+            } else if (a.code === 'ПДД') {
+                pddNums.push(a.num);
+            } else if (a.code === 'ФЗоП') {
+                fzopNums.push(a.num);
+            }
+
+            var sLow = (a.sanction + ' ' + a.desc).toLowerCase();
+            if (sLow.indexOf('лишение') !== -1 || sLow.indexOf('лишением') !== -1 || sLow.indexOf('ву') !== -1) {
+                hasLic = true;
+                if (sLow.indexOf('2 года') !== -1 || sLow.indexOf('2-х лет') !== -1) {
+                    if (licYears < 2) licYears = 2;
+                } else if (sLow.indexOf('3 года') !== -1) {
+                    if (licYears < 3) licYears = 3;
+                } else if (sLow.indexOf('1 год') !== -1) {
+                    if (licYears < 1) licYears = 1;
+                } else if (sLow.indexOf('моментальн') !== -1 || sLow.indexOf('переобучен') !== -1) {
+                    if (licYears === 0) licYears = 0;
+                }
+            }
+        }
+    }
+
+    var artParts = [];
+    if (koapNums.length > 0) artParts.push(koapNums.join('+') + ' КоАП');
+    if (ukNums.length > 0) artParts.push(ukNums.join('+') + ' УК');
+    if (pddNums.length > 0) artParts.push(pddNums.join('+') + ' ПДД');
+    if (fzopNums.length > 0) artParts.push(fzopNums.join('+') + ' ФЗоП');
+    var artStr = artParts.join(' ');
+
+    var overParts = [];
+    if (overKoapNums.length > 0) overParts.push(overKoapNums.join('+') + ' КоАП');
+    if (overUkNums.length > 0) overParts.push(overUkNums.join('+') + ' УК');
+    var overArtStr = overParts.length > 0 ? overParts.join(' ') : artStr;
+
+    var cappedFine = Math.min(100000, totalFine);
+    var overflowFine = (totalFine > 100000) ? Math.min(100000, totalFine - 100000) : 0;
+
+    document.getElementById('calc-selected-count-txt').innerText = 'Выбрано статей: ' + count + (count > 0 ? ' (' + artStr + ')' : '');
+    var fineStr = (totalFine > 100000) ? ('💰 ШТРАФ: 100.000 + ' + overflowFine + ' руб. (всего ' + totalFine + ' руб.)') : ('💰 ИТОГО ШТРАФ: ' + totalFine + ' руб.');
+    document.getElementById('calc-fine-total-txt').innerText = fineStr;
+
+    var cmdTsu = count > 0 ? ('/tsu ' + targetId + ' ' + cappedFine + ' ' + artStr) : ('/tsu ' + targetId + ' 0 [Статьи не выбраны]');
+    document.getElementById('calc-cmd-tsu').value = cmdTsu;
+
+    var cmdLic = hasLic ? ('/takecarlic ' + targetId + ' ' + licYears) : ('/takecarlic ' + targetId + ' [Нет лишения]');
+    document.getElementById('calc-cmd-lic').value = cmdLic;
+
+    var ofRow = document.getElementById('calc-overflow-row');
+    if (overflowFine > 0) {
+        ofRow.style.display = 'flex';
+        document.getElementById('calc-cmd-overflow').value = '/tsu ' + targetId + ' ' + overflowFine + ' ' + overArtStr;
+    } else {
+        ofRow.style.display = 'none';
+        document.getElementById('calc-cmd-overflow').value = '';
+    }
+}
+
+function clearCalcSelections() {
+    selectedCalcCmds = {};
+    filterCalcArticles();
+    showToast('🧹 Выбор статей сброшен');
+}
+
+function copyTsuCmd() {
+    var cmd = document.getElementById('calc-cmd-tsu').value;
+    callAhk('copy_cmd', cmd);
+    showToast('📋 Скопировано: ' + cmd);
+}
+
+function copyOverflowCmd() {
+    var cmd = document.getElementById('calc-cmd-overflow').value;
+    if (!cmd) return;
+    callAhk('copy_cmd', cmd);
+    showToast('📋 Скопирован остаток: ' + cmd);
+}
+
+function sendOverflowCmd() {
+    var cmd = document.getElementById('calc-cmd-overflow').value;
+    if (!cmd) return;
+    callAhk('calc_send_overflow', cmd);
+    closeCalcModal();
+}
+
+function executePlayAndTsu() {
+    var cmd = document.getElementById('calc-cmd-tsu').value;
+    var tid = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    var arts = [];
+    var sum = 0;
+    for (var k in selectedCalcCmds) {
+        if (selectedCalcCmds[k]) arts.push(k);
+    }
+    if (arts.length === 0) {
+        alert('Сначала выберите хотя бы одну статью!');
+        return;
+    }
+    callAhk('calc_play_tsu', cmd + '|' + tid);
+    closeCalcModal();
+}
+
+function executePlayAndLic() {
+    var cmd = document.getElementById('calc-cmd-lic').value;
+    var tid = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    if (cmd.indexOf('[Нет лишения]') !== -1) {
+        alert('В выбранных статьях нет лишения ВУ!');
+        return;
+    }
+    callAhk('calc_play_lic', cmd + '|' + tid);
+    closeCalcModal();
+}
+
+function speakSelectedArticles() {
+    var arts = [];
+    for (var k in selectedCalcCmds) {
+        if (selectedCalcCmds[k]) arts.push(k);
+    }
+    if (arts.length === 0) {
+        alert('Отметьте галочкой хотя бы одну статью для зачитывания!');
+        return;
+    }
+    callAhk('calc_speak_articles', arts.join('|'));
+    closeCalcModal();
+}
+
+function callAhk(action, arg1, arg2) {
+    try {
+        if (window.ahk_call) {
+            window.ahk_call(action, arg1 || '', arg2 || '');
+        }
+    } catch (e) {}
+}
+
+function onTitlebarDrag(e) {
+    var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT') return;
+    callAhk('drag_window');
+}
+
+function stopProp(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (window.event) window.event.cancelBubble = true;
+}
+
+function showToast(msg) {
+    var box = document.getElementById('toast-box');
+    if (!box) return;
+    box.innerText = msg;
+    box.style.display = 'block';
+    setTimeout(function() {
+        box.style.display = 'none';
+    }, 2200);
+}
+
+function copyCmd(cmdStr) {
+    callAhk('copy_cmd', cmdStr);
+    showToast('📋 Команда скопирована: ' + cmdStr);
+}
+
+var currentEditingHkId = '';
+
+var RU_EN_MAP = {
+    'й':'q','ц':'w','у':'e','к':'r','е':'t','н':'y','г':'u','ш':'i','щ':'o','з':'p','х':'[','ъ':']',
+    'ф':'a','ы':'s','в':'d','а':'f','п':'g','р':'h','о':'j','л':'k','д':'l','ж':';','э':'\'',
+    'я':'z','ч':'x','с':'c','м':'v','и':'b','т':'n','ь':'m','б':',','ю':'.'
+};
+function ruToEn(str) {
+    if (!str) return '';
+    var res = '';
+    for (var i = 0; i < str.length; i++) {
+        var ch = str.charAt(i);
+        res += (RU_EN_MAP[ch] !== undefined) ? RU_EN_MAP[ch] : ch;
+    }
+    return res;
+}
+
+// При фокусе на любых текстовых полях ввода отключаем горячие клавиши АХК, чтобы не срабатывали игровые бинды
+document.addEventListener('focusin', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+        callAhk('suspend_hotkeys', '1');
+    }
+});
+document.addEventListener('focusout', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+        if (!currentEditingHkId) {
+            callAhk('suspend_hotkeys', '0');
+        }
+    }
+});
+
+function remapKey(hkId) {
+    if (!hkId || !APP_DATA || !APP_DATA.hotkeys) return;
+    var target = null;
+    for (var i = 0; i < APP_DATA.hotkeys.length; i++) {
+        if (APP_DATA.hotkeys[i].id === hkId) {
+            target = APP_DATA.hotkeys[i];
+            break;
+        }
+    }
+    if (!target) return;
+    currentEditingHkId = hkId;
+
+    var nameEl = document.getElementById('modal-hk-subname');
+    if (nameEl) nameEl.innerText = target.name || hkId;
+
+    var infoEl = document.getElementById('modal-hk-info');
+    if (infoEl) {
+        infoEl.innerHTML = 'Текущая: <span style="color:#79C0FF; font-weight:bold;">[' + (target.keyDisp || '—') + ']</span> | По умолчанию: <span style="color:#C9D1D9;">[' + (target.defDisp || '—') + ']</span>';
+    }
+
+    var curKey = target.rawKey || '';
+    var inp = document.getElementById('modal-hk-input');
+    if (inp) inp.value = curKey;
+
+    var hasCtrl = curKey.indexOf('^') !== -1;
+    var hasAlt = curKey.indexOf('!') !== -1;
+    var hasShift = curKey.indexOf('+') !== -1;
+    var baseKey = curKey.replace(/[\^!+]/g, '');
+
+    var cCtrl = document.getElementById('modal-hk-ctrl');
+    var cAlt = document.getElementById('modal-hk-alt');
+    var cShift = document.getElementById('modal-hk-shift');
+    var cSpec = document.getElementById('modal-hk-spec');
+    if (cCtrl) cCtrl.checked = hasCtrl;
+    if (cAlt) cAlt.checked = hasAlt;
+    if (cShift) cShift.checked = hasShift;
+    if (cSpec) {
+        cSpec.value = baseKey;
+    }
+
+    callAhk('suspend_hotkeys', '1');
+
+    var m = document.getElementById('hotkey-modal');
+    if (m) m.style.display = 'flex';
+    if (inp) {
+        setTimeout(function() {
+            try {
+                inp.focus();
+                inp.select();
+            } catch (e) {}
+        }, 80);
+    }
+}
+
+function closeHotkeyModal() {
+    var m = document.getElementById('hotkey-modal');
+    if (m) m.style.display = 'none';
+    currentEditingHkId = '';
+    callAhk('suspend_hotkeys', '0');
+}
+
+function onHotkeyInputKeyDown(e) {
+    if (!e) e = window.event;
+    var code = e.keyCode || e.which;
+
+    if (code === 27) { // Escape
+        closeHotkeyModal();
+        if (e.preventDefault) e.preventDefault();
+        return false;
+    }
+    if (code === 13) { // Enter
+        saveHotkeyModal();
+        if (e.preventDefault) e.preventDefault();
+        return false;
+    }
+
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+
+    // одиночные модификаторы игнорируем
+    if (code === 16 || code === 17 || code === 18 || code === 91 || code === 92) return false;
+
+    var mods = [];
+    if (e.ctrlKey) mods.push('^');
+    if (e.altKey) mods.push('!');
+    if (e.shiftKey) mods.push('+');
+
+    var keyName = '';
+    if (code >= 112 && code <= 123) {
+        keyName = 'F' + (code - 111);
+    } else if (code >= 96 && code <= 105) {
+        keyName = 'Numpad' + (code - 96);
+    } else if (code === 106) {
+        keyName = 'NumpadMult';
+    } else if (code === 107) {
+        keyName = 'NumpadAdd';
+    } else if (code === 109) {
+        keyName = 'NumpadSub';
+    } else if (code === 110) {
+        keyName = 'NumpadDot';
+    } else if (code === 111) {
+        keyName = 'NumpadDiv';
+    } else if (code === 32) {
+        keyName = 'Space';
+    } else if (code === 9) {
+        keyName = 'Tab';
+    } else if (code === 46) {
+        keyName = 'Delete';
+    } else if (code === 45) {
+        keyName = 'Insert';
+    } else if (code === 36) {
+        keyName = 'Home';
+    } else if (code === 35) {
+        keyName = 'End';
+    } else if (code === 8) {
+        keyName = 'Backspace';
+    } else if (code === 192) {
+        keyName = 'sc29';
+    } else if (code >= 65 && code <= 90) {
+        keyName = String.fromCharCode(code).toUpperCase();
+    } else if (code >= 48 && code <= 57) {
+        keyName = String.fromCharCode(code);
+    } else if (e.key && e.key.length === 1) {
+        var k = e.key.toLowerCase();
+        keyName = (RU_EN_MAP[k] || e.key).toUpperCase();
+    }
+
+    if (!keyName) return false;
+
+    var ahkKey = mods.join('') + keyName;
+    var inp = document.getElementById('modal-hk-input');
+    if (inp) inp.value = ahkKey;
+
+    var cCtrl = document.getElementById('modal-hk-ctrl');
+    var cAlt = document.getElementById('modal-hk-alt');
+    var cShift = document.getElementById('modal-hk-shift');
+    var cSpec = document.getElementById('modal-hk-spec');
+    if (cCtrl) cCtrl.checked = e.ctrlKey;
+    if (cAlt) cAlt.checked = e.altKey;
+    if (cShift) cShift.checked = e.shiftKey;
+    if (cSpec) {
+        cSpec.value = keyName;
+    }
+    return false;
+}
+
+function buildManualHotkey() {
+    var mods = [];
+    if (document.getElementById('modal-hk-ctrl').checked) mods.push('^');
+    if (document.getElementById('modal-hk-alt').checked) mods.push('!');
+    if (document.getElementById('modal-hk-shift').checked) mods.push('+');
+    var spec = document.getElementById('modal-hk-spec').value;
+    if (spec) {
+        document.getElementById('modal-hk-input').value = mods.join('') + spec;
+    }
+}
+
+function saveHotkeyModal() {
+    var keyVal = (document.getElementById('modal-hk-input').value || '').trim();
+    if (!keyVal) {
+        alert('Укажите клавишу или спецклавишу!');
+        return;
+    }
+    if (!currentEditingHkId) return;
+
+    callAhk('save_hotkey_web', currentEditingHkId + '|' + keyVal);
+    closeHotkeyModal();
+}
+
+function resetHotkeyModal() {
+    if (!currentEditingHkId) return;
+    callAhk('reset_hotkey_web', currentEditingHkId);
+    closeHotkeyModal();
+}
+
+function switchTab(num) {
+    for (var i = 1; i <= 8; i++) {
+        var nav = document.getElementById('nav-' + i);
+        var pane = document.getElementById('tab-' + i);
+        if (nav) nav.className = (i === num) ? 'nav-item active' : 'nav-item';
+        if (pane) pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
+    }
+    if (num === 7) {
+        renderHotkeysTable();
+        var inp = document.getElementById('hk-search-input');
+        if (inp) {
+            try { inp.focus(); } catch (e) {}
+        }
+    }
+    if (num === 5) {
+        renderLawsTable();
+    }
+    if (num === 8) {
+        renderJournalTable();
+    }
+}
+
+function openProfileModal() {
+    if (!APP_DATA || !APP_DATA.profile) return;
+    var p = APP_DATA.profile;
+    document.getElementById('pf-frak').value = p.frak || 'Невский';
+    document.getElementById('pf-fio').value = p.fio || '';
+    document.getElementById('pf-rank').value = p.rank || 'Рядовой';
+    document.getElementById('pf-teg').value = p.teg || '61';
+    document.getElementById('pf-prop2').value = p.prop2 || '000';
+    document.getElementById('pf-znak').value = p.znak || '77-000000';
+    document.getElementById('pf-otdel').value = p.otdel || 'Инспектор ОР';
+    document.getElementById('pf-gibdd').value = p.gibdd || 'ГУ МВД-Н';
+    document.getElementById('pf-gender').value = p.gender || 'Я мужык';
+    document.getElementById('pf-checkmb').value = p.checkMB || 'ОР/СР';
+    document.getElementById('profile-modal').style.display = 'flex';
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').style.display = 'none';
+}
+
+function onModalCityChange() {
+    var frak = document.getElementById('pf-frak').value;
+    var g = document.getElementById('pf-gibdd');
+    if (frak === 'Приволжск') g.value = 'ГУ МВД-П';
+    else if (frak === 'Мирный') g.value = 'ГУ МВД-М';
+    else if (frak === 'Невский') g.value = 'ГУ МВД-Н';
+}
+
+function saveProfileModal() {
+    var payload = [
+        document.getElementById('pf-frak').value,
+        document.getElementById('pf-fio').value,
+        document.getElementById('pf-rank').value,
+        document.getElementById('pf-teg').value,
+        document.getElementById('pf-prop2').value,
+        document.getElementById('pf-znak').value,
+        document.getElementById('pf-otdel').value,
+        document.getElementById('pf-gibdd').value,
+        document.getElementById('pf-gender').value,
+        document.getElementById('pf-checkmb').value
+    ].join('|');
+    closeProfileModal();
+    callAhk('save_profile_web', payload);
+}
+
+function setLawFilter(code) {
+    currentLawFilter = code;
+    var codes = ['ALL', 'КоАП', 'УКРП', 'ФЗоП', 'ПДД'];
+    for (var i = 0; i < codes.length; i++) {
+        var el = document.getElementById('lfilt-' + codes[i]);
+        if (el) el.className = (codes[i] === code) ? 'filter-pill active' : 'filter-pill';
+    }
+    renderLawsTable();
+}
+
+function renderLawsTable() {
+    var tbody = document.getElementById('laws-tbody');
+    if (!tbody || !APP_DATA.articles) return;
+    var qEl = document.getElementById('law-search-input');
+    var q = qEl ? qEl.value.toLowerCase() : '';
+    var html = [];
+    var list = APP_DATA.articles;
+
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (currentLawFilter !== 'ALL' && a.code !== currentLawFilter) continue;
+        if (q !== '') {
+            var hay = (a.code + ' ' + a.num + ' ' + a.cmd + ' ' + a.sanction + ' ' + a.desc).toLowerCase();
+            if (hay.indexOf(q) === -1) continue;
+        }
+        var bClass = 'koap';
+        if (a.code === 'УКРП' || a.code === 'УК') bClass = 'uk';
+        else if (a.code === 'ФЗоП') bClass = 'fzop';
+        else if (a.code === 'ПДД') bClass = 'pdd';
+
+        html.push('<tr>');
+        html.push('<td><span class="code-badge ' + bClass + '">' + a.code + '</span></td>');
+        html.push('<td style="font-weight:700; color:#FFF;">ст. ' + a.num + '</td>');
+        html.push('<td><span class="bind-key cmd" onclick="copyCmd(\'' + a.cmd + '\')">' + a.cmd + '</span></td>');
+        html.push('<td style="color:#FFB84D; font-weight:600;">' + a.sanction + '</td>');
+        html.push('<td style="color:#C9D1D9;">' + a.desc + '</td>');
+        html.push('</tr>');
+    }
+    tbody.innerHTML = html.join('');
+}
+
+var currentHkCategory = 'ALL';
+
+function setHkFilter(cat) {
+    currentHkCategory = cat || 'ALL';
+    var pills = ['ALL', 'Основное', 'Оформление', 'Задержание', 'Патруль', 'Мегафон', 'Система'];
+    for (var i = 0; i < pills.length; i++) {
+        var el = document.getElementById('hkfilt-' + pills[i]);
+        if (el) el.className = (pills[i] === currentHkCategory) ? 'filter-pill active' : 'filter-pill';
+    }
+    renderHotkeysTable();
+}
+
+function renderHotkeysTable() {
+    var tbody = document.getElementById('hotkeys-tbody');
+    if (!tbody || !APP_DATA.hotkeys) return;
+    var qEl = document.getElementById('hk-search-input');
+    var rawQ = qEl ? qEl.value : '';
+    var q = rawQ.toLowerCase().replace(/^\s+|\s+$/g, '');
+    var qTokens = q ? q.split(/\s+/) : [];
+    var html = [];
+    var list = APP_DATA.hotkeys;
+
+    for (var i = 0; i < list.length; i++) {
+        var h = list[i];
+
+        if (currentHkCategory && currentHkCategory !== 'ALL') {
+            if (h.cat !== currentHkCategory) continue;
+        }
+
+        if (qTokens.length > 0) {
+            var keySpace = (h.keyDisp || '').replace(/\+/g, ' ');
+            var defSpace = (h.defDisp || '').replace(/\+/g, ' ');
+            var hay = ((h.cat || '') + ' ' + (h.name || '') + ' ' + (h.id || '') + ' ' + (h.rawKey || '') + ' ' + (h.keyDisp || '') + ' ' + keySpace + ' ' + (h.defDisp || '') + ' ' + defSpace).toLowerCase();
+            
+            var matched = true;
+            for (var t = 0; t < qTokens.length; t++) {
+                var tok = qTokens[t];
+                var tokEn = ruToEn(tok);
+                if (hay.indexOf(tok) === -1 && hay.indexOf(tokEn) === -1) {
+                    matched = false;
+                    break;
+                }
+            }
+            if (!matched) continue;
+        }
+
+        html.push('<tr>');
+        html.push('<td style="color:#79C0FF; font-weight:600;"><span style="background:rgba(88,166,255,0.12); padding:2px 8px; border-radius:4px; border:1px solid rgba(88,166,255,0.3); font-size:11px;">' + (h.cat || '—') + '</span></td>');
+        html.push('<td style="font-weight:600; color:#E6EDF3;">' + (h.name || '') + '</td>');
+        html.push('<td><span class="bind-key" onclick="remapKey(\'' + h.id + '\')" title="Нажмите, чтобы настроить клавишу">' + (h.keyDisp || '—') + '</span></td>');
+        html.push('<td style="color:#8B949E; font-family:Consolas,monospace;">' + (h.defDisp || '—') + '</td>');
+        html.push('<td><button class="tb-action-btn" onclick="remapKey(\'' + h.id + '\')" title="Переназначить клавишу">✏️ Изменить</button></td>');
+        html.push('</tr>');
+    }
+
+    if (html.length === 0) {
+        var msg = q ? ('По запросу «<b>' + escapeHtml(rawQ) + '</b>» ничего не найдено') : 'В выбранной категории нет назначенных клавиш';
+        html.push('<tr><td colspan="5" style="text-align:center; padding:32px 16px; color:#8B949E; font-size:13px;">🔍 ' + msg + '</td></tr>');
+    }
+
+    tbody.innerHTML = html.join('');
+}
+
+function renderJournalTable() {
+    var tbody = document.getElementById('journal-tbody');
+    if (!tbody || !APP_DATA.journal) return;
+    var list = APP_DATA.journal;
+    if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#8B949E; padding:24px;">Записей за текущую смену пока нет. Все штрафы, аресты и доклады фиксируются автоматически.</td></tr>';
+        return;
+    }
+    var html = [];
+    for (var i = list.length - 1; i >= 0; i--) {
+        var j = list[i];
+        html.push('<tr>');
+        html.push('<td style="color:#8B949E; font-family:Consolas,monospace;">' + j.time + '</td>');
+        html.push('<td style="color:#58A6FF; font-weight:700;">' + j.type + '</td>');
+        html.push('<td style="font-weight:600;">' + j.target + '</td>');
+        html.push('<td style="color:#C9D1D9;">' + j.details + '</td>');
+        html.push('<td style="color:#7EE787; font-weight:700;">' + j.amount + '</td>');
+        html.push('</tr>');
+    }
+    tbody.innerHTML = html.join('');
+}
+
+function initDashboard() {
+    if (!APP_DATA || !APP_DATA.profile) return;
+    var p = APP_DATA.profile;
+
+    if (APP_DATA.assets) {
+        var bg = document.getElementById('app-bg');
+        if (bg && APP_DATA.assets.hero) bg.style.backgroundImage = 'url("' + APP_DATA.assets.hero + '")';
+        var heroBox = document.getElementById('hero-banner-box');
+        if (heroBox && APP_DATA.assets.hero) heroBox.style.backgroundImage = 'url("' + APP_DATA.assets.hero + '")';
+        var c1 = document.getElementById('tb-crest-img');
+        var c2 = document.getElementById('sidebar-crest-img');
+        if (c1 && APP_DATA.assets.crest) c1.src = APP_DATA.assets.crest;
+        if (c2 && APP_DATA.assets.crest) c2.src = APP_DATA.assets.crest;
+        var tel = document.getElementById('telemetry-card-img');
+        if (tel && APP_DATA.assets.telemetry) tel.src = APP_DATA.assets.telemetry;
+    }
+
+    document.getElementById('oc-rank').innerText = p.rank;
+    document.getElementById('oc-fio').innerText = p.fio;
+    document.getElementById('oc-dept').innerText = p.gibdd + ' (' + p.otdel + ')';
+    document.getElementById('oc-badge').innerText = p.znak;
+    document.getElementById('oc-callsign').innerText = '[' + p.teg + '-' + p.prop2 + ']';
+    document.getElementById('hero-greeting').innerText = 'Здравия желаю, ' + p.rank + ' ' + p.fio + '!';
+    document.getElementById('tb-version-sub').innerText = 'FLUENT POLICE GLASS • v' + p.vers + ' • ' + p.winVer;
+    document.getElementById('pill-engine').innerText = '⚡ ' + p.sendEngine;
+
+    var igBtn = document.getElementById('toggle-ingame-btn');
+    if (igBtn) igBtn.innerText = (p.onlyInGame == 1) ? '✅ ВКЛЮЧЕНО' : '❌ ВЫКЛЮЧЕНО';
+    var asBtn = document.getElementById('toggle-autoscreen-btn');
+    if (asBtn) asBtn.innerText = (p.autoScreen == 1) ? '✅ ВКЛЮЧЕНО' : '❌ ВЫКЛЮЧЕНО';
+
+    if (APP_DATA.hotkeys) {
+        for (var i = 0; i < APP_DATA.hotkeys.length; i++) {
+            var h = APP_DATA.hotkeys[i];
+            var el1 = document.getElementById('hk-' + h.id);
+            if (el1) el1.innerText = h.keyDisp;
+            var el2 = document.getElementById('hk-disp-' + h.id);
+            if (el2) el2.innerText = h.keyDisp;
+        }
+    }
+
+    if (APP_DATA.articles) {
+        var bCnt = document.getElementById('badge-laws-cnt');
+        if (bCnt) bCnt.innerText = APP_DATA.articles.length;
+    }
+
+    renderLawsTable();
+    renderHotkeysTable();
+    renderJournalTable();
+    initAgentRelayWs();
+}
+
+var agentRelayWs = null;
+
+function initAgentRelayWs() {
+    var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+    var pin = p.tabletPin || p.teg || '51';
+    var wsUrl = 'ws://152.234.229.245:3000/ws?role=agent&pin=' + encodeURIComponent(pin);
+
+    try {
+        if (agentRelayWs) {
+            try { agentRelayWs.close(); } catch(e) {}
+        }
+        agentRelayWs = new WebSocket(wsUrl);
+
+        agentRelayWs.onopen = function() {
+            var statusEl = document.getElementById('tablet-server-status');
+            if (statusEl) statusEl.innerHTML = '🟢 Облачный релей активен (PIN: ' + pin + ')';
+
+            agentRelayWs.send(JSON.stringify({
+                type: 'register',
+                pin: pin,
+                profile: {
+                    fio: p.fio,
+                    rank: p.rank,
+                    teg: p.teg || pin,
+                    prop2: p.prop2,
+                    gibdd: p.gibdd
+                }
+            }));
+        };
+
+        agentRelayWs.onmessage = function(ev) {
+            try {
+                var data = JSON.parse(ev.data);
+                if (data.type === 'action' && data.cmd) {
+                    callAhk('mobile_action', data.cmd);
+                }
+            } catch (e) {}
+        };
+
+        agentRelayWs.onclose = function() {
+            var statusEl = document.getElementById('tablet-server-status');
+            if (statusEl) statusEl.innerHTML = '🟡 Переподключение к VPS...';
+            setTimeout(initAgentRelayWs, 3000);
+        };
+        agentRelayWs.onerror = function() {
+            try { agentRelayWs.close(); } catch(e) {}
+        };
+    } catch(e) {
+        setTimeout(initAgentRelayWs, 3000);
+    }
+}
+
+function updateLiveState(targetId, dutyMode, dutyClock, dutyPct, chaseText, chasePct, shiftTime, forumPts, finesCnt, arrestsCnt, licCnt, repCnt) {
+    if (agentRelayWs && agentRelayWs.readyState === 1) {
+        var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+        var pin = p.tabletPin || p.teg || '51';
+        agentRelayWs.send(JSON.stringify({
+            type: 'telemetry',
+            pin: pin,
+            live: {
+                dutyClock: dutyClock,
+                finesCnt: finesCnt,
+                arrestsCnt: arrestsCnt,
+                forumPts: forumPts,
+                targetId: targetId
+            }
+        }));
+    }
+    lastKnownTargetId = targetId || '';
+    var pt = document.getElementById('pill-target');
+    if (pt) pt.innerText = '🎯 Цель ID: ' + (targetId || 'ожидание');
+
+    var pd = document.getElementById('pill-duty');
+    if (pd) pd.innerText = '⏱ Дежурство: ' + dutyMode + (dutyClock !== '00:00' ? ' (' + dutyClock + ')' : '');
+
+    var dm = document.getElementById('dash-duty-mode');
+    if (dm) dm.innerText = dutyMode;
+
+    var dc = document.getElementById('dash-duty-clock');
+    if (dc) dc.innerText = dutyClock;
+
+    var db = document.getElementById('dash-duty-bar');
+    if (db) db.style.width = dutyPct + '%';
+
+    var cs = document.getElementById('dash-chase-stage');
+    if (cs) cs.innerText = chaseText;
+
+    var cb = document.getElementById('dash-chase-bar');
+    if (cb) cb.style.width = chasePct + '%';
+
+    var st = document.getElementById('dash-shift-time');
+    if (st) st.innerText = 'Смена: ' + shiftTime;
+
+    var fp = document.getElementById('dash-forum-pts');
+    if (fp) fp.innerText = forumPts + ' / 20';
+
+    var jkp = document.getElementById('j-kpi-pts');
+    if (jkp) jkp.innerText = forumPts + ' / 20';
+
+    var jkf = document.getElementById('j-kpi-fines');
+    if (jkf) jkf.innerText = finesCnt + ' шт.';
+
+    var jka = document.getElementById('j-kpi-arrests');
+    if (jka) jka.innerText = arrestsCnt + ' / ' + licCnt;
+
+    var pb = document.getElementById('dash-pts-bar');
+    if (pb) {
+        var pct = Math.min(100, Math.floor((forumPts / 20) * 100));
+        pb.style.width = pct + '%';
+    }
+
+    var cf = document.getElementById('dash-cnt-fines');
+    if (cf) cf.innerText = finesCnt;
+    var ca = document.getElementById('dash-cnt-arrests');
+    if (ca) ca.innerText = arrestsCnt;
+    var cl = document.getElementById('dash-cnt-lic');
+    if (cl) cl.innerText = licCnt;
+    var cr = document.getElementById('dash-cnt-rep');
+    if (cr) cr.innerText = repCnt;
+}
+
+window.onload = function() {
+    initDashboard();
+};
+</script>
+</body>
+</html>
