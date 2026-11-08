@@ -2338,6 +2338,36 @@ BuildSpecialKeyString(ModC, ModA, ModS, SpecChoice) {
     return prefix . keyName
 }
 
+NormalizeAhkHotkey(rawKey) {
+    k := Trim(rawKey)
+    if (k = "")
+        return ""
+    
+    hasCtrl := 0, hasAlt := 0, hasShift := 0
+    if (RegExMatch(k, "i)(ctrl|\^)"))
+        hasCtrl := 1
+    if (RegExMatch(k, "i)(alt|!)"))
+        hasAlt := 1
+    if (RegExMatch(k, "i)(shift|\+)"))
+        hasShift := 1
+    
+    cleanBase := RegExReplace(k, "i)(ctrl\s*\+?|alt\s*\+?|shift\s*\+?|[\^!+])", "")
+    cleanBase := Trim(cleanBase)
+    
+    if (cleanBase != "") {
+        prefix := ""
+        if (hasCtrl)
+            prefix .= "^"
+        if (hasAlt)
+            prefix .= "!"
+        if (hasShift)
+            prefix .= "+"
+        return prefix . cleanBase
+    }
+    
+    return k
+}
+
 ApplyNewHotkeyBtn:
 Gui, 1:Submit, NoHide
 if (SelectedHkId = "" || !HotkeyById.HasKey(SelectedHkId)) {
@@ -10631,7 +10661,7 @@ BuildFluentInitialJson() {
             j .= ","
         curD := FormatHotkeyReadable(hk.CurrentKey)
         defD := FormatHotkeyReadable(hk.DefaultKey)
-        j .= "{""id"":""" . JsonEscapeStr(hk.Id) . """,""name"":""" . JsonEscapeStr(hk.Name) . """,""cat"":""" . JsonEscapeStr(hk.Cat) . """,""keyDisp"":""" . JsonEscapeStr(curD) . """,""defDisp"":""" . JsonEscapeStr(defD) . """}"
+        j .= "{""id"":""" . JsonEscapeStr(hk.Id) . """,""name"":""" . JsonEscapeStr(hk.Name) . """,""cat"":""" . JsonEscapeStr(hk.Cat) . """,""rawKey"":""" . JsonEscapeStr(hk.CurrentKey) . """,""keyDisp"":""" . JsonEscapeStr(curD) . """,""defDisp"":""" . JsonEscapeStr(defD) . """}"
     }
     j .= "],"
 
@@ -11039,60 +11069,113 @@ OpenQuickHotkeyRemapModal(hkId) {
     curD := FormatHotkeyReadable(hkObj.CurrentKey)
     defD := FormatHotkeyReadable(hkObj.DefaultKey)
 
+    curKey := hkObj.CurrentKey
+    hasCtrl := InStr(curKey, "^") ? 1 : 0
+    hasAlt := InStr(curKey, "!") ? 1 : 0
+    hasShift := InStr(curKey, "+") ? 1 : 0
+    baseKey := RegExReplace(curKey, "[\^!+]", "")
+
     Gui, 10:Destroy
     Gui, 10:+AlwaysOnTop +Owner8
-    Gui, 10:Color, 121622, 1B2234
+    Gui, 10:Color, 0E1422, 162238
     Gui, 10:Font, S11 C58A6FF Bold, Segoe UI
-    Gui, 10:Add, Text, x16 y12 w468 h24, ⌨️ Переназначение горячей клавиши
+    Gui, 10:Add, Text, x16 y12 w488 h24, ⌨️ Переназначение горячей клавиши
     Gui, 10:Font, S9 CFFB84D Bold, Segoe UI
-    Gui, 10:Add, Text, x16 y38 w468 h20, % hkObj.Name
+    Gui, 10:Add, Text, x16 y38 w488 h20, % hkObj.Name
     Gui, 10:Font, S9 C8B949E Norm, Segoe UI
-    Gui, 10:Add, Text, x16 y58 w468 h18, % "Текущая: [" . curD . "]   |   По умолчанию: [" . defD . "]"
+    Gui, 10:Add, Text, x16 y58 w488 h18, % "Текущая: [" . curD . "]   |   По умолчанию: [" . defD . "]"
 
     Gui, 10:Font, S9 CE6EDF3 Bold, Segoe UI
-    Gui, 10:Add, Text, x16 y88 w200 h22, Способ 1 (нажмите клавишу):
+    Gui, 10:Add, Text, x16 y88 w210 h22, Способ 1 (нажмите клавишу):
     Gui, 10:Font, S9 C000000 Norm, Segoe UI
-    Gui, 10:Add, Hotkey, x220 y86 w260 h24 vQuickHkBox, % hkObj.CurrentKey
+    Gui, 10:Add, Hotkey, x230 y86 w260 h24 vQuickHkBox, % hkObj.CurrentKey
 
     Gui, 10:Font, S9 CE6EDF3 Bold, Segoe UI
-    Gui, 10:Add, Text, x16 y122 w200 h22, Способ 2 (спецклавиша):
-    Gui, 10:Add, CheckBox, x220 y122 w50 h22 vQuickModCtrl, Ctrl
-    Gui, 10:Add, CheckBox, x274 y122 w48 h22 vQuickModAlt, Alt
-    Gui, 10:Add, CheckBox, x326 y122 w56 h22 vQuickModShift, Shift
-    Gui, 10:Add, DropDownList, x386 y120 w94 r10 vQuickSpecDDL Choose1, (Нет)|PrintScreen|ScrollLock|Delete|Insert|Home|End|Backspace|sc29 (Ё/~)|Space|Tab|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12
+    Gui, 10:Add, Text, x16 y122 w210 h22, Способ 2 (спецклавиша):
+    Gui, 10:Add, CheckBox, x230 y122 w52 h22 vQuickModCtrl Checked%hasCtrl%, Ctrl
+    Gui, 10:Add, CheckBox, x284 y122 w48 h22 vQuickModAlt Checked%hasAlt%, Alt
+    Gui, 10:Add, CheckBox, x334 y122 w56 h22 vQuickModShift Checked%hasShift%, Shift
+
+    specList := "(Нет)|PrintScreen|ScrollLock|Delete|Insert|Home|End|Backspace|sc29 (Ё/~)|Space|Tab|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|1|2|3|4|5|6|7|8|9|0|-|=|Q|W|E|R|T|Y|U|I|O|P|A|S|D|F|G|H|J|K|L|Z|X|C|V|B|N|M|Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadAdd|NumpadSub|NumpadMult|NumpadDiv"
+    Gui, 10:Add, DropDownList, x392 y120 w98 r14 vQuickSpecDDL Choose1, %specList%
 
     Gui, 10:Font, S9 CE6EDF3 Bold, Segoe UI
     Gui, 10:Add, Button, x16 y162 w175 h34 gSaveQuickRemapBtn, ✅ Сохранить клавишу
-    Gui, 10:Add, Button, x200 y162 w155 h34 gResetQuickRemapBtn, 🔄 По умолчанию
-    Gui, 10:Add, Button, x364 y162 w116 h34 gCloseQuickRemapBtn, Отмена
-    Gui, 10:Show, w500 h210, Настройка клавиши — Fluent Glass
+    Gui, 10:Add, Button, x200 y162 w165 h34 gResetQuickRemapBtn, 🔄 По умолчанию
+    Gui, 10:Add, Button, x374 y162 w116 h34 gCloseQuickRemapBtn, Отмена
+
+    if (baseKey != "") {
+        if (baseKey = "sc29")
+            GuiControl, 10:ChooseString, QuickSpecDDL, sc29 (Ё/~)
+        else
+            GuiControl, 10:ChooseString, QuickSpecDDL, %baseKey%
+    }
+
+    Gui, 10:Show, w510 h212, Настройка клавиши — Fluent Glass
 }
 
 SaveQuickRemapBtn:
 Gui, 10:Submit, NoHide
-if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId))
+if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId)) {
+    Gui, 10:Destroy
     Return
-SelectedHkId := QuickRemapTargetId
-GuiControl, 1:, HkBoxCtrl, %QuickHkBox%
-GuiControl, 1:, HkModCtrl, %QuickModCtrl%
-GuiControl, 1:, HkModAlt, %QuickModAlt%
-GuiControl, 1:, HkModShift, %QuickModShift%
-if (QuickSpecDDL != "" && QuickSpecDDL != "(Нет)")
-    GuiControl, 1:ChooseString, HkSpecialDDL, %QuickSpecDDL%
-else
-    GuiControl, 1:Choose, HkSpecialDDL, 1
+}
+targetObj := HotkeyById[QuickRemapTargetId]
+
+newKey := ""
+specChosen := (QuickSpecDDL != "" && QuickSpecDDL != "(Нет)" && QuickSpecDDL != "(Не выбрано)")
+
+; Если пользователь ввёл новую комбинацию в поле Способ 1:
+if (QuickHkBox != "" && QuickHkBox != targetObj.CurrentKey) {
+    newKey := QuickHkBox
+} else if (specChosen) {
+    newKey := BuildSpecialKeyString(QuickModCtrl, QuickModAlt, QuickModShift, QuickSpecDDL)
+} else if (QuickHkBox != "") {
+    newKey := QuickHkBox
+}
+
+newKey := NormalizeAhkHotkey(newKey)
+if (newKey = "") {
+    MsgBox, 48, Настройка клавиши, Пожалуйста, нажмите нужную клавишу в поле «Способ 1» или выберите клавишу в списке «Способ 2»!
+    Return
+}
+
+; Если клавиша не изменилась
+if (Format("{:L}", newKey) = Format("{:L}", targetObj.CurrentKey)) {
+    Gui, 10:Destroy
+    TrayTip, ⌨️ Горячая клавиша осталась прежней, % targetObj.Name . ": [" . FormatHotkeyReadable(newKey) . "]", 2, 1
+    Return
+}
+
+; Проверка на конфликт с другими биндами
+for idx, otherHk in HotkeyDefs {
+    if (otherHk.Id != QuickRemapTargetId && Format("{:L}", otherHk.CurrentKey) = Format("{:L}", newKey)) {
+        MsgBox, 52, Конфликт клавиш, % "Клавиша [" . FormatHotkeyReadable(newKey) . "] уже используется для бинда:`n«" . otherHk.Name . "»!`n`nВсё равно назначить её сюда?"
+        IfMsgBox, No
+            Return
+        break
+    }
+}
+
 Gui, 10:Destroy
-Gosub, ApplyNewHotkeyBtn
+ApplySingleHotkeyUpdate(QuickRemapTargetId, newKey)
 RefreshFluentWebData()
+SoundBeep, 900, 100
+TrayTip, ✅ Горячая клавиша обновлена!, % targetObj.Name . " -> [" . FormatHotkeyReadable(newKey) . "]", 3, 1
 Return
 
 ResetQuickRemapBtn:
-if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId))
+if (QuickRemapTargetId = "" || !HotkeyById.HasKey(QuickRemapTargetId)) {
+    Gui, 10:Destroy
     Return
-SelectedHkId := QuickRemapTargetId
+}
+targetObj := HotkeyById[QuickRemapTargetId]
+defKey := targetObj.DefaultKey
 Gui, 10:Destroy
-Gosub, ResetSingleHotkeyBtn
+ApplySingleHotkeyUpdate(QuickRemapTargetId, defKey)
 RefreshFluentWebData()
+SoundBeep, 800, 100
+TrayTip, 🔄 Сброс горячей клавиши, % targetObj.Name . " -> [" . FormatHotkeyReadable(defKey) . "]", 3, 1
 Return
 
 CloseQuickRemapBtn:
@@ -11102,9 +11185,14 @@ Gui, 10:Destroy
 Return
 
 ApplySingleHotkeyUpdate(hkId, newKey) {
-    global HotkeyById, HotkeyDefs
+    global HotkeyById, HotkeyDefs, HkFilterQuery, BindSearchQuery, BindCatFilter
     if (!HotkeyById.HasKey(hkId))
         Return
+
+    newKey := NormalizeAhkHotkey(newKey)
+    if (newKey = "")
+        Return
+
     targetObj := HotkeyById[hkId]
     UnregisterDynamicHotkey(targetObj)
     targetObj.CurrentKey := newKey
@@ -11120,4 +11208,9 @@ ApplySingleHotkeyUpdate(hkId, newKey) {
     }
     RefreshAllHotkeyGuiLabels()
     InitBindsCatalog()
+    try {
+        PopulateHotkeysListView(HkFilterQuery)
+        SelectHotkeyInLV(hkId)
+        PopulateBindsListView(BindSearchQuery, BindCatFilter)
+    }
 }

@@ -1390,8 +1390,15 @@ html, body {
 
             <!-- ================= ВКЛАДКА 7: КЛАВИШИ И СВОИ БИНДЫ ================= -->
             <div class="tab-pane" id="tab-7">
-                <div class="search-bar-wrap">
-                    <input type="text" id="hk-search-input" class="search-input" placeholder="🔎 Поиск горячей клавиши или действия..." onkeyup="renderHotkeysTable()">
+                <div class="search-bar-wrap" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <input type="text" id="hk-search-input" class="search-input" placeholder="🔎 Поиск горячей клавиши, действия или команды (например: розыск, wcar, F8, штраф)..." oninput="renderHotkeysTable()" onkeyup="renderHotkeysTable()" onchange="renderHotkeysTable()">
+                    <button class="filter-pill active" id="hkfilt-ALL" onclick="setHkFilter('ALL')">Все</button>
+                    <button class="filter-pill" id="hkfilt-Основное" onclick="setHkFilter('Основное')">Основное</button>
+                    <button class="filter-pill" id="hkfilt-Оформление" onclick="setHkFilter('Оформление')">Оформление</button>
+                    <button class="filter-pill" id="hkfilt-Задержание" onclick="setHkFilter('Задержание')">Задержание</button>
+                    <button class="filter-pill" id="hkfilt-Патруль" onclick="setHkFilter('Патруль')">Патруль</button>
+                    <button class="filter-pill" id="hkfilt-Мегафон" onclick="setHkFilter('Мегафон')">Мегафон</button>
+                    <button class="filter-pill" id="hkfilt-Система" onclick="setHkFilter('Система')">Система</button>
                     <button class="btn-fluent" onclick="callAhk('open_custom_binds')">➕ Создать свой бинд</button>
                     <button class="btn-glass" onclick="callAhk('reset_all_hotkeys')" style="margin-right:0;">⚠️ Сбросить все по умолчанию</button>
                 </div>
@@ -1400,11 +1407,11 @@ html, body {
                     <table class="fluent-table">
                         <thead>
                             <tr>
-                                <th style="width:150px;">Категория</th>
+                                <th style="width:140px;">Категория</th>
                                 <th>Действие / Отыгровка</th>
                                 <th style="width:150px;">Текущая клавиша</th>
                                 <th style="width:140px;">По умолчанию</th>
-                                <th style="width:140px;">Управление</th>
+                                <th style="width:120px;">Управление</th>
                             </tr>
                         </thead>
                         <tbody id="hotkeys-tbody"></tbody>
@@ -2335,29 +2342,8 @@ function copyCmd(cmdStr) {
 var currentEditingHkId = '';
 
 function remapKey(hkId) {
-    if (!APP_DATA.hotkeys) return;
-    var target = null;
-    for (var i = 0; i < APP_DATA.hotkeys.length; i++) {
-        if (APP_DATA.hotkeys[i].id === hkId) {
-            target = APP_DATA.hotkeys[i];
-            break;
-        }
-    }
-    if (!target) return;
-    currentEditingHkId = hkId;
-
-    document.getElementById('modal-hk-subname').innerText = target.name;
-    document.getElementById('modal-hk-info').innerHTML = 'Текущая: <span style="color:#79C0FF; font-weight:bold;">[' + target.keyDisp + ']</span> | По умолчанию: <span style="color:#C9D1D9;">[' + target.defDisp + ']</span>';
-    document.getElementById('modal-hk-input').value = target.keyDisp;
-
-    var cur = (target.keyDisp || '').toLowerCase();
-    document.getElementById('modal-hk-ctrl').checked = cur.indexOf('ctrl') !== -1;
-    document.getElementById('modal-hk-alt').checked = cur.indexOf('alt') !== -1;
-    document.getElementById('modal-hk-shift').checked = cur.indexOf('shift') !== -1;
-    document.getElementById('modal-hk-spec').value = '';
-
-    var m = document.getElementById('hotkey-modal');
-    if (m) m.style.display = 'flex';
+    if (!hkId) return;
+    callAhk('remap_hotkey', hkId);
 }
 
 function closeHotkeyModal() {
@@ -2466,6 +2452,19 @@ function switchTab(num) {
         if (nav) nav.className = (i === num) ? 'nav-item active' : 'nav-item';
         if (pane) pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
     }
+    if (num === 7) {
+        renderHotkeysTable();
+        var inp = document.getElementById('hk-search-input');
+        if (inp) {
+            try { inp.focus(); } catch (e) {}
+        }
+    }
+    if (num === 5) {
+        renderLawsTable();
+    }
+    if (num === 8) {
+        renderJournalTable();
+    }
 }
 
 function openProfileModal() {
@@ -2554,28 +2553,64 @@ function renderLawsTable() {
     tbody.innerHTML = html.join('');
 }
 
+var currentHkCategory = 'ALL';
+
+function setHkFilter(cat) {
+    currentHkCategory = cat || 'ALL';
+    var pills = ['ALL', 'Основное', 'Оформление', 'Задержание', 'Патруль', 'Мегафон', 'Система'];
+    for (var i = 0; i < pills.length; i++) {
+        var el = document.getElementById('hkfilt-' + pills[i]);
+        if (el) el.className = (pills[i] === currentHkCategory) ? 'filter-pill active' : 'filter-pill';
+    }
+    renderHotkeysTable();
+}
+
 function renderHotkeysTable() {
     var tbody = document.getElementById('hotkeys-tbody');
     if (!tbody || !APP_DATA.hotkeys) return;
     var qEl = document.getElementById('hk-search-input');
-    var q = qEl ? qEl.value.toLowerCase() : '';
+    var rawQ = qEl ? qEl.value : '';
+    var q = rawQ.toLowerCase().replace(/^\s+|\s+$/g, '');
+    var qTokens = q ? q.split(/\s+/) : [];
     var html = [];
     var list = APP_DATA.hotkeys;
 
     for (var i = 0; i < list.length; i++) {
         var h = list[i];
-        if (q !== '') {
-            var hay = (h.cat + ' ' + h.name + ' ' + h.keyDisp + ' ' + h.defDisp).toLowerCase();
-            if (hay.indexOf(q) === -1) continue;
+
+        if (currentHkCategory && currentHkCategory !== 'ALL') {
+            if (h.cat !== currentHkCategory) continue;
         }
+
+        if (qTokens.length > 0) {
+            var keySpace = (h.keyDisp || '').replace(/\+/g, ' ');
+            var defSpace = (h.defDisp || '').replace(/\+/g, ' ');
+            var hay = ((h.cat || '') + ' ' + (h.name || '') + ' ' + (h.id || '') + ' ' + (h.rawKey || '') + ' ' + (h.keyDisp || '') + ' ' + keySpace + ' ' + (h.defDisp || '') + ' ' + defSpace).toLowerCase();
+            
+            var matched = true;
+            for (var t = 0; t < qTokens.length; t++) {
+                if (hay.indexOf(qTokens[t]) === -1) {
+                    matched = false;
+                    break;
+                }
+            }
+            if (!matched) continue;
+        }
+
         html.push('<tr>');
-        html.push('<td style="color:#79C0FF; font-weight:600;">' + h.cat + '</td>');
-        html.push('<td style="font-weight:600;">' + h.name + '</td>');
-        html.push('<td><span class="bind-key" onclick="remapKey(\'' + h.id + '\')">' + h.keyDisp + '</span></td>');
-        html.push('<td style="color:#8B949E; font-family:Consolas,monospace;">' + h.defDisp + '</td>');
-        html.push('<td><button class="tb-action-btn" onclick="remapKey(\'' + h.id + '\')">✏️ Изменить</button></td>');
+        html.push('<td style="color:#79C0FF; font-weight:600;"><span style="background:rgba(88,166,255,0.12); padding:2px 8px; border-radius:4px; border:1px solid rgba(88,166,255,0.3); font-size:11px;">' + (h.cat || '—') + '</span></td>');
+        html.push('<td style="font-weight:600; color:#E6EDF3;">' + (h.name || '') + '</td>');
+        html.push('<td><span class="bind-key" onclick="remapKey(\'' + h.id + '\')" title="Нажмите, чтобы настроить клавишу">' + (h.keyDisp || '—') + '</span></td>');
+        html.push('<td style="color:#8B949E; font-family:Consolas,monospace;">' + (h.defDisp || '—') + '</td>');
+        html.push('<td><button class="tb-action-btn" onclick="remapKey(\'' + h.id + '\')" title="Переназначить клавишу">✏️ Изменить</button></td>');
         html.push('</tr>');
     }
+
+    if (html.length === 0) {
+        var msg = q ? ('По запросу «<b>' + escapeHtml(rawQ) + '</b>» ничего не найдено') : 'В выбранной категории нет назначенных клавиш';
+        html.push('<tr><td colspan="5" style="text-align:center; padding:32px 16px; color:#8B949E; font-size:13px;">🔍 ' + msg + '</td></tr>');
+    }
+
     tbody.innerHTML = html.join('');
 }
 
