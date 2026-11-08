@@ -2142,7 +2142,8 @@ function closeLinksModal() {
 
 function openTabletModal() {
     var relayUrl = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayUrl) ? APP_DATA.profile.relayUrl : 'http://152.234.229.245:3000';
-    var pin = (APP_DATA && APP_DATA.profile && APP_DATA.profile.tabletPin) ? APP_DATA.profile.tabletPin : '7788';
+    var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+    var pin = p.tabletPin || p.teg || '51';
     var url = relayUrl + '/?pin=' + pin;
 
     var txt = document.getElementById('tablet-url-txt');
@@ -2880,9 +2881,77 @@ function initDashboard() {
     renderLawsTable();
     renderHotkeysTable();
     renderJournalTable();
+    initAgentRelayWs();
+}
+
+var agentRelayWs = null;
+
+function initAgentRelayWs() {
+    var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+    var pin = p.tabletPin || p.teg || '51';
+    var wsUrl = 'ws://152.234.229.245:3000/ws?role=agent&pin=' + encodeURIComponent(pin);
+
+    try {
+        if (agentRelayWs) {
+            try { agentRelayWs.close(); } catch(e) {}
+        }
+        agentRelayWs = new WebSocket(wsUrl);
+
+        agentRelayWs.onopen = function() {
+            var statusEl = document.getElementById('tablet-server-status');
+            if (statusEl) statusEl.innerHTML = '🟢 Облачный релей активен (PIN: ' + pin + ')';
+
+            agentRelayWs.send(JSON.stringify({
+                type: 'register',
+                pin: pin,
+                profile: {
+                    fio: p.fio,
+                    rank: p.rank,
+                    teg: p.teg || pin,
+                    prop2: p.prop2,
+                    gibdd: p.gibdd
+                }
+            }));
+        };
+
+        agentRelayWs.onmessage = function(ev) {
+            try {
+                var data = JSON.parse(ev.data);
+                if (data.type === 'action' && data.cmd) {
+                    callAhk('mobile_action', data.cmd);
+                }
+            } catch (e) {}
+        };
+
+        agentRelayWs.onclose = function() {
+            var statusEl = document.getElementById('tablet-server-status');
+            if (statusEl) statusEl.innerHTML = '🟡 Переподключение к VPS...';
+            setTimeout(initAgentRelayWs, 3000);
+        };
+        agentRelayWs.onerror = function() {
+            try { agentRelayWs.close(); } catch(e) {}
+        };
+    } catch(e) {
+        setTimeout(initAgentRelayWs, 3000);
+    }
 }
 
 function updateLiveState(targetId, dutyMode, dutyClock, dutyPct, chaseText, chasePct, shiftTime, forumPts, finesCnt, arrestsCnt, licCnt, repCnt) {
+    if (agentRelayWs && agentRelayWs.readyState === 1) {
+        var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
+        var pin = p.tabletPin || p.teg || '51';
+        agentRelayWs.send(JSON.stringify({
+            type: 'telemetry',
+            pin: pin,
+            live: {
+                dutyClock: dutyClock,
+                finesCnt: finesCnt,
+                arrestsCnt: arrestsCnt,
+                forumPts: forumPts,
+                targetId: targetId
+            }
+        }));
+    }
     lastKnownTargetId = targetId || '';
     var pt = document.getElementById('pill-target');
     if (pt) pt.innerText = '🎯 Цель ID: ' + (targetId || 'ожидание');
