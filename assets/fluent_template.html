@@ -682,6 +682,69 @@ html, body {
     padding: 18px 22px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 139, 253, 0.25);
 }
+.modal-card-large {
+    width: 1040px;
+    max-height: 94%;
+    display: flex;
+    flex-direction: column;
+}
+.calc-table-box {
+    max-height: 330px;
+    overflow-y: auto;
+    border: 1px solid rgba(56, 139, 253, 0.28);
+    border-radius: 8px;
+    background: rgba(8, 14, 26, 0.92);
+    margin-bottom: 12px;
+}
+.calc-summary-panel {
+    background: linear-gradient(135deg, rgba(14, 24, 46, 0.9) 0%, rgba(9, 16, 32, 0.95) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+.links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -6px;
+}
+.link-card {
+    width: 50%;
+    padding: 6px;
+    box-sizing: border-box;
+}
+.link-card-inner {
+    background: linear-gradient(145deg, rgba(16, 27, 50, 0.88) 0%, rgba(10, 17, 34, 0.92) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    border-radius: 9px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.link-card-inner:hover {
+    border-color: #58A6FF;
+    background: rgba(31, 111, 235, 0.22);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 139, 253, 0.25);
+}
+.link-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #58A6FF;
+}
+.link-desc {
+    font-size: 11.5px;
+    color: #8B949E;
+    margin-top: 2px;
+}
+.link-arrow {
+    color: #FFB84D;
+    font-size: 15px;
+    font-weight: bold;
+    margin-left: 10px;
+}
 .form-row {
     display: flex;
     align-items: center;
@@ -748,7 +811,8 @@ html, body {
         <div class="tb-right" onmousedown="stopProp(event)">
             <button class="tb-action-btn" onclick="callAhk('toggle_hud')">⏱️ HUD (Alt+H)</button>
             <button class="tb-action-btn" onclick="callAhk('drag_hud')">🎯 Двигать HUD</button>
-            <button class="tb-action-btn" onclick="callAhk('open_calc')">⚖️ Калькулятор</button>
+            <button class="tb-action-btn" onclick="openCalcModal()">⚖️ Калькулятор (Alt+F1)</button>
+            <button class="tb-action-btn" onclick="openLinksModal()">🔗 Ссылки МВД</button>
             <button class="tb-action-btn" onclick="callAhk('switch_classic')">🎛️ Классика</button>
             <div class="win-btn" onclick="callAhk('win_minimize')" title="Свернуть">—</div>
             <div class="win-btn close" onclick="callAhk('win_close')" title="Свернуть в трей">✕</div>
@@ -810,7 +874,8 @@ html, body {
 
             <div class="sidebar-footer">
                 <button class="sf-btn" onclick="callAhk('check_updates')">🚀 Проверить обновления GitHub</button>
-                <button class="sf-btn" onclick="callAhk('open_links')">🔗 Полезные ссылки и Форум МВД</button>
+                <button class="sf-btn" onclick="openLinksModal()">🔗 Полезные ссылки и Форум МВД</button>
+                <button class="sf-btn" onclick="openCalcModal()">⚖️ Калькулятор КоАП/УК (Alt+F1)</button>
                 <button class="sf-btn" onclick="callAhk('reload_app')">🔄 Перезапустить терминал (F11)</button>
             </div>
         </div>
@@ -828,9 +893,10 @@ html, body {
                             <div class="hero-sub">Интеллектуальный бортовой терминал УГИБДД МВД Провинции. Мгновенный ввод без задержек, защита от античита, тактический HUD погони и полная база КоАП / УК РП / ФЗоП.</div>
                         </div>
                         <div class="hero-actions">
-                            <button class="btn-fluent" onclick="callAhk('open_calc')">⚖️ Открыть Калькулятор (Alt+F1)</button>
+                            <button class="btn-fluent" onclick="openCalcModal()">⚖️ Открыть Калькулятор (Alt+F1)</button>
                             <button class="btn-glass" onclick="callAhk('toggle_hud')">⏱️ Тактический HUD (Alt+H)</button>
                             <button class="btn-glass" onclick="openProfileModal()">👤 Настроить анкету</button>
+                            <button class="btn-glass" onclick="openLinksModal()">🔗 Портал МВД</button>
                             <button class="btn-glass" onclick="switchTab(5)">📕 База КоАП и УК</button>
                         </div>
                     </div>
@@ -1298,6 +1364,216 @@ html, body {
     </div>
 </div>
 
+<!-- ================= МОДАЛЬНОЕ ОКНО: ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР КоАП / УКРП ================= -->
+<div id="calc-modal" class="modal-backdrop">
+    <div class="modal-card modal-card-large">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">⚖️</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Интерактивный Калькулятор КоАП / УК РП / ПДД</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый расчёт протокола, лишение ВУ и автогенерация команд /tsu и /takecarlic</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeCalcModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <!-- ПОИСК И ФИЛЬТРЫ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
+            <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
+                <option value="ALL">Все кодексы</option>
+                <option value="КоАП">КоАП РП</option>
+                <option value="УКРП">УК РП</option>
+                <option value="ПДД">ПДД РП</option>
+                <option value="ФЗоП">ФЗ «О полиции»</option>
+            </select>
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:12px; font-weight:600; color:#C9D1D9; margin-right:6px;">ID цели:</span>
+                <input type="text" id="calc-target-id" class="fluent-input" style="width:75px; text-align:center; font-weight:bold; color:#FFB84D;" placeholder="ID" oninput="recalcArticles()">
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА СТАТЕЙ КАЛЬКУЛЯТОРА С ЧЕКБОКСАМИ -->
+        <div class="calc-table-box">
+            <table class="fluent-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">✓</th>
+                        <th style="width:70px;">Статья</th>
+                        <th style="width:65px;">Кодекс</th>
+                        <th style="width:105px;">Штраф</th>
+                        <th style="width:230px;">Санкция</th>
+                        <th>Описание нарушения</th>
+                    </tr>
+                </thead>
+                <tbody id="calc-articles-tbody">
+                    <!-- Заполняется динамически -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- СВОДНЫЕ СВЕТЯЩИЕСЯ ИНДИКАТОРЫ -->
+        <div class="calc-summary-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div id="calc-selected-count-txt" style="font-size:12px; font-weight:700; color:#58A6FF;">Выбрано статей: 0</div>
+                <div id="calc-fine-total-txt" style="font-size:13px; font-weight:800; color:#7EE787;">💰 ИТОГО ШТРАФ: 0 руб. (лимит /tsu — 100.000 руб.)</div>
+            </div>
+
+            <div style="display:flex; margin-bottom:6px;">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#8B949E;">Команда штрафа (/tsu до 100к):</span>
+                    <input type="text" id="calc-cmd-tsu" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#79C0FF;" readonly value="/tsu ID 0">
+                </div>
+                <div style="width:280px;">
+                    <span style="font-size:11px; color:#8B949E;">Лишение ВУ (/takecarlic):</span>
+                    <input type="text" id="calc-cmd-lic" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FF7B72;" readonly value="/takecarlic ID [Нет лишения]">
+                </div>
+            </div>
+
+            <div id="calc-overflow-row" style="display:none; align-items:center; padding-top:6px; border-top:1px dashed rgba(255,184,77,0.35);">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#FFB84D;">⚠️ Остаток штрафа (>100.000 руб.):</span>
+                    <input type="text" id="calc-cmd-overflow" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FFB84D;" readonly value="">
+                </div>
+                <button class="btn-glass" style="margin-top:14px;" onclick="copyOverflowCmd()">📋 Скопировать остаток</button>
+                <button class="btn-glass" style="margin-top:14px;" onclick="sendOverflowCmd()">📝 Ввести остаток в чат</button>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЙ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-fluent" onclick="executePlayAndTsu()">📝 Отыграть и выписать /tsu</button>
+                <button class="btn-glass" onclick="copyTsuCmd()">📋 Скопировать /tsu</button>
+                <button class="btn-fluent" style="background:linear-gradient(135deg, #DA3633, #F85149); border-color:#FF7B72;" onclick="executePlayAndLic()">🪪 Отыграть лишение ВУ</button>
+                <button class="btn-glass" onclick="speakSelectedArticles()">📢 Зачитать статьи вслух</button>
+            </div>
+            <div>
+                <button class="btn-glass" onclick="clearCalcSelections()">🧹 Сброс</button>
+                <button class="btn-glass" style="margin-right:0;" onclick="closeCalcModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ПОЛЕЗНЫЕ ССЫЛКИ И ПОРТАЛ МВД ================= -->
+<div id="links-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:780px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">🔗</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Полезные ссылки и материалы МВД Провинции</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый переход на официальные разделы форума, законы и карту радаров</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeLinksModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <div class="links-grid">
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2aYR', 'Форум МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🏛️ Общий раздел МВД</div>
+                        <div class="link-desc">Главный форумный раздел Министерства внутренних дел</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/czQG8U', 'ФЗ о полиции')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📜 ФЗ «О полиции» (ФЗоП)</div>
+                        <div class="link-desc">Закон о правах, обязанностях и применении оружия/силы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b82', 'УГИБДД Приволжск')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-П (Приволжск)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы Приволжска</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94q1', 'КоАП РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📕 КоАП Республики Провинция</div>
+                        <div class="link-desc">Кодекс об административных правонарушениях и штрафы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b9H', 'УГИБДД Мирный')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-М (Мирный)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и темы города Мирный</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94mS', 'УПК РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">⚖️ Уголовный Кодекс (УК РП)</div>
+                        <div class="link-desc">Статьи уголовных преступлений и сроки заключения</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/ceDIz5', 'УГИБДД Невский')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-Н (Невский)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы города Невский</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94ui', 'ПДД РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚦 Правила Дорожного Движения</div>
+                        <div class="link-desc">ПДД Республики Провинция и правила проезда перекрёстков</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cO3BPY', 'Карта радаров')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📸 Камеры и радары Провинции</div>
+                        <div class="link-desc">Интерактивная карта скоростных радаров всех городов</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cAsupD', 'Методичка УГИБДД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📘 Методичка сотрудника УГИБДД</div>
+                        <div class="link-desc">Правила несения службы, процессуальные нормы и порядок</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-glass" onclick="callAhk('open_moyak_memo')">🚨 Режимы маячков (1–6)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.com/id218945813', 'ВК автора')">👨‍💻 Автор сборки</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeLinksModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <!-- FLUENT GLASS МОДАЛЬНОЕ ОКНО АНКЕТЫ СОТРУДНИКА -->
 <div class="modal-backdrop" id="profile-modal">
     <div class="modal-card">
@@ -1397,11 +1673,435 @@ html, body {
     </div>
 </div>
 
+<!-- ================= МОДАЛЬНОЕ ОКНО: ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР КоАП / УКРП ================= -->
+<div id="calc-modal" class="modal-backdrop">
+    <div class="modal-card modal-card-large">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">⚖️</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Интерактивный Калькулятор КоАП / УК РП / ПДД</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый расчёт протокола, лишение ВУ и автогенерация команд /tsu и /takecarlic</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeCalcModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <!-- ПОИСК И ФИЛЬТРЫ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
+            <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
+                <option value="ALL">Все кодексы</option>
+                <option value="КоАП">КоАП РП</option>
+                <option value="УКРП">УК РП</option>
+                <option value="ПДД">ПДД РП</option>
+                <option value="ФЗоП">ФЗ «О полиции»</option>
+            </select>
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:12px; font-weight:600; color:#C9D1D9; margin-right:6px;">ID цели:</span>
+                <input type="text" id="calc-target-id" class="fluent-input" style="width:75px; text-align:center; font-weight:bold; color:#FFB84D;" placeholder="ID" oninput="recalcArticles()">
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА СТАТЕЙ КАЛЬКУЛЯТОРА С ЧЕКБОКСАМИ -->
+        <div class="calc-table-box">
+            <table class="fluent-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">✓</th>
+                        <th style="width:70px;">Статья</th>
+                        <th style="width:65px;">Кодекс</th>
+                        <th style="width:105px;">Штраф</th>
+                        <th style="width:230px;">Санкция</th>
+                        <th>Описание нарушения</th>
+                    </tr>
+                </thead>
+                <tbody id="calc-articles-tbody">
+                    <!-- Заполняется динамически -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- СВОДНЫЕ СВЕТЯЩИЕСЯ ИНДИКАТОРЫ -->
+        <div class="calc-summary-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div id="calc-selected-count-txt" style="font-size:12px; font-weight:700; color:#58A6FF;">Выбрано статей: 0</div>
+                <div id="calc-fine-total-txt" style="font-size:13px; font-weight:800; color:#7EE787;">💰 ИТОГО ШТРАФ: 0 руб. (лимит /tsu — 100.000 руб.)</div>
+            </div>
+
+            <div style="display:flex; margin-bottom:6px;">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#8B949E;">Команда штрафа (/tsu до 100к):</span>
+                    <input type="text" id="calc-cmd-tsu" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#79C0FF;" readonly value="/tsu ID 0">
+                </div>
+                <div style="width:280px;">
+                    <span style="font-size:11px; color:#8B949E;">Лишение ВУ (/takecarlic):</span>
+                    <input type="text" id="calc-cmd-lic" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FF7B72;" readonly value="/takecarlic ID [Нет лишения]">
+                </div>
+            </div>
+
+            <div id="calc-overflow-row" style="display:none; align-items:center; padding-top:6px; border-top:1px dashed rgba(255,184,77,0.35);">
+                <div style="flex:1; margin-right:10px;">
+                    <span style="font-size:11px; color:#FFB84D;">⚠️ Остаток штрафа (>100.000 руб.):</span>
+                    <input type="text" id="calc-cmd-overflow" class="fluent-input" style="width:100%; font-family:Consolas,monospace; font-weight:bold; color:#FFB84D;" readonly value="">
+                </div>
+                <button class="btn-glass" style="margin-top:14px;" onclick="copyOverflowCmd()">📋 Скопировать остаток</button>
+                <button class="btn-glass" style="margin-top:14px;" onclick="sendOverflowCmd()">📝 Ввести остаток в чат</button>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЙ КАЛЬКУЛЯТОРА -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-fluent" onclick="executePlayAndTsu()">📝 Отыграть и выписать /tsu</button>
+                <button class="btn-glass" onclick="copyTsuCmd()">📋 Скопировать /tsu</button>
+                <button class="btn-fluent" style="background:linear-gradient(135deg, #DA3633, #F85149); border-color:#FF7B72;" onclick="executePlayAndLic()">🪪 Отыграть лишение ВУ</button>
+                <button class="btn-glass" onclick="speakSelectedArticles()">📢 Зачитать статьи вслух</button>
+            </div>
+            <div>
+                <button class="btn-glass" onclick="clearCalcSelections()">🧹 Сброс</button>
+                <button class="btn-glass" style="margin-right:0;" onclick="closeCalcModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО: ПОЛЕЗНЫЕ ССЫЛКИ И ПОРТАЛ МВД ================= -->
+<div id="links-modal" class="modal-backdrop">
+    <div class="modal-card" style="width:780px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid rgba(56,139,253,0.3);">
+            <div style="display:flex; align-items:center;">
+                <span style="font-size:18px; margin-right:8px;">🔗</span>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#58A6FF; text-transform:uppercase; letter-spacing:0.5px;">Полезные ссылки и материалы МВД Провинции</div>
+                    <div style="font-size:11px; color:#8B949E;">Быстрый переход на официальные разделы форума, законы и карту радаров</div>
+                </div>
+            </div>
+            <div class="win-btn close" onclick="closeLinksModal()" style="font-size:14px;">✕</div>
+        </div>
+
+        <div class="links-grid">
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2aYR', 'Форум МВД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🏛️ Общий раздел МВД</div>
+                        <div class="link-desc">Главный форумный раздел Министерства внутренних дел</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/czQG8U', 'ФЗ о полиции')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📜 ФЗ «О полиции» (ФЗоП)</div>
+                        <div class="link-desc">Закон о правах, обязанностях и применении оружия/силы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b82', 'УГИБДД Приволжск')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-П (Приволжск)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы Приволжска</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94q1', 'КоАП РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📕 КоАП Республики Провинция</div>
+                        <div class="link-desc">Кодекс об административных правонарушениях и штрафы</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cg2b9H', 'УГИБДД Мирный')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-М (Мирный)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и темы города Мирный</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94mS', 'УПК РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">⚖️ Уголовный Кодекс (УК РП)</div>
+                        <div class="link-desc">Статьи уголовных преступлений и сроки заключения</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/ceDIz5', 'УГИБДД Невский')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚔 УГИБДД-Н (Невский)</div>
+                        <div class="link-desc">Форумный раздел, отчёты и спец. темы города Невский</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cn94ui', 'ПДД РП')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">🚦 Правила Дорожного Движения</div>
+                        <div class="link-desc">ПДД Республики Провинция и правила проезда перекрёстков</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cO3BPY', 'Карта радаров')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📸 Камеры и радары Провинции</div>
+                        <div class="link-desc">Интерактивная карта скоростных радаров всех городов</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+            <div class="link-card" onclick="openWebUrl('https://vk.cc/cAsupD', 'Методичка УГИБДД')">
+                <div class="link-card-inner">
+                    <div>
+                        <div class="link-title">📘 Методичка сотрудника УГИБДД</div>
+                        <div class="link-desc">Правила несения службы, процессуальные нормы и порядок</div>
+                    </div>
+                    <span class="link-arrow">➜</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid rgba(56,139,253,0.25);">
+            <div style="display:flex; align-items:center;">
+                <button class="btn-glass" onclick="callAhk('open_moyak_memo')">🚨 Режимы маячков (1–6)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.com/id218945813', 'ВК автора')">👨‍💻 Автор сборки</button>
+            </div>
+            <button class="btn-glass" style="margin-right:0;" onclick="closeLinksModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast-box">Скопировано!</div>
 
 <script>
 var APP_DATA = /*__AHK_INITIAL_DATA__*/ {};
 var currentLawFilter = 'ALL';
+var selectedCalcCmds = {};
+var lastKnownTargetId = '';
+
+function callAhk(action, arg1, arg2) {
+    try {
+        if (window.ahk_call) {
+            window.ahk_call(action, arg1 || '', arg2 || '');
+        }
+    } catch (e) {}
+}
+
+function openWebUrl(url, title) {
+    callAhk('open_web_url', url);
+    showToast('🌐 Открываю: ' + (title || url));
+}
+
+function openLinksModal() {
+    var m = document.getElementById('links-modal');
+    if (m) m.style.display = 'flex';
+}
+
+function closeLinksModal() {
+    var m = document.getElementById('links-modal');
+    if (m) m.style.display = 'none';
+}
+
+function openCalcModal() {
+    var m = document.getElementById('calc-modal');
+    if (!m) return;
+    m.style.display = 'flex';
+    var tidEl = document.getElementById('calc-target-id');
+    if (tidEl && (!tidEl.value || tidEl.value === 'ID')) {
+        tidEl.value = lastKnownTargetId || '';
+    }
+    filterCalcArticles();
+    var sInput = document.getElementById('calc-search');
+    if (sInput) {
+        setTimeout(function() {
+            try { sInput.focus(); sInput.select(); } catch(e){}
+        }, 100);
+    }
+}
+
+function closeCalcModal() {
+    var m = document.getElementById('calc-modal');
+    if (m) m.style.display = 'none';
+}
+
+function toggleCalcArticle(cmdStr) {
+    if (selectedCalcCmds[cmdStr]) {
+        delete selectedCalcCmds[cmdStr];
+    } else {
+        selectedCalcCmds[cmdStr] = true;
+    }
+    recalcArticles();
+}
+
+function filterCalcArticles() {
+    var q = (document.getElementById('calc-search').value || '').toLowerCase();
+    var code = document.getElementById('calc-filter-code').value;
+    var tbody = document.getElementById('calc-articles-tbody');
+    if (!tbody || !APP_DATA.articles) return;
+
+    var list = APP_DATA.articles;
+    var html = [];
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (code !== 'ALL' && a.code !== code) continue;
+        if (q) {
+            var hay = (a.code + ' ' + a.num + ' ' + a.cmd + ' ' + a.sanction + ' ' + a.desc).toLowerCase();
+            if (hay.indexOf(q) === -1) continue;
+        }
+
+        var isChecked = !!selectedCalcCmds[a.cmd];
+        var rowBg = isChecked ? ' style="background:rgba(56,139,253,0.18);"' : '';
+        var bClass = (a.code === 'КоАП') ? 'koap' : ((a.code === 'УКРП' || a.code === 'УК') ? 'uk' : ((a.code === 'ФЗоП') ? 'fzop' : 'pdd'));
+
+        html.push('<tr' + rowBg + ' onclick="toggleCalcArticle(\'' + a.cmd + '\')" style="cursor:pointer;">');
+        html.push('<td style="text-align:center;"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onclick="stopProp(event); toggleCalcArticle(\'' + a.cmd + '\');"></td>');
+        html.push('<td style="font-weight:700; color:#FFB84D; font-family:Consolas,monospace;">' + a.num + '</td>');
+        html.push('<td><span class="code-badge ' + bClass + '">' + a.code + '</span></td>');
+        html.push('<td style="color:' + (a.fine > 0 ? '#7EE787' : '#8B949E') + '; font-weight:700;">' + (a.fine > 0 ? a.fine + ' руб.' : '—') + '</td>');
+        html.push('<td style="color:#C9D1D9; font-size:11.5px;">' + a.sanction + '</td>');
+        html.push('<td style="color:#E6EDF3; font-size:11.5px;">' + a.desc + '</td>');
+        html.push('</tr>');
+    }
+
+    tbody.innerHTML = html.join('');
+    recalcArticles();
+}
+
+function recalcArticles() {
+    if (!APP_DATA.articles) return;
+    var list = APP_DATA.articles;
+    var targetId = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    var totalFine = 0;
+    var count = 0;
+    var artList = [];
+    var hasLic = false;
+    var licYears = 0;
+
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (selectedCalcCmds[a.cmd]) {
+            count++;
+            var f = parseInt(a.fine, 10) || 0;
+            totalFine += f;
+            artList.push(a.num);
+
+            var sLow = (a.sanction + ' ' + a.desc).toLowerCase();
+            if (sLow.indexOf('лишение') !== -1 || sLow.indexOf('лишением') !== -1 || sLow.indexOf('ву') !== -1) {
+                hasLic = true;
+                if (sLow.indexOf('2 года') !== -1 || sLow.indexOf('2-х лет') !== -1) {
+                    if (licYears < 2) licYears = 2;
+                } else if (sLow.indexOf('3 года') !== -1) {
+                    if (licYears < 3) licYears = 3;
+                } else if (sLow.indexOf('1 год') !== -1) {
+                    if (licYears < 1) licYears = 1;
+                } else if (sLow.indexOf('моментальн') !== -1 || sLow.indexOf('переобучен') !== -1) {
+                    if (licYears === 0) licYears = 0;
+                }
+            }
+        }
+    }
+
+    var cappedFine = Math.min(100000, totalFine);
+    var overflowFine = (totalFine > 100000) ? Math.min(100000, totalFine - 100000) : 0;
+    var artStr = artList.join(' ');
+
+    document.getElementById('calc-selected-count-txt').innerText = 'Выбрано статей: ' + count + (count > 0 ? ' (' + artStr + ')' : '');
+    var fineStr = (totalFine > 100000) ? ('💰 ШТРАФ: 100.000 + ' + overflowFine + ' руб. (всего ' + totalFine + ' руб.)') : ('💰 ИТОГО ШТРАФ: ' + totalFine + ' руб.');
+    document.getElementById('calc-fine-total-txt').innerText = fineStr;
+
+    var cmdTsu = count > 0 ? ('/tsu ' + targetId + ' ' + cappedFine + ' ' + artStr) : ('/tsu ' + targetId + ' 0 [Статьи не выбраны]');
+    document.getElementById('calc-cmd-tsu').value = cmdTsu;
+
+    var cmdLic = hasLic ? ('/takecarlic ' + targetId + ' ' + licYears) : ('/takecarlic ' + targetId + ' [Нет лишения]');
+    document.getElementById('calc-cmd-lic').value = cmdLic;
+
+    var ofRow = document.getElementById('calc-overflow-row');
+    if (overflowFine > 0) {
+        ofRow.style.display = 'flex';
+        document.getElementById('calc-cmd-overflow').value = '/tsu ' + targetId + ' ' + overflowFine + ' ' + artStr;
+    } else {
+        ofRow.style.display = 'none';
+        document.getElementById('calc-cmd-overflow').value = '';
+    }
+}
+
+function clearCalcSelections() {
+    selectedCalcCmds = {};
+    filterCalcArticles();
+    showToast('🧹 Выбор статей сброшен');
+}
+
+function copyTsuCmd() {
+    var cmd = document.getElementById('calc-cmd-tsu').value;
+    callAhk('copy_cmd', cmd);
+    showToast('📋 Скопировано: ' + cmd);
+}
+
+function copyOverflowCmd() {
+    var cmd = document.getElementById('calc-cmd-overflow').value;
+    if (!cmd) return;
+    callAhk('copy_cmd', cmd);
+    showToast('📋 Скопирован остаток: ' + cmd);
+}
+
+function sendOverflowCmd() {
+    var cmd = document.getElementById('calc-cmd-overflow').value;
+    if (!cmd) return;
+    callAhk('calc_send_overflow', cmd);
+    closeCalcModal();
+}
+
+function executePlayAndTsu() {
+    var cmd = document.getElementById('calc-cmd-tsu').value;
+    var tid = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    var arts = [];
+    var sum = 0;
+    for (var k in selectedCalcCmds) {
+        if (selectedCalcCmds[k]) arts.push(k);
+    }
+    if (arts.length === 0) {
+        alert('Сначала выберите хотя бы одну статью!');
+        return;
+    }
+    callAhk('calc_play_tsu', cmd + '|' + tid);
+    closeCalcModal();
+}
+
+function executePlayAndLic() {
+    var cmd = document.getElementById('calc-cmd-lic').value;
+    var tid = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
+    if (cmd.indexOf('[Нет лишения]') !== -1) {
+        alert('В выбранных статьях нет лишения ВУ!');
+        return;
+    }
+    callAhk('calc_play_lic', cmd + '|' + tid);
+    closeCalcModal();
+}
+
+function speakSelectedArticles() {
+    var arts = [];
+    for (var k in selectedCalcCmds) {
+        if (selectedCalcCmds[k]) arts.push(k);
+    }
+    if (arts.length === 0) {
+        alert('Отметьте галочкой хотя бы одну статью для зачитывания!');
+        return;
+    }
+    callAhk('calc_speak_articles', arts.join('|'));
+    closeCalcModal();
+}
 
 function callAhk(action, arg1, arg2) {
     try {
@@ -1635,6 +2335,7 @@ function initDashboard() {
 }
 
 function updateLiveState(targetId, dutyMode, dutyClock, dutyPct, chaseText, chasePct, shiftTime, forumPts, finesCnt, arrestsCnt, licCnt, repCnt) {
+    lastKnownTargetId = targetId || '';
     var pt = document.getElementById('pill-target');
     if (pt) pt.innerText = '🎯 Цель ID: ' + (targetId || 'ожидание');
 

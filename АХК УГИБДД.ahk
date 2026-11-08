@@ -10765,7 +10765,102 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Return
     }
     if (action = "open_calc") {
+        if (FluentUiMode && IsObject(FluentWB)) {
+            try {
+                FluentWB.document.parentWindow.openCalcModal()
+                Return
+            }
+        }
         Gosub, OpenCalc
+        Return
+    }
+    if (action = "open_web_url") {
+        if (arg1 != "")
+            Run, %arg1%
+        Return
+    }
+    if (action = "open_moyak_memo") {
+        Gosub, ButtonURLMoyak
+        Return
+    }
+    if (action = "calc_send_overflow") {
+        if (arg1 != "") {
+            Gui, 8:Hide
+            Sleep 250
+            SendMessage, 0x50,, 0x4190419,, A
+            SetCapsOff()
+            Send, {F6}
+            SmartSleep(200)
+            Send, %arg1%{Space}
+        }
+        Return
+    }
+    if (action = "calc_play_tsu") {
+        parts := StrSplit(arg1, "|")
+        cmdToSend := parts[1]
+        targetPlayer := (parts.MaxIndex() >= 2 && parts[2] != "") ? parts[2] : "ID"
+        Gui, 8:Hide
+        Sleep 250
+        SendMessage, 0x50,, 0x4190419,, A
+        SetCapsOff()
+        Send, {F6}
+        Sleep 250
+        Send, /me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"{Enter}{F6}
+        Sleep 500
+        Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+        Sleep 300
+        Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
+        Sleep 250
+        Send, %cmdToSend%{Space}
+        LogJournalAction("Штраф", targetPlayer, cmdToSend, 0)
+        TriggerSmartScreenshot("Выписка штрафа")
+        Return
+    }
+    if (action = "calc_play_lic") {
+        parts := StrSplit(arg1, "|")
+        cmdToSend := parts[1]
+        targetPlayer := (parts.MaxIndex() >= 2 && parts[2] != "") ? parts[2] : "ID"
+        Gui, 8:Hide
+        Sleep 250
+        SendMessage, 0x50,, 0x4190419,, A
+        SetCapsOff()
+        Send, {F6}
+        SmartSleep(250)
+        Send, /me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"{Enter}{F6}
+        SmartSleep(500)
+        Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+        SmartSleep(500)
+        Send, /do Информация о недействительности ВУ внесена в базу данных.{Enter}{F6}
+        SmartSleep(500)
+        Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+        SmartSleep(350)
+        Send, %cmdToSend%{Space}
+        LogJournalAction("Лишение ВУ", targetPlayer, cmdToSend, 0)
+        TriggerSmartScreenshot("Аннулирование ВУ")
+        Return
+    }
+    if (action = "calc_speak_articles") {
+        artCmds := StrSplit(arg1, "|")
+        if (artCmds.MaxIndex() > 0) {
+            Gui, 8:Hide
+            Sleep 350
+            SendMessage, 0x50,, 0x4190419,, A
+            SetCapsOff()
+            for idx, cmdName in artCmds {
+                for aIdx, art in ArticlesDB {
+                    if (art.Cmd = cmdName) {
+                        parts := StrSplit(art.RawLines, "||")
+                        for pIdx, lineText in parts {
+                            Send, {F6}
+                            SmartSleep(350)
+                            Send, %lineText%{Enter}
+                            SmartSleep(1800)
+                        }
+                        break
+                    }
+                }
+            }
+        }
         Return
     }
     if (action = "open_profile") {
@@ -10853,7 +10948,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Return
     }
     if (action = "save_profile_web") {
-        global Frak, Fio1, Rank, Teg, Prop2, Znak, Otdel, Gibdd, Gender, CheckMB, Vers, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
+        global Frak, Fio1, Rank, Teg, Prop2, Znak, Otdel, Gibdd, Gender, CheckMB, Vers
         parts := StrSplit(arg1, "|")
         if (parts.MaxIndex() >= 9) {
             Frak := Trim(parts[1])
