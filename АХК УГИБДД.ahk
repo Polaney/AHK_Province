@@ -60,6 +60,16 @@ if (!FileExist(A_ScriptDir . "\assets\mobile_tablet.html")) {
         FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
     }
 }
+if (!FileExist(A_ScriptDir . "\assets\radio_start.wav")) {
+    try {
+        FileInstall, assets\radio_start.wav, %A_ScriptDir%\assets\radio_start.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\radio_stop.wav")) {
+    try {
+        FileInstall, assets\radio_stop.wav, %A_ScriptDir%\assets\radio_stop.wav, 1
+    }
+}
 
 AbortBindFlag := 0
 RefreshTray()
@@ -379,7 +389,7 @@ ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.4.0ж
+    Vers = 2.5.0ж
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -396,7 +406,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.4.0м
+    Vers = 2.5.0м
     Ok1 =
     Ok2 =
     Ok2 =
@@ -429,6 +439,7 @@ InitBindsCatalog()
 InitTimersAndLogReader()
 InitAutoUpdater()
 TabletRelay_Init()
+InitClientHeartbeat()
 
 ; -------------------------------------------------------------------------------------------------
 ; ГЛАВНОЕ ОКНО (GUI 1) — ТЁМНАЯ ТЕМА МВД / УГИБДД + ПОИСК + НАСТРОЙКА КЛАВИШ
@@ -2484,12 +2495,13 @@ EnsureDefaultConfig() {
         IniWrite, ОР/СР, %IniPath%, User, CheckMB
         IniWrite, 1, %IniPath%, User, Post
         IniWrite, 1, %IniPath%, User, AutoScreenMode
+        IniWrite, 1, %IniPath%, User, RadioSfx
         IniWrite, ТС нарушителя, %IniPath%, User, ChaseTargetText
     }
 }
 
 LoadUserConfig() {
-    global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Znak, CheckMB, Post, ProvLogPath, OnlyInGameMode
+    global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Znak, CheckMB, Post, ProvLogPath, OnlyInGameMode, RadioSfxEnabled
     IniPath := A_Temp . "\gibdd.egl"
     IniRead, Fio1, %IniPath%, User, Fio1, Имя Фамилия
     IniRead, Rank, %IniPath%, User, Rank, Рядовой
@@ -2506,6 +2518,7 @@ LoadUserConfig() {
     IniRead, ProvLogPath, %IniPath%, User, ProvLogPath, AUTO
     IniRead, OnlyInGameMode, %IniPath%, User, OnlyInGameMode, 0
     IniRead, AutoScreenMode, %IniPath%, User, AutoScreenMode, 1
+    IniRead, RadioSfxEnabled, %IniPath%, User, RadioSfx, 1
     IniRead, ChaseTargetText, %IniPath%, User, ChaseTargetText, ТС нарушителя
     if (Prop1 = "ERROR" || Prop1 = "")
         Prop1 := "1"
@@ -2513,6 +2526,8 @@ LoadUserConfig() {
         Post := "1"
     if (OnlyInGameMode = "ERROR" || OnlyInGameMode = "")
         OnlyInGameMode := 0
+    if (RadioSfxEnabled = "ERROR" || RadioSfxEnabled = "")
+        RadioSfxEnabled := 1
 }
 
 ; =================================================================================================
@@ -11756,30 +11771,150 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
     } else if (cmd = "clock") {
         Gosub, Bind_Clock
     } else if (cmd = "voice_on") {
+        PlayRadioSfx("radio_start.wav")
         Gosub, Bind_VoiceOn
     } else if (cmd = "voice_off") {
+        PlayRadioSfx("radio_stop.wav")
         Gosub, Bind_VoiceOff
     } else if (cmd = "shout_hands") {
         Gosub, Bind_ShoutHands
     } else if (cmd = "report_patrol") {
+        PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду патрулирование города. Код: 10-4.{Enter}{F8}
+        Sleep, 250
+        PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_chase") {
+        PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду преследование нарушителя! Код: 10-57.{Enter}{F8}
+        Sleep, 250
+        PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_help") {
+        PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Срочно требуется поддержка экипажа! Код: 10-33.{Enter}{F8}
+        Sleep, 250
+        PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_start") {
+        PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Выехал в патруль. Код: 10-8.{Enter}{F8}
+        Sleep, 250
+        PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_end") {
+        PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Окончил патрулирование, перерыв. Код: 10-7.{Enter}{F8}
+        Sleep, 250
+        PlayRadioSfx("radio_stop.wav")
+    }
+}
+
+; =================================================================================================
+; ТАКТИЧЕСКИЕ ЗВУКИ РАЦИИ (RADIO SFX) ДЛЯ ГОЛОСА И БИНДОВ В МТА ПРОВИНЦИИ
+; =================================================================================================
+global RadioSfxEnabled := 1
+global LastBroadcastMessageId := ""
+
+PlayRadioSfx(soundName) {
+    global RadioSfxEnabled
+    if (!RadioSfxEnabled)
+        return
+    soundPath := A_ScriptDir . "\assets\" . soundName
+    if (!FileExist(soundPath))
+        return
+    ; 0x00020001 = SND_ASYNC (0x1) | SND_FILENAME (0x20000)
+    DllCall("winmm\PlaySoundW", "WStr", soundPath, "Ptr", 0, "UInt", 0x00020001)
+}
+
+#IfWinActive ahk_group ProvinceGameGroup
+~*z::
+if (RadioSfxEnabled) {
+    PlayRadioSfx("radio_start.wav")
+}
+return
+
+~*z Up::
+if (RadioSfxEnabled) {
+    PlayRadioSfx("radio_stop.wav")
+}
+return
+#IfWinActive
+
+; =================================================================================================
+; КЛИЕНТСКИЙ ТЕЛЕМЕТРИЧЕСКИЙ ПУЛЬС В КОМАНДНЫЙ ЦЕНТР (ADMIN DASHBOARD)
+; =================================================================================================
+InitClientHeartbeat() {
+    SetTimer, SendClientHeartbeatTick, -2500
+    SetTimer, SendClientHeartbeatTick, 60000
+}
+
+SendClientHeartbeatTick:
+SendClientHeartbeat()
+Return
+
+GetClientHwid() {
+    RegRead, guid, HKLM\SOFTWARE\Microsoft\Cryptography, MachineGuid
+    if (guid = "" || ErrorLevel)
+        guid := A_ComputerName . "-" . A_UserName
+    return guid
+}
+
+SendClientHeartbeat() {
+    global TabletRelayHost, Fio1, Rank, Teg, Prop2, Gibdd, Vers
+    global LiveShiftDuration, LiveFinesCount, LiveArrestsCount, LiveForumPoints, LastBroadcastMessageId
+
+    if (TabletRelayHost = "")
+        TabletRelayHost := "http://152.234.229.245:3000"
+
+    hwid := GetClientHwid()
+    dutyStr := (LiveShiftDuration != "") ? LiveShiftDuration : "00:00"
+    finesVal := (LiveFinesCount + 0)
+    arrVal := (LiveArrestsCount + 0)
+    ptsVal := (LiveForumPoints + 0)
+
+    url := TabletRelayHost . "/api/client/heartbeat"
+
+    payload := "{"
+    payload .= """hwid"":""" . JsonEscapeStr(hwid) . ""","
+    payload .= """rank"":""" . JsonEscapeStr(Rank) . ""","
+    payload .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
+    payload .= """teg"":""" . JsonEscapeStr(Teg) . ""","
+    payload .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
+    payload .= """city"":""" . JsonEscapeStr(Gibdd) . ""","
+    payload .= """version"":""" . JsonEscapeStr(Vers) . ""","
+    payload .= """dutyClock"":""" . JsonEscapeStr(dutyStr) . ""","
+    payload .= """finesCnt"":" . finesVal . ","
+    payload .= """arrestsCnt"":" . arrVal . ","
+    payload .= """forumPts"":" . ptsVal . ","
+    payload .= """status"":""10-8"""
+    payload .= "}"
+
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.Open("POST", url, true) ; Асинхронно, без задержек и фризов игры
+        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
+        whr.SetRequestHeader("User-Agent", "AHK-GIBDD/" . Vers)
+        whr.Send(payload)
+        if (whr.WaitForResponse(1.5)) {
+            resp := whr.ResponseText
+            if (InStr(resp, """broadcast"":{")) {
+                RegExMatch(resp, "O)""id"":""([^""]+)"".*?""message"":""([^""]+)""", match)
+                if (match && match.1 != LastBroadcastMessageId) {
+                    LastBroadcastMessageId := match.1
+                    msgText := StrReplace(match.2, "\n", "`n")
+                    SoundPlay, %A_ScriptDir%\1.mp3
+                    TrayTip, 📢 ОПОВЕЩЕНИЕ РУКОВОДСТВА УГИБДД!, %msgText%, 8, 2
+                }
+            }
+        }
+    } catch e {
+        ; Игнорируем сетевые сбои в оффлайне
     }
 }

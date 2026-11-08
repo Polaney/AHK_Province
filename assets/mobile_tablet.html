@@ -1086,13 +1086,39 @@ function playSoundEffect(type) {
             gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
             osc.start(now);
             osc.stop(now + 0.08);
-        } else if (type === 'roger') {
-            osc.frequency.setValueAtTime(1400, now);
-            osc.frequency.setValueAtTime(950, now + 0.05);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+        } else if (type === 'roger' || type === 'roger_beep') {
+            // Motorola Dual Tone Roger Beep (1250Hz -> 1550Hz)
+            osc.frequency.setValueAtTime(1250, now);
+            osc.frequency.setValueAtTime(1550, now + 0.07);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.setValueAtTime(0.22, now + 0.12);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
             osc.start(now);
-            osc.stop(now + 0.12);
+            osc.stop(now + 0.16);
+        } else if (type === 'radio_click') {
+            // Tactical squelch burst + mic key chirp
+            var bufferSize = Math.floor(audioCtx.sampleRate * 0.08);
+            var noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            var output = noiseBuffer.getChannelData(0);
+            for (var bi = 0; bi < bufferSize; bi++) {
+                output[bi] = Math.random() * 2 - 1;
+            }
+            var whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            var filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 2200;
+            whiteNoise.connect(filter);
+            filter.connect(gain);
+
+            osc.frequency.setValueAtTime(1400, now);
+            osc.frequency.linearRampToValueAtTime(1800, now + 0.04);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+
+            whiteNoise.start(now);
+            osc.start(now);
+            osc.stop(now + 0.08);
         }
     } catch(e) {}
 }
@@ -1204,7 +1230,16 @@ function syncTargetId(val) {
 }
 
 function triggerAction(actionName) {
-    playSoundEffect('roger');
+    if (actionName === 'voice_on') {
+        playSoundEffect('radio_click');
+    } else if (actionName === 'voice_off') {
+        playSoundEffect('roger_beep');
+    } else if (actionName.indexOf('report_') === 0 || actionName.indexOf('meg') === 0) {
+        playSoundEffect('radio_click');
+        setTimeout(function() { playSoundEffect('roger_beep'); }, 350);
+    } else {
+        playSoundEffect('roger_beep');
+    }
     if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(25);
 
     if (tabletWs && tabletWs.readyState === 1) {
