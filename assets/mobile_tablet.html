@@ -612,9 +612,16 @@ html, body {
             </div>
         </div>
 
-        <!-- ТАБ 3: ШПАРГАЛКА КОАП & УК РП -->
+        <!-- ТАБ 3: ШПАРГАЛКА КОАП, УК, ФЗоП & ПДД -->
         <div class="tab-pane" id="pane-3">
-            <input type="text" id="law-search" class="search-box" placeholder="🔎 Поиск статьи (тонировка, 5.2, встречка, оружие)..." oninput="filterLaws()">
+            <input type="text" id="law-search" class="search-box" placeholder="🔎 Поиск статьи (номер, тонировка, оружие, встречка)..." oninput="filterLaws()">
+            <div style="display:flex; gap:6px; margin-top:8px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+                <button class="filter-pill active" id="btn-filt-all" onclick="setLawFilter('ALL')">Все (189)</button>
+                <button class="filter-pill" id="btn-filt-koap" onclick="setLawFilter('КоАП')">КоАП (102)</button>
+                <button class="filter-pill" id="btn-filt-uk" onclick="setLawFilter('УКРП')">УК (58)</button>
+                <button class="filter-pill" id="btn-filt-fzop" onclick="setLawFilter('ФЗоП')">ФЗоП (25)</button>
+                <button class="filter-pill" id="btn-filt-pdd" onclick="setLawFilter('ПДД')">ПДД (4)</button>
+            </div>
             <div id="laws-list" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
                 <div style="text-align:center; padding:20px; color:#8B949E;">Загрузка справочника статей...</div>
             </div>
