@@ -10676,11 +10676,23 @@ InitAndShowFluentGlassUI() {
     }
 
     FluentUiMode := 1
+    winW := (A_ScreenWidth <= 1366) ? (A_ScreenWidth - 60) : 1240
+    if (winW > 1240)
+        winW := 1240
+    if (winW < 1024)
+        winW := 1024
+
+    winH := (A_ScreenHeight <= 800) ? (A_ScreenHeight - 90) : 760
+    if (winH > 760)
+        winH := 760
+    if (winH < 620)
+        winH := 620
+
     Gui, 8:Destroy
     Gui, 8:+HwndFluentGuiHwnd -Caption +Border
     Gui, 8:Color, 070B14
     Gui, 8:Margin, 0, 0
-    Gui, 8:Add, ActiveX, x0 y0 w1240 h760 vFluentWB, Shell.Explorer
+    Gui, 8:Add, ActiveX, x0 y0 w%winW% h%winH% vFluentWB, Shell.Explorer
     FluentWB.Silent := true
     navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/")
     FluentWB.Navigate(navUrl)
@@ -10693,7 +10705,7 @@ InitAndShowFluentGlassUI() {
         FluentWB.document.parentWindow.ahk_call := Func("OnFluentWebAction")
     }
 
-    Gui, 8:Show, w1240 h760, АХК УГИБДД МВД — Fluent Police Glass
+    Gui, 8:Show, Center w%winW% h%winH%, АХК УГИБДД МВД — Fluent Police Glass
     Gosub, UpdateHudTick
 }
 
