@@ -10518,27 +10518,16 @@ PerformDownloadAndUpdate() {
     }
 }
 
-FetchUrlText(Url, TimeoutSec := 6) {
+FetchUrlText(Url, TimeoutSec := 5) {
     ComObjError(false)
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        ; Таймауты: Resolve 5s, Connect 5s, Send 10s, Receive 10s
-        whr.SetTimeouts(5000, 5000, TimeoutSec * 1000, TimeoutSec * 1000)
+        whr.SetTimeouts(3000, 3000, TimeoutSec * 1000, TimeoutSec * 1000)
         whr.Open("GET", Url . "?t=" . A_TickCount, false)
         whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
         whr.Send()
-        if (whr.Status = 200) {
-            ado := ComObjCreate("ADODB.Stream")
-            ado.Type := 1 ; adTypeBinary
-            ado.Open()
-            ado.Write(whr.ResponseBody)
-            ado.Position := 0
-            ado.Type := 2 ; adTypeText
-            ado.Charset := "utf-8"
-            resText := ado.ReadText()
-            ado.Close()
-            return resText
-        }
+        if (whr.Status = 200)
+            return whr.ResponseText
     }
     return ""
 }
