@@ -1,4 +1,5 @@
 # Backups and temporary files
+backups/
 backup_*.ahk
 *.bak
 *.bak.*
