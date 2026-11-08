@@ -10891,7 +10891,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     }
     if (action = "allow_firewall") {
         try {
-            Run *RunAs netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
+            Run *RunAs "%A_ComSpec%" /c netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
             SoundBeep, 900, 120
             TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 успешно открыт в брандмауэре!, 3, 1
         } catch {
@@ -11372,6 +11372,43 @@ MobileServer_Stop() {
     }
 }
 
+MobileServer_SendResponse(clientSock, cType, ByRef body) {
+    bodyLen := StrPut(body, "UTF-8") - 1
+    resp := "HTTP/1.1 200 OK`r`n"
+    resp .= "Content-Type: " . cType . "`r`n"
+    resp .= "Access-Control-Allow-Origin: *`r`n"
+    resp .= "Access-Control-Allow-Methods: GET, POST, OPTIONS`r`n"
+    resp .= "Access-Control-Allow-Headers: *`r`n"
+    resp .= "Connection: close`r`n"
+    resp .= "Content-Length: " . bodyLen . "`r`n`r`n"
+    resp .= body
+
+    totalLen := StrPut(resp, "UTF-8") - 1
+    VarSetCapacity(sendData, totalLen + 1, 0)
+    StrPut(resp, &sendData, "UTF-8")
+
+    totalSent := 0
+    p := &sendData
+    loopCount := 0
+    while (totalSent < totalLen && loopCount < 100) {
+        loopCount++
+        sent := DllCall("ws2_32\send", "Ptr", clientSock, "Ptr", p + totalSent, "Int", totalLen - totalSent, "Int", 0)
+        if (sent > 0) {
+            totalSent += sent
+        } else {
+            err := DllCall("ws2_32\WSAGetLastError")
+            if (err = 10035) { ; WSAEWOULDBLOCK
+                Sleep, 10
+                continue
+            }
+            break
+        }
+    }
+    DllCall("ws2_32\shutdown", "Ptr", clientSock, "Int", 1) ; SD_SEND
+    Sleep, 15
+    DllCall("ws2_32\closesocket", "Ptr", clientSock)
+}
+
 MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
     global MobileServerSock, Fio1, Rank, Teg, Prop2, Gibdd, ArticlesDB
     global LiveShiftDuration, LiveForumPoints, LiveFinesCount, LiveArrestsCount, LiveTargetId
@@ -11401,6 +11438,18 @@ MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
             method := parts[1]
             urlPath := parts[2]
 
+            ; CORS Preflight
+            if (method = "OPTIONS") {
+                optResp := "HTTP/1.1 204 No Content`r`nAccess-Control-Allow-Origin: *`r`nAccess-Control-Allow-Methods: GET, POST, OPTIONS`r`nAccess-Control-Allow-Headers: *`r`nConnection: close`r`n`r`n"
+                VarSetCapacity(optData, StrPut(optResp, "UTF-8"), 0)
+                optLen := StrPut(optResp, &optData, "UTF-8") - 1
+                DllCall("ws2_32\send", "Ptr", clientSock, "Ptr", &optData, "Int", optLen, "Int", 0)
+                DllCall("ws2_32\shutdown", "Ptr", clientSock, "Int", 1)
+                Sleep, 10
+                DllCall("ws2_32\closesocket", "Ptr", clientSock)
+                return
+            }
+
             body := ""
             cType := "text/plain; charset=utf-8"
 
@@ -11420,14 +11469,17 @@ MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
                 body .= """arrestsCnt"":" . (LiveArrestsCount + 0) . ","
                 body .= """forumPts"":" . (LiveForumPoints + 0) . ","
                 body .= """targetId"":""" . JsonEscapeStr(LiveTargetId) . """"
-                body .= "},"
-                body .= """articles"":["
+                body .= "}"
+                body .= "}"
+            } else if (InStr(urlPath, "/api/articles")) {
+                cType := "application/json; charset=utf-8"
+                body := "["
                 for idx, art in ArticlesDB {
                     if (idx > 1)
                         body .= ","
                     body .= "{""code"":""" . JsonEscapeStr(art.Code) . """,""num"":""" . JsonEscapeStr(art.Num) . """,""sanction"":""" . JsonEscapeStr(art.Sanction) . """,""desc"":""" . JsonEscapeStr(art.Desc) . """}"
                 }
-                body .= "]}"
+                body .= "]"
             } else if (InStr(urlPath, "/api/action")) {
                 cType := "application/json; charset=utf-8"
                 cmdName := ""
@@ -11445,16 +11497,8 @@ MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
                 }
             }
 
-            resp := "HTTP/1.1 200 OK`r`n"
-            resp .= "Content-Type: " . cType . "`r`n"
-            resp .= "Access-Control-Allow-Origin: *`r`n"
-            resp .= "Connection: close`r`n"
-            resp .= "Content-Length: " . StrPut(body, "UTF-8") - 1 . "`r`n`r`n"
-            resp .= body
-
-            VarSetCapacity(sendData, StrPut(resp, "UTF-8"), 0)
-            sendLen := StrPut(resp, &sendData, "UTF-8") - 1
-            DllCall("ws2_32\send", "Ptr", clientSock, "Ptr", &sendData, "Int", sendLen, "Int", 0)
+            MobileServer_SendResponse(clientSock, cType, body)
+            return
         }
         DllCall("ws2_32\closesocket", "Ptr", clientSock)
     } else if (event = 32) { ; FD_CLOSE

@@ -763,7 +763,10 @@ function triggerAction(actionName) {
 
 function fetchState() {
     fetch('/api/state')
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
         .then(function(data) {
             var conn = document.getElementById('hud-conn');
             if (conn) {
@@ -785,11 +788,6 @@ function fetchState() {
                 document.getElementById('kpi-arrests').innerText = (l.arrestsCnt || 0) + ' чел.';
                 document.getElementById('kpi-pts').innerText = (l.forumPts || 0) + '/20';
             }
-
-            if (data.articles && TABLET_DATA.articles.length === 0) {
-                TABLET_DATA.articles = data.articles;
-                renderLaws(TABLET_DATA.articles);
-            }
         })
         .catch(function(err) {
             var conn = document.getElementById('hud-conn');
@@ -799,6 +797,18 @@ function fetchState() {
                 conn.style.borderColor = 'rgba(248, 81, 73, 0.4)';
             }
         });
+}
+
+function loadArticles() {
+    fetch('/api/articles')
+        .then(function(r) { return r.json(); })
+        .then(function(list) {
+            if (list && list.length > 0) {
+                TABLET_DATA.articles = list;
+                renderLaws(list);
+            }
+        })
+        .catch(function(e) {});
 }
 
 function renderLaws(list) {
@@ -844,6 +854,7 @@ function filterLaws() {
 // Initial fetch and 1.5s live polling
 fetchState();
 setInterval(fetchState, 1500);
+loadArticles();
 </script>
 </body>
 </html>
