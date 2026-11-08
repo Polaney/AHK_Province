@@ -10903,9 +10903,9 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         try {
             Run *RunAs "%A_ComSpec%" /c netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
             SoundBeep, 900, 120
-            TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 успешно открыт в брандмауэре!, 3, 1
+            TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 открыт (или используется VPS релей), 3, 1
         } catch {
-            MsgBox, 48, Брандмауэр Windows, Требуются права администратора для разрешения входящего порта 8088!
+            TrayTip, ☁️ Бортовой планшет, Используется облачный релей VPS (входящий порт не требуется), 3, 1
         }
         Return
     }
@@ -11536,7 +11536,26 @@ MobileServer_OnSocketMsg(wParam, lParam, msg, hwnd) {
 }
 
 ExecuteMobilePatrolCommand(cmd, arg := "") {
-    global Fio1, Rank, Teg, Prop2, Vers, AbortBindFlag
+    global Fio1, Rank, Teg, Prop2, Vers, AbortBindFlag, ArticlesDB
+
+    if (InStr(cmd, "speak_art|") = 1) {
+        artCmd := SubStr(cmd, 11)
+        for aIdx, art in ArticlesDB {
+            if (art.Cmd = artCmd || art.Num = artCmd || art.Cmd = "/" . artCmd) {
+                SetLocaleRu()
+                SetCapsOff()
+                parts := StrSplit(art.RawLines, "||")
+                for pIdx, lineText in parts {
+                    Send, {F6}
+                    SmartSleep(350)
+                    Send, %lineText%{Enter}
+                    SmartSleep(1800)
+                }
+                break
+            }
+        }
+        return
+    }
 
     if (cmd = "stop_bind") {
         AbortBindFlag := 1
