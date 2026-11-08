@@ -2368,22 +2368,33 @@ function closeHotkeyModal() {
 
 function onHotkeyInputKeyDown(e) {
     if (!e) e = window.event;
-    e.preventDefault();
+    if (e.preventDefault) e.preventDefault();
     if (e.stopPropagation) e.stopPropagation();
 
     var code = e.keyCode || e.which;
-    if (code === 16 || code === 17 || code === 18) return; // одиночные модификаторы игнорируем
+    // одиночные модификаторы игнорируем
+    if (code === 16 || code === 17 || code === 18 || code === 91 || code === 92) return false;
 
     var mods = [];
     if (e.ctrlKey) mods.push('^');
     if (e.altKey) mods.push('!');
     if (e.shiftKey) mods.push('+');
 
-    var keyName = e.key;
+    var keyName = '';
     if (code >= 112 && code <= 123) {
         keyName = 'F' + (code - 111);
     } else if (code >= 96 && code <= 105) {
         keyName = 'Numpad' + (code - 96);
+    } else if (code === 106) {
+        keyName = 'NumpadMult';
+    } else if (code === 107) {
+        keyName = 'NumpadAdd';
+    } else if (code === 109) {
+        keyName = 'NumpadSub';
+    } else if (code === 110) {
+        keyName = 'NumpadDot';
+    } else if (code === 111) {
+        keyName = 'NumpadDiv';
     } else if (code === 32) {
         keyName = 'Space';
     } else if (code === 9) {
@@ -2401,13 +2412,22 @@ function onHotkeyInputKeyDown(e) {
     } else if (code === 192) {
         keyName = 'sc29';
     } else if (code >= 65 && code <= 90) {
-        keyName = String.fromCharCode(code);
+        keyName = String.fromCharCode(code).toUpperCase();
     } else if (code >= 48 && code <= 57) {
         keyName = String.fromCharCode(code);
+    } else if (e.key && e.key.length === 1) {
+        keyName = e.key.toUpperCase();
     }
+
+    if (!keyName) return false;
 
     var ahkKey = mods.join('') + keyName;
     document.getElementById('modal-hk-input').value = ahkKey;
+    document.getElementById('modal-hk-ctrl').checked = e.ctrlKey;
+    document.getElementById('modal-hk-alt').checked = e.altKey;
+    document.getElementById('modal-hk-shift').checked = e.shiftKey;
+    document.getElementById('modal-hk-spec').value = '';
+    return false;
 }
 
 function buildManualHotkey() {

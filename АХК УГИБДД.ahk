@@ -11105,26 +11105,19 @@ ApplySingleHotkeyUpdate(hkId, newKey) {
     global HotkeyById, HotkeyDefs
     if (!HotkeyById.HasKey(hkId))
         Return
-    oldKey := HotkeyById[hkId].CurrentKey
-    if (oldKey != "") {
-        try {
-            Hotkey, %oldKey%, Off, UseErrorLevel
-        }
-    }
-    HotkeyById[hkId].CurrentKey := newKey
+    targetObj := HotkeyById[hkId]
+    UnregisterDynamicHotkey(targetObj)
+    targetObj.CurrentKey := newKey
     for idx, hk in HotkeyDefs {
         if (hk.Id = hkId) {
             HotkeyDefs[idx].CurrentKey := newKey
             break
         }
     }
-    targetFn := HotkeyById[hkId].Fn
-    if (newKey != "" && targetFn != "") {
-        try {
-            Hotkey, %newKey%, %targetFn%, On, UseErrorLevel
-        }
-    }
-    for idx, iniPath in [A_Temp . "gibdd.egl", A_ScriptDir . "gibdd_profile.ini"] {
+    RegisterDynamicHotkey(targetObj)
+    for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
         IniWrite, %newKey%, %iniPath%, Hotkeys, %hkId%
     }
+    RefreshAllHotkeyGuiLabels()
+    InitBindsCatalog()
 }
