@@ -10639,7 +10639,7 @@ BuildFluentInitialJson() {
     for idx, art in ArticlesDB {
         if (idx > 1)
             j .= ","
-        j .= "{""code"":""" . JsonEscapeStr(art.Code) . """,""num"":""" . JsonEscapeStr(art.Num) . """,""cmd"":""" . JsonEscapeStr(art.Cmd) . """,""sanction"":""" . JsonEscapeStr(art.Sanction) . """,""desc"":""" . JsonEscapeStr(art.Desc) . """}"
+        j .= "{""code"":""" . JsonEscapeStr(art.Code) . """,""num"":""" . JsonEscapeStr(art.Num) . """,""cmd"":""" . JsonEscapeStr(art.Cmd) . """,""fine"":" . (art.Fine + 0) . ",""sanction"":""" . JsonEscapeStr(art.Sanction) . """,""desc"":""" . JsonEscapeStr(art.Desc) . """}"
     }
     j .= "],"
 

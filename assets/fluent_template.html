@@ -1985,7 +1985,12 @@ function recalcArticles() {
     var targetId = (document.getElementById('calc-target-id').value || '').trim() || 'ID';
     var totalFine = 0;
     var count = 0;
-    var artList = [];
+    var koapNums = [];
+    var ukNums = [];
+    var pddNums = [];
+    var fzopNums = [];
+    var overKoapNums = [];
+    var overUkNums = [];
     var hasLic = false;
     var licYears = 0;
 
@@ -1995,7 +2000,18 @@ function recalcArticles() {
             count++;
             var f = parseInt(a.fine, 10) || 0;
             totalFine += f;
-            artList.push(a.num);
+
+            if (a.code === 'КоАП') {
+                koapNums.push(a.num);
+                if (totalFine > 100000 && f > 0) overKoapNums.push(a.num);
+            } else if (a.code === 'УКРП' || a.code === 'УК') {
+                ukNums.push(a.num);
+                if (totalFine > 100000 && f > 0) overUkNums.push(a.num);
+            } else if (a.code === 'ПДД') {
+                pddNums.push(a.num);
+            } else if (a.code === 'ФЗоП') {
+                fzopNums.push(a.num);
+            }
 
             var sLow = (a.sanction + ' ' + a.desc).toLowerCase();
             if (sLow.indexOf('лишение') !== -1 || sLow.indexOf('лишением') !== -1 || sLow.indexOf('ву') !== -1) {
@@ -2013,9 +2029,20 @@ function recalcArticles() {
         }
     }
 
+    var artParts = [];
+    if (koapNums.length > 0) artParts.push(koapNums.join('+') + ' КоАП');
+    if (ukNums.length > 0) artParts.push(ukNums.join('+') + ' УК');
+    if (pddNums.length > 0) artParts.push(pddNums.join('+') + ' ПДД');
+    if (fzopNums.length > 0) artParts.push(fzopNums.join('+') + ' ФЗоП');
+    var artStr = artParts.join(' ');
+
+    var overParts = [];
+    if (overKoapNums.length > 0) overParts.push(overKoapNums.join('+') + ' КоАП');
+    if (overUkNums.length > 0) overParts.push(overUkNums.join('+') + ' УК');
+    var overArtStr = overParts.length > 0 ? overParts.join(' ') : artStr;
+
     var cappedFine = Math.min(100000, totalFine);
     var overflowFine = (totalFine > 100000) ? Math.min(100000, totalFine - 100000) : 0;
-    var artStr = artList.join(' ');
 
     document.getElementById('calc-selected-count-txt').innerText = 'Выбрано статей: ' + count + (count > 0 ? ' (' + artStr + ')' : '');
     var fineStr = (totalFine > 100000) ? ('💰 ШТРАФ: 100.000 + ' + overflowFine + ' руб. (всего ' + totalFine + ' руб.)') : ('💰 ИТОГО ШТРАФ: ' + totalFine + ' руб.');
@@ -2030,7 +2057,7 @@ function recalcArticles() {
     var ofRow = document.getElementById('calc-overflow-row');
     if (overflowFine > 0) {
         ofRow.style.display = 'flex';
-        document.getElementById('calc-cmd-overflow').value = '/tsu ' + targetId + ' ' + overflowFine + ' ' + artStr;
+        document.getElementById('calc-cmd-overflow').value = '/tsu ' + targetId + ' ' + overflowFine + ' ' + overArtStr;
     } else {
         ofRow.style.display = 'none';
         document.getElementById('calc-cmd-overflow').value = '';
