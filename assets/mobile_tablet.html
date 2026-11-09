@@ -935,43 +935,75 @@ html, body {
 
         <!-- ТАБ 4: БОРТ & РАЦИЯ -->
         <div class="tab-pane" id="pane-4">
-            <div class="section-title">📻 Доклады в рацию фракции (/r)</div>
-            <div class="grid-1">
-                <button class="btn-tablet primary" onclick="triggerAction('report_patrol')">
-                    <span class="btn-icon">📻</span>
-                    <div class="btn-text-wrap">
-                        <span class="btn-main-text">Доклад: 10-4 Патруль</span>
-                        <span class="btn-sub-text">Веду патрулирование города</span>
-                    </div>
-                </button>
-                <button class="btn-tablet warning" onclick="triggerAction('report_chase')">
-                    <span class="btn-icon">🚨</span>
-                    <div class="btn-text-wrap">
-                        <span class="btn-main-text">Доклад: 10-57 Погоня</span>
-                        <span class="btn-sub-text">Веду преследование нарушителя!</span>
-                    </div>
-                </button>
-                <button class="btn-tablet danger" onclick="triggerAction('report_help')">
-                    <span class="btn-icon">🆘</span>
-                    <div class="btn-text-wrap">
-                        <span class="btn-main-text">Доклад: 10-33 Срочно помощь!</span>
-                        <span class="btn-sub-text">Требуется поддержка экипажа</span>
-                    </div>
-                </button>
-            </div>
+            <div class="section-title">📻 Официальные Тен-коды УГИБДД (/r)</div>
             <div class="grid-2">
                 <button class="btn-tablet" onclick="triggerAction('report_start')">
                     <span class="btn-icon">🟢</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">10-8 Выезд</span>
-                        <span class="btn-sub-text">Выехал в патруль</span>
+                        <span class="btn-main-text">10-0 Выезд</span>
+                        <span class="btn-sub-text">Выехал в патруль (Код-3)</span>
                     </div>
                 </button>
                 <button class="btn-tablet" onclick="triggerAction('report_end')">
                     <span class="btn-icon">🔴</span>
                     <div class="btn-text-wrap">
-                        <span class="btn-main-text">10-7 Окончание</span>
-                        <span class="btn-sub-text">Закончил смену</span>
+                        <span class="btn-main-text">10-21 В гараж</span>
+                        <span class="btn-sub-text">Закончил патруль (Код-3)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-1" style="margin-top:6px;">
+                <button class="btn-tablet primary" onclick="triggerAction('report_patrol')">
+                    <span class="btn-icon">📻</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-0-1 Продолжаю патруль</span>
+                        <span class="btn-sub-text">Патрулирование города (Код-3)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet warning" onclick="triggerAction('report_chase')">
+                    <span class="btn-icon">🚨</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Веду погоню (Код-1)</span>
+                        <span class="btn-sub-text">Преследование нарушителя!</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('report_help')">
+                    <span class="btn-icon">🆘</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Код-0 Срочно помощь!</span>
+                        <span class="btn-sub-text">Нападение на сотрудника! Все экипажи</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-top:6px;">
+                <button class="btn-tablet" onclick="triggerAction('report_1015')">
+                    <span class="btn-icon">🚔</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-15 В отдел</span>
+                        <span class="btn-sub-text">Везу задержанного</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1013')">
+                    <span class="btn-icon">✅</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-13 Принял</span>
+                        <span class="btn-sub-text">Сообщение принято</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-top:6px;">
+                <button class="btn-tablet" onclick="triggerAction('report_1010')">
+                    <span class="btn-icon">💥</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-10-1 ДТП</span>
+                        <span class="btn-sub-text">Закончил оформление</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1011')">
+                    <span class="btn-icon">📝</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-11-1 Нарушитель</span>
+                        <span class="btn-sub-text">Закончил оформление</span>
                     </div>
                 </button>
             </div>

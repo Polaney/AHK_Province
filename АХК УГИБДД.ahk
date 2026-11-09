@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion := "2.6.3"
-global AppVersionCode    := 263
+global AppNumericVersion := "2.6.4"
+global AppVersionCode    := 264
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -1405,24 +1405,17 @@ TriggerSmartScreenshot(ReasonStr) {
     if (OnlyInGameMode && !WinActive("ahk_group ProvinceGameGroup"))
         Return
 
-    SetCapsOff()
-    Sleep, 150
-    SendInput, {Escape} ; Закрываем открытые строки ввода/чат во избежание наложения
-    Sleep, 100
-    Send, {F8}
-    Sleep, 100
-    SendInput, ^a{Delete}timestamp{Enter}
-    Sleep, 100
-    Send, {F8}
-    Sleep, 200
+    ; Ожидаем полного отпускания клавиши Enter и закрытия строки чата игры
+    KeyWait, Enter
+    Sleep, 300
 
     stopKey := (HK_StopBind != "") ? HK_StopBind : "F12"
     Hotkey, %stopKey%, Off, UseErrorLevel
     SendInput, {F12}
-    Sleep, 150
+    Sleep, 200
     Hotkey, %stopKey%, On, UseErrorLevel
 
-    TrayTip, 📸 Автоскриншот сделан!, % "Фиксация с /timestamp: " . ReasonStr, 2, 1
+    TrayTip, 📸 Автоскриншот сделан!, % "Фиксация нарушения: " . ReasonStr, 2, 1
 }
 
 ; =================================================================================================
@@ -2562,7 +2555,7 @@ Gui, 2:Add, DropDownList, x270 y117 w380 r14 vRank gUpdateProfilePreview, Ряд
 GuiControl, 2:ChooseString, Rank, %Rank%
 
 Gui, 2:Font, S10 CE6EDF3 Bold, Segoe UI
-Gui, 2:Add, Text, x16 y156 w250 h22, Код отдела (1-я часть, напр. 61):
+Gui, 2:Add, Text, x16 y156 w250 h22, Отдел (51-ВПА, 52-ОР, 53-СР, 54-МР):
 Gui, 2:Font, S10 CE6EDF3 Norm, Segoe UI
 Gui, 2:Add, Edit, x270 y153 w130 h26 vTeg gUpdateProfilePreview, %Teg%
 
@@ -2627,7 +2620,7 @@ Return
 
 UpdateProfilePreview:
 Gui, 2:Submit, NoHide
-PrevPat := (Frak = "Невский") ? "10-0" : (Frak = "Мирный") ? "10-1" : "10-2"
+PrevPat := "10-0 Код-3."
 PrevOkr := (Frak = "Невский") ? "УГИБДД по г. Невский и Невской обл." : (Frak = "Мирный") ? "УГИБДД по г. Мирный и Мирнинской обл." : "УГИБДД по г. Приволжск и Приволжской обл."
 PrevText := GetKeyDisp("HK_Greeting") . " -> Здравия желаю, " . Otdel . " " . PrevOkr . "`n"
 PrevText .= "         " . Rank . " полиции, " . Fio1 . ". [Знак: " . Znak . "]`n"
@@ -3234,7 +3227,8 @@ SendInput, {Text}%CalcReadyCmd%
 TrayTip, ⚖️ Выписка штрафа, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
 KeyWait, Enter, D, T30
 if (!ErrorLevel) {
-    Sleep, 400
+    KeyWait, Enter ; Ждём полного отпускания клавиши Enter
+    Sleep, 500      ; Даём серверу MTA отправить штраф и закрыть строку ввода
     LogJournalAction("Штраф", tid, artList, cappedFine)
     TriggerSmartScreenshot("Выписка штрафа")
     TrayTip, Калькулятор УГИБДД, ✅ Штраф подтверждён и зафиксирован!, 3, 1
@@ -4160,7 +4154,8 @@ ReadLogTailString(LogFilePath, MaxBytes := 4096) {
 }
 
 ReadConsoleLogTail:
-if (!WinExist("ahk_group ProvinceGameGroup"))
+; Чтение лога только если HUD оверлей включен и окно игры существует, во избежание sharing violation и срабатывания античита
+if (!HudVisible || !WinExist("ahk_group ProvinceGameGroup"))
     Return
 LogFile := ResolveConsoleLogPath()
 if (LogFile = "" || !FileExist(LogFile))
@@ -4209,9 +4204,11 @@ if (newChunk != "") {
             LastTryTime := A_TickCount
         }
         callSign := Teg . "-" . Prop2
-        if ((InStr(line, "[R]") || InStr(line, "[F]") || InStr(line, "раци")) && (InStr(line, "Контроль") || InStr(line, "контроль") || (Prop2 != "000" && InStr(line, callSign)))) {
-            LastRadioAlert := "📻 ВЫЗОВ!"
-            SoundBeep, 1300, 180
+        if (Teg != "" && Prop2 != "" && Prop2 != "000") {
+            if ((InStr(line, "[R]") || InStr(line, "[F]") || InStr(line, "раци")) && (InStr(line, "Контроль") || InStr(line, "контроль") || InStr(line, callSign))) {
+                LastRadioAlert := "📻 ВЫЗОВ!"
+                PlayRadioSfx("radio_start.wav")
+            }
         }
     }
     Gosub, UpdateHudTick
@@ -5033,8 +5030,17 @@ SetLocaleRu()
 Sleep, 50
 Send, {F6}
 Sleep, 150
-SendInput, /report Нарушение ВПС при погоне ID{Space}
+SendInput, {Text}/report Нарушение ВПС при погоне ID: 
 TrayTip, 🚨 Жалоба в репорт, Введите ID нарушителя и нажмите Enter для отправки администраторам., 3, 1
+Return
+
+:?:/впс::
+:?:/vps::
+SetCapsOff()
+SetLocaleRu()
+Send, {F6}
+Sleep, 150
+SendInput, {Text}/report Нарушение ВПС при погоне ID: 
 Return
 
 Bind_KpkOpen:
@@ -5175,97 +5181,289 @@ SmartSleep(200)
 Send, /animarmy 3{Enter}
 Return
 :?:/п1::
+Pat1_Direct:
 AbortBindFlag := 0
 StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
-    ; Определяем название по городу
-    if (Frak = "Невский")
-        Pat := "10-0"
-    else if (Frak = "Мирный")
-        Pat := "10-1"
-    else if (Frak = "Приволжск")
-        Pat := "10-2"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
-    ; Отправляем приветственное сообщение
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
 SmartSleep(200)
 Send, {F6}
 SmartSleep(200)
 Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
 SmartSleep(500)
 PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
-Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-0 Код-3.{Enter}{F6}
 SmartSleep(200)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
 Return
+
 :?:/п2::
+Pat2_Direct:
 AbortBindFlag := 0
 StartDutyTimer("Патруль", 900)
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
-    ; Определяем название по городу
-    if (Frak = "Невский")
-        Pat := "10-0-1"
-    else if (Frak = "Мирный")
-        Pat := "10-1-1"
-    else if (Frak = "Приволжск")
-        Pat := "10-2-2"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
-    ; Отправляем приветственное сообщение
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
 SmartSleep(200)
 Send, {F6}
 SmartSleep(200)
 Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
 SmartSleep(500)
 PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
-Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-0-1 Код-3.{Enter}{F6}
 SmartSleep(200)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
 Return
+
 :?:/п3::
+Pat3_Direct:
 AbortBindFlag := 0
 StopDutyTimer()
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
 IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
 IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
-    ; Определяем название по городу
-    if (Frak = "Невский")
-        Pat := "10-21"
-    else if (Frak = "Мирный")
-        Pat := "10-21"
-    else if (Frak = "Приволжск")
-        Pat := "10-21"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
-    ; Отправляем приветственное сообщение
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
 SmartSleep(200)
 Send, {F6}
 SmartSleep(200)
 Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 SmartSleep(500)
-Send, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
 SmartSleep(500)
 PlayRadioSfx("radio_start.wav")
 SmartSleep(200)
-Send,  /r %Teg%-%Prop2% %Pat% {Enter}{F6}
+Send, /r %Teg%-%Prop2% 10-21 Код-3.{Enter}{F6}
 SmartSleep(200)
 Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 TriggerSmartScreenshot("Доклад в патруле")
+Return
+
+:?:/10-0::
+Gosub, Pat1_Direct
+Return
+
+:?:/10-0-1::
+Gosub, Pat2_Direct
+Return
+
+:?:/10-21::
+Gosub, Pat3_Direct
+Return
+
+:?:/10-3::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+SmartSleep(200)
+Send, {F6}
+SmartSleep(200)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% 10-3{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/10-3-3::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+Send, {F6}
+SmartSleep(150)
+Send, /Введите местонахождение вызова ->{Space}
+Input, Mesto, V, {Enter}
+Send, {bs 17}
+SmartSleep(150)
+Send, {F6}
+SmartSleep(150)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% 10-3-3 %Mesto%{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/10-15::
+:?:/везу::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+SmartSleep(200)
+Send, {F6}
+SmartSleep(200)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% 10-15{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/10-13::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+SmartSleep(200)
+Send, {F6}
+SmartSleep(200)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% 10-13{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/код0::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+Send, {F6}
+SmartSleep(150)
+Send, /Введите местонахождение нападения ->{Space}
+Input, Mesto, V, {Enter}
+Send, {bs 17}
+SmartSleep(150)
+Send, {F6}
+SmartSleep(150)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% Код-0 %Mesto%: Требуется срочная помощь всех экипажей, нападение на сотрудника{!}{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/код1::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+Send, {F6}
+SmartSleep(150)
+Send, /Введите местонахождение срочного вызова ->{Space}
+Input, Mesto, V, {Enter}
+Send, {bs 17}
+SmartSleep(150)
+Send, {F6}
+SmartSleep(150)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% Код-1 %Mesto%: Требуется подкрепление, срочный вызов{!}{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/код2::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+Send, {F6}
+SmartSleep(150)
+Send, /Введите местонахождение ->{Space}
+Input, Mesto, V, {Enter}
+Send, {bs 17}
+SmartSleep(150)
+Send, {F6}
+SmartSleep(150)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% Код-2 %Mesto%: Требуется свободный экипаж.{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/код3::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "поднесла" : "поднёс"
+SmartSleep(200)
+Send, {F6}
+SmartSleep(200)
+Send, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+SmartSleep(500)
+SendInput, {Text}/me сняв рацию, %vnesWord% ко рту и нажал%ok1% кнопку для переговоров
+Send, {Enter}{F6}
+SmartSleep(500)
+PlayRadioSfx("radio_start.wav")
+SmartSleep(200)
+Send, /r %Teg%-%Prop2% Код-3. Состояние стабильное.{Enter}{F6}
+SmartSleep(200)
+Send, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+Return
+
+:?:/контроль::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+IniRead, Teg, %A_Temp%\gibdd.egl, User, Teg
+IniRead, Prop2, %A_Temp%\gibdd.egl, User, Prop2
+Send, {F6}
+Sleep, 200
+SendInput, {Text}/r %Teg%-%Prop2% Контроль 
 Return
 :?:/обл1::
 AbortBindFlag := 0
@@ -10544,8 +10742,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.3"
-global AppVersionCode       := 263
+global AppNumericVersion    := "2.6.4"
+global AppVersionCode       := 264
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10556,8 +10754,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.3"
-    AppVersionCode       := 263
+    AppNumericVersion    := "2.6.4"
+    AppVersionCode       := 264
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10583,8 +10781,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion  := "2.6.3"
-        AppVersionCode     := 263
+        AppNumericVersion  := "2.6.4"
+        AppVersionCode     := 264
     }
 
     if (!IsSilent)
@@ -11053,6 +11251,23 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Clipboard := arg1
         Return
     }
+    if (action = "send_chat_cmd") {
+        if (arg1 != "") {
+            Gui, 8:Hide
+            Sleep, 200
+            if (WinExist("ahk_group ProvinceGameGroup")) {
+                WinActivate, ahk_group ProvinceGameGroup
+                WinWaitActive, ahk_group ProvinceGameGroup,, 2
+                Sleep, 150
+            }
+            SendMessage, 0x50,, 0x4190419,, A
+            SetCapsOff()
+            Send, {F6}
+            Sleep, 200
+            SendInput, {Text}%arg1% 
+        }
+        Return
+    }
     if (action = "toggle_hud") {
         Gosub, ToggleHud
         Return
@@ -11130,11 +11345,22 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         }
         if (WinExist("ahk_group ProvinceGameGroup")) {
             WinActivate, ahk_group ProvinceGameGroup
-            WinWaitActive, ahk_group ProvinceGameGroup,, 2
-            Sleep 200
+            Loop 15 {
+                if (WinActive("ahk_group ProvinceGameGroup"))
+                    break
+                WinActivate, ahk_group ProvinceGameGroup
+                Sleep 150
+            }
         }
-        Gui, 8:Hide
-        Sleep 250
+        if (!WinActive("ahk_group ProvinceGameGroup")) {
+            TrayTip, ⚖️ Выписка штрафа, Переключитесь в окно MTA Province — выписка начнётся при фокусе игры!, 5, 1
+            WinWaitActive, ahk_group ProvinceGameGroup,, 10
+            if (ErrorLevel) {
+                TrayTip, ❌ Отмена, Окно игры не было активно. Выписка отменена., 3, 2
+                Return
+            }
+        }
+        Sleep 300
         SendMessage, 0x50,, 0x4190419,, A
         SetCapsOff()
         vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
@@ -11153,7 +11379,8 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         TrayTip, ⚖️ Выписка штрафа, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
         KeyWait, Enter, D, T30
         if (!ErrorLevel) {
-            Sleep 400
+            KeyWait, Enter
+            Sleep 500
             LogJournalAction("Штраф", targetPlayer, cmdToSend, 0)
             TriggerSmartScreenshot("Выписка штрафа")
             TrayTip, Калькулятор УГИБДД, ✅ Штраф подтверждён и зафиксирован!, 3, 1
@@ -11170,11 +11397,22 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         }
         if (WinExist("ahk_group ProvinceGameGroup")) {
             WinActivate, ahk_group ProvinceGameGroup
-            WinWaitActive, ahk_group ProvinceGameGroup,, 2
-            Sleep 200
+            Loop 15 {
+                if (WinActive("ahk_group ProvinceGameGroup"))
+                    break
+                WinActivate, ahk_group ProvinceGameGroup
+                Sleep 150
+            }
         }
-        Gui, 8:Hide
-        Sleep 250
+        if (!WinActive("ahk_group ProvinceGameGroup")) {
+            TrayTip, 🪪 Лишение ВУ, Переключитесь в окно MTA Province — процедура начнётся при фокусе игры!, 5, 1
+            WinWaitActive, ahk_group ProvinceGameGroup,, 10
+            if (ErrorLevel) {
+                TrayTip, ❌ Отмена, Окно игры не было активно. Лишение отменено., 3, 2
+                Return
+            }
+        }
+        Sleep 300
         SendMessage, 0x50,, 0x4190419,, A
         SetCapsOff()
         vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
@@ -11196,7 +11434,8 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         TrayTip, 🪪 Лишение ВУ, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
         KeyWait, Enter, D, T30
         if (!ErrorLevel) {
-            Sleep 400
+            KeyWait, Enter
+            Sleep 500
             LogJournalAction("Лишение ВУ", targetPlayer, cmdToSend, 0)
             TriggerSmartScreenshot("Аннулирование ВУ")
             TrayTip, Калькулятор УГИБДД, ✅ Лишение ВУ подтверждено и зафиксировано!, 3, 1
@@ -11206,8 +11445,11 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     if (action = "calc_speak_articles") {
         artCmds := StrSplit(arg1, "|")
         if (artCmds.MaxIndex() > 0) {
-            Gui, 8:Hide
-            Sleep 350
+            if (WinExist("ahk_group ProvinceGameGroup")) {
+                WinActivate, ahk_group ProvinceGameGroup
+                WinWaitActive, ahk_group ProvinceGameGroup,, 3
+            }
+            Sleep 250
             SendMessage, 0x50,, 0x4190419,, A
             SetCapsOff()
             for idx, cmdName in artCmds {
@@ -11369,12 +11611,12 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
                 IniWrite, %CheckMB%, %iniPath%, Save, CHECKMB
             }
 
+            suffix := (Gender = "Я девочка") ? "ж" : "м"
+            Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.4") . suffix
             if (Gender = "Я девочка") {
-                Vers := "2.4.0ж"
                 Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
                 Pol := "👩‍⚕️", Gend := "женский"
             } else {
-                Vers := "2.4.0м"
                 Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
                 Pol := "👨‍⚕️", Gend := "мужской"
             }
@@ -11932,18 +12174,19 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         SetCapsOff()
         Send, {F8}
         Sleep, 40
-        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду патрулирование города. Код: 10-4.{Enter}
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-0-1 Код-3.{Enter}
         Sleep, 40
         Send, {F8}
         Sleep, 200
         PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Доклад в патруле")
     } else if (cmd = "report_chase") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         Send, {F8}
         Sleep, 40
-        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду преследование нарушителя! Код: 10-57.{Enter}
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% Веду погоню за ТС, Код-1.{Enter}
         Sleep, 40
         Send, {F8}
         Sleep, 200
@@ -11954,7 +12197,7 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         SetCapsOff()
         Send, {F8}
         Sleep, 40
-        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Срочно требуется поддержка экипажа! Код: 10-33.{Enter}
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% Код-0: Срочная помощь, нападение на сотрудника{!}{Enter}
         Sleep, 40
         Send, {F8}
         Sleep, 200
@@ -11965,18 +12208,64 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         SetCapsOff()
         Send, {F8}
         Sleep, 40
-        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Выехал в патруль. Код: 10-8.{Enter}
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-0 Код-3.{Enter}
         Sleep, 40
         Send, {F8}
         Sleep, 200
         PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Доклад в патруле")
     } else if (cmd = "report_end") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
         Send, {F8}
         Sleep, 40
-        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Окончил патрулирование, перерыв. Код: 10-7.{Enter}
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-21 Код-3.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Доклад в патруле")
+    } else if (cmd = "report_1013") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-13{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1015") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-15{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1010") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-10-1{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1011") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-11-1{Enter}
         Sleep, 40
         Send, {F8}
         Sleep, 200

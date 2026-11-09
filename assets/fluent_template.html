@@ -1267,6 +1267,63 @@ html, body {
                         </div>
                     </div>
                 </div>
+
+                <!-- ОФИЦИАЛЬНЫЕ ТЕН-КОДЫ И КОДЫ СОСТОЯНИЙ УГИБДД -->
+                <div class="glass-card" style="margin-top:16px;">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="card-title">📋 Официальные Тен-коды, Коды состояний и Контроль УГИБДД МВД</span>
+                        <span style="font-size:11px; color:#58A6FF; font-weight:700;">Регламент УГИБДД МВД Провинции</span>
+                    </div>
+
+                    <!-- Памятка по нумерации отделов -->
+                    <div style="background:rgba(31,111,235,0.08); border:1px solid rgba(88,166,255,0.25); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; flex-wrap:wrap; gap:12px; font-size:12px;">
+                        <div><strong style="color:#79C0FF;">Нумерация отделов (XX-XX):</strong></div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">51</span> ВПА [Высшая полиц. академия]</div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">52</span> ОР [Отдельная рота]</div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">53</span> СР [Спец. рота] / ПС [Пресс-служба]</div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">54</span> МР [Мотоциклетная рота]</div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">55</span> Зам. Начальника ГИБДД</div>
+                        <div><span style="background:rgba(88,166,255,0.2); color:#58A6FF; padding:2px 6px; border-radius:4px; font-weight:700;">56</span> Начальник ГИБДД</div>
+                    </div>
+
+                    <div class="grid-row">
+                        <!-- Колонка 1: Тен-коды патрулирования и постов -->
+                        <div class="col-4">
+                            <div style="font-size:12px; font-weight:800; color:#58A6FF; text-transform:uppercase; margin-bottom:8px;">🚗 Патрулирование и Посты</div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-0</strong>: Выехал в патруль (Код-3)</span><span class="bind-key cmd" onclick="copyCmd('/10-0')">/10-0 (/п1)</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-0-1</strong>: Продолжаю патруль (Код-3)</span><span class="bind-key cmd" onclick="copyCmd('/10-0-1')">/10-0-1 (/п2)</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-21</strong>: Закончил патруль, в гараж</span><span class="bind-key cmd" onclick="copyCmd('/10-21')">/10-21 (/п3)</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-4 [Пост]</strong>: Заступил на пост</span><span class="bind-key cmd" onclick="copyCmd('/пост1')">/пост1</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-4-4 [Пост]</strong>: Продолжаю пост</span><span class="bind-key cmd" onclick="copyCmd('/пост2')">/пост2</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-4-1 [Пост]</strong>: Сдал пост</span><span class="bind-key cmd" onclick="copyCmd('/пост3')">/пост3</span></div>
+                        </div>
+
+                        <!-- Колонка 2: Оформления, ДТП и Вызовы -->
+                        <div class="col-4">
+                            <div style="font-size:12px; font-weight:800; color:#FFB84D; text-transform:uppercase; margin-bottom:8px;">📋 Оформления и Вызовы</div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-10 [Место]</strong>: Оформляю ДТП</span><span class="bind-key cmd" onclick="copyCmd('/дттп1')">/дттп1</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-10-1</strong>: Закончил оформлять ДТП</span><span class="bind-key cmd" onclick="copyCmd('/дттп2')">/дттп2</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-11 [Место]</strong>: Оформляю нарушителя</span><span class="bind-key cmd" onclick="copyCmd('/он1')">/он1</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-11-1</strong>: Закончил оформлять наруш.</span><span class="bind-key cmd" onclick="copyCmd('/он2')">/он2</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-15</strong>: Везу задержанного в отдел</span><span class="bind-key cmd" onclick="copyCmd('/везу')">/везу (/10-15)</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-13</strong>: Принял вызов / сообщение</span><span class="bind-key cmd" onclick="copyCmd('/10-13')">/10-13</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-3</strong>: Выехал на вызов ГУ МВД</span><span class="bind-key cmd" onclick="copyCmd('/10-3')">/10-3</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>10-3-3 [Место]</strong>: Нахожусь на вызове</span><span class="bind-key cmd" onclick="copyCmd('/10-3-3')">/10-3-3</span></div>
+                        </div>
+
+                        <!-- Колонка 3: Коды состояний и Контроль -->
+                        <div class="col-4">
+                            <div style="font-size:12px; font-weight:800; color:#FF5C5C; text-transform:uppercase; margin-bottom:8px;">🚨 Коды состояний и Контроль</div>
+                            <div class="bind-row"><span class="bind-name"><strong>Код-0 [Место]</strong>: Нападение! Срочно помощь!</span><span class="bind-key cmd" onclick="copyCmd('/код0')">/код0</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Код-1 [Место]</strong>: Подкрепление (сирены)</span><span class="bind-key cmd" onclick="copyCmd('/код1')">/код1</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Код-2 [Место]</strong>: Свободный экипаж (без маяков)</span><span class="bind-key cmd" onclick="copyCmd('/код2')">/код2</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Код-3</strong>: Состояние стабильное</span><span class="bind-key cmd" onclick="copyCmd('/код3')">/код3</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Контроль</strong>: Запрос местоположения</span><span class="bind-key cmd" onclick="copyCmd('/контроль')">/контроль</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Погоня</strong>: Веду погоню за [ТС], [Место]</span><span class="bind-key cmd" onclick="copyCmd('/погоня')">/погоня</span></div>
+                            <div class="bind-row"><span class="bind-name"><strong>Жалоба ВПС</strong>: /report при погоне</span><span class="bind-key" onclick="remapKey('HK_ReportChase')">Alt+P</span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- ================= ВКЛАДКА 4: ЗАДЕРЖАНИЕ И КПЗ ================= -->
@@ -1730,10 +1787,18 @@ html, body {
         </div>
 
         <div class="form-row">
-            <div class="form-lbl">Код отдела / Тен-код (ID):</div>
+            <div class="form-lbl">Отдел (XX) / Тен-код сотрудника (YY):</div>
             <div class="form-ctrl" style="display:flex;">
-                <input type="text" id="pf-teg" class="fluent-input" style="width:48%; margin-right:4%;" placeholder="Код (напр. 61)">
-                <input type="text" id="pf-prop2" class="fluent-input" style="width:48%;" placeholder="ID (напр. 001)">
+                <input type="text" id="pf-teg" class="fluent-input" style="width:48%; margin-right:4%;" placeholder="Отдел (51-56)">
+                <input type="text" id="pf-prop2" class="fluent-input" style="width:48%;" placeholder="ID (напр. 05)">
+            </div>
+            <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('51', 'Курсант ВПА')">51 ВПА</button>
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('52', 'Инспектор ОР')">52 ОР</button>
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('53', 'Инспектор СР')">53 СР</button>
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('54', 'Инспектор МР')">54 МР</button>
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('55', 'Зам. Начальника ГИБДД')">55 Зам</button>
+                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('56', 'Начальник ГИБДД')">56 Нач</button>
             </div>
         </div>
 
@@ -2679,6 +2744,11 @@ function openProfileModal() {
 
 function closeProfileModal() {
     document.getElementById('profile-modal').style.display = 'none';
+}
+
+function setDeptPreset(code, title) {
+    document.getElementById('pf-teg').value = code;
+    document.getElementById('pf-otdel').value = title;
 }
 
 function onModalCityChange() {
