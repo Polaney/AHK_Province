@@ -7,10 +7,12 @@ CheckAdmin()
 #MaxThreadsPerHotkey 2
 Process, Priority,, Normal
 #InstallKeybdHook
-#UseHook, On
+#UseHook, Off
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
+global AppNumericVersion := "2.6.1"
+global AppVersionCode    := 261
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -105,31 +107,25 @@ DetectWindowsVersion() {
 
 ApplySendEngineMode(ModeStr := "AUTO") {
     global IsWin11_24H2_OrNewer, ActiveSendEngine
-    if (ModeStr = "SendPlay") {
-        SendMode, Play
-        ActiveSendEngine := "SendPlay (Классика)"
-    } else if (ModeStr = "SendEvent") {
+    if (ModeStr = "SendEvent") {
         SendMode, Event
-        SetKeyDelay, -1, 0
-        ActiveSendEngine := "SendEvent (DirectX)"
+        SetKeyDelay, 5, 5
+        ActiveSendEngine := "SendEvent (DirectX Безопасный)"
     } else {
-        ; По умолчанию: SendInput (Мгновенный аппаратный ввод без видимой печати по буквам и без хука Journal Playback)
-        ; Исключает детекты античита MTA 1.6 (AC #4) и отправляет команды мгновенно
+        ; По умолчанию: SendInput (Мгновенный ввод через стандартную очередь сообщений без хука Journal Playback)
+        ; Полностью исключает ложные детекты античита MTA Province (AC #4) на Windows 10 и 11 (22H2/23H2)
         SendMode, Input
-        ActiveSendEngine := "SendInput (Мгновенный)"
+        SetKeyDelay, -1, -1
+        ActiveSendEngine := "SendInput (Мгновенный Безопасный)"
     }
 }
 
 ChangeSendEngine:
 Gui, 1:Submit, NoHide
-if InStr(SendEngineDDL, "SendPlay")
-    chosenEngine := "SendPlay"
-else if InStr(SendEngineDDL, "SendEvent")
+if InStr(SendEngineDDL, "SendEvent")
     chosenEngine := "SendEvent"
-else if InStr(SendEngineDDL, "SendInput")
-    chosenEngine := "SendInput"
 else
-    chosenEngine := "AUTO"
+    chosenEngine := "SendInput"
 ApplySendEngineMode(chosenEngine)
 for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
     IniWrite, %chosenEngine%, %targetIni%, Settings, SendMethod
@@ -389,7 +385,7 @@ ApplySendEngineMode(SendMethodConfig)
 
 if (Gender = "Я девочка")
 {
-    Vers = 2.5.0ж
+    Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.0") . "ж"
     Ok1 = а
     Ok2 = ла
     Ok3 = ась
@@ -406,7 +402,7 @@ if (Gender = "Я девочка")
 }
 else
 {
-    Vers = 2.5.0м
+    Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.0") . "м"
     Ok1 =
     Ok2 =
     Ok2 =
@@ -629,23 +625,25 @@ Gui, 1:Add, Text, x697 yp+17 h18 w120, /копия
 Gui, 1:Add, Text, x697 yp+17 h18 w120, /камера
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x830 y44 w298 h165, [ СГУ и Умная Погоня (15с) ]
+Gui, 1:Add, GroupBox, x830 y44 w298 h168, [ СГУ и Умная Погоня (15с) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
-Gui, 1:Add, Text, x838 y64 h20 w160, 🚨 Умный мегафон (1-3)
-Gui, 1:Add, Text, x838 yp+20 h20 w160, 🛑 Сброс погони
-Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 1 (Зелёный)
-Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 2 (Жёлтый)
-Gui, 1:Add, Text, x838 yp+20 h20 w160, Пред 3 (Огонь!)
-Gui, 1:Add, Text, x838 yp+20 h20 w160, Уступите дорогу
-Gui, 1:Add, Text, x838 yp+20 h20 w160, Пешая погоня
+Gui, 1:Add, Text, x838 y62 h18 w160, 🚨 Умный мегафон (1-3)
+Gui, 1:Add, Text, x838 yp+18 h18 w160, 🛑 Сброс погони
+Gui, 1:Add, Text, x838 yp+18 h18 w160, ⚠️ Репорт ВПС (чат)
+Gui, 1:Add, Text, x838 yp+18 h18 w160, Пред 1 (Зелёный)
+Gui, 1:Add, Text, x838 yp+18 h18 w160, Пред 2 (Жёлтый)
+Gui, 1:Add, Text, x838 yp+18 h18 w160, Пред 3 (Огонь!)
+Gui, 1:Add, Text, x838 yp+18 h18 w160, Уступите дорогу
+Gui, 1:Add, Text, x838 yp+18 h18 w160, Пешая погоня
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
-Gui, 1:Add, Text, x1002 y64 h20 w120 vDisp_HK_SmartMegaphone gQuickClickKey, % GetKeyDisp("HK_SmartMegaphone")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_ChaseStop gQuickClickKey, % GetKeyDisp("HK_ChaseStop")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone1 gQuickClickKey, % GetKeyDisp("HK_Megaphone1")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone2 gQuickClickKey, % GetKeyDisp("HK_Megaphone2")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_Megaphone3 gQuickClickKey, % GetKeyDisp("HK_Megaphone3")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_MegaphoneWay gQuickClickKey, % GetKeyDisp("HK_MegaphoneWay")
-Gui, 1:Add, Text, x1002 yp+20 h20 w120 vDisp_HK_FootChase gQuickClickKey, % GetKeyDisp("HK_FootChase")
+Gui, 1:Add, Text, x1002 y62 h18 w120 vDisp_HK_SmartMegaphone gQuickClickKey, % GetKeyDisp("HK_SmartMegaphone")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_ChaseStop gQuickClickKey, % GetKeyDisp("HK_ChaseStop")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_ReportChase gQuickClickKey, % GetKeyDisp("HK_ReportChase")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_Megaphone1 gQuickClickKey, % GetKeyDisp("HK_Megaphone1")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_Megaphone2 gQuickClickKey, % GetKeyDisp("HK_Megaphone2")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_Megaphone3 gQuickClickKey, % GetKeyDisp("HK_Megaphone3")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_MegaphoneWay gQuickClickKey, % GetKeyDisp("HK_MegaphoneWay")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_FootChase gQuickClickKey, % GetKeyDisp("HK_FootChase")
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
 Gui, 1:Add, GroupBox, x830 y215 w298 h102, [ Окно автомобиля ]
@@ -1091,7 +1089,7 @@ Gui, 1:Font, S9 CFFB84D Bold, Segoe UI
 Gui, 1:Add, CheckBox, x507 y49 w170 h24 vOnlyInGameChk gToggleOnlyInGameMode Checked%OnlyInGameMode%, 🛡️ Только в игре
 Gui, 1:Add, CheckBox, x682 y49 w185 h24 vAutoScreenChk gToggleAutoScreenMode Checked%AutoScreenMode%, 📸 Автоскрин (/timestamp)
 Gui, 1:Font, S9 CE6EDF3 Norm, Segoe UI
-Gui, 1:Add, DropDownList, x872 y48 w250 r4 vSendEngineDDL gChangeSendEngine, Авто (SendInput: Мгновенный)|SendInput (Мгновенный)|SendEvent (DirectX)|SendPlay (Классика)
+Gui, 1:Add, DropDownList, x872 y48 w250 r3 vSendEngineDDL gChangeSendEngine, Авто (SendInput: Безопасный)|SendInput (Мгновенный)|SendEvent (DirectX)
 
 Gui, 1:Font, S10 CE6EDF3 Norm, Segoe UI
 Gui, 1:Add, ListView, x218 y80 w904 h335 +Grid -Multi Background1B2234 cE6EDF3 vHotkeysLV gHotkeysLVSelect AltSubmit, Код|Действие / Отыгровка|Текущая клавиша|По умолчанию|Категория
@@ -1176,12 +1174,10 @@ LoadCustomBindsFromIni()
 PopulateCustomBindsLV()
 RegisterAllCustomBinds()
 
-if (SendMethodConfig = "SendPlay")
-    GuiControl, 1:Choose, SendEngineDDL, 2
-else if (SendMethodConfig = "SendEvent")
+if (SendMethodConfig = "SendEvent")
     GuiControl, 1:Choose, SendEngineDDL, 3
 else if (SendMethodConfig = "SendInput")
-    GuiControl, 1:Choose, SendEngineDDL, 4
+    GuiControl, 1:Choose, SendEngineDDL, 2
 else
     GuiControl, 1:Choose, SendEngineDDL, 1
 
@@ -1406,17 +1402,24 @@ TriggerSmartScreenshot(ReasonStr) {
     global AutoScreenMode, HK_StopBind, OnlyInGameMode
     if (!AutoScreenMode)
         Return
-    if (OnlyInGameMode && !WinActive("ahk_exe gta_sa.exe") && !WinActive("ahk_class Grand Theft Auto San Andreas") && !WinActive("ahk_exe Multi Theft Auto.exe"))
+    if (OnlyInGameMode && !WinActive("ahk_group ProvinceGameGroup"))
         Return
 
     SetCapsOff()
-    Send, {F8}^A{Delete}timestamp{Enter}{F8}
     Sleep, 150
+    SendInput, {Escape} ; Закрываем открытые строки ввода/чат во избежание наложения
+    Sleep, 100
+    Send, {F8}
+    Sleep, 100
+    SendInput, ^a{Delete}timestamp{Enter}
+    Sleep, 100
+    Send, {F8}
+    Sleep, 200
 
     stopKey := (HK_StopBind != "") ? HK_StopBind : "F12"
     Hotkey, %stopKey%, Off, UseErrorLevel
     SendInput, {F12}
-    Sleep, 100
+    Sleep, 150
     Hotkey, %stopKey%, On, UseErrorLevel
 
     TrayTip, 📸 Автоскриншот сделан!, % "Фиксация с /timestamp: " . ReasonStr, 2, 1
@@ -2134,6 +2137,7 @@ InitHotkeysManager() {
     AddHkDef("HK_Reload",         "Перезапустить АХК",                          "Система",      "!R",           "Bind_Reload",         0, "",                   "")
     AddHkDef("HK_SmartMegaphone", "Умный мегафон погони (1->2->3->Огонь)", "СГУ и Погоня", "^Space", "ExecuteSmartMegaphoneStep", 0, "Disp_HK_SmartMegaphone", "")
     AddHkDef("HK_ChaseStop",      "Сбросить статус погони / мегафонов",   "СГУ и Погоня", "!Space", "StopChaseModeLabel",          0, "Disp_HK_ChaseStop", "")
+    AddHkDef("HK_ReportChase",    "Жалоба: ВПС при погоне (/report)",     "СГУ и Погоня", "!p",     "Bind_ReportChase",           0, "Disp_HK_ReportChase", "")
 
     IniPath := A_Temp . "\gibdd.egl"
     for idx, hk in HotkeyDefs {
@@ -3099,6 +3103,20 @@ if (InStr(CalcReadyLicCmd, "[Нет лишения]")) {
     MsgBox, 48, Калькулятор УГИБДД, В выбранных статьях нет лишения ВУ (либо впишите срок вручную в поле «Лишение ВУ»)!
     Return
 }
+tid := Trim(CalcTargetID)
+if (tid = "" || tid = "ID" || !RegExMatch(tid, "^\d+$")) {
+    MsgBox, 48, Калькулятор УГИБДД, Введите корректный цифровой ID гражданина в верхнем поле калькулятора!
+    GuiControl, 5:Focus, CalcTargetID
+    Return
+}
+if (WinExist("ahk_group ProvinceGameGroup")) {
+    WinActivate, ahk_group ProvinceGameGroup
+    WinWaitActive, ahk_group ProvinceGameGroup,, 2
+    Sleep, 200
+} else {
+    MsgBox, 48, Калькулятор УГИБДД, Окно MTA Province не найдено! Запустите игру.
+    Return
+}
 Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
@@ -3113,9 +3131,11 @@ Send, /do Информация о недействительности ВУ вн
 SmartSleep(500)
 Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
 SmartSleep(350)
-Send, %CalcReadyLicCmd%{Space}
+Send, %CalcReadyLicCmd%{Enter}
+Sleep, 400
 LogJournalAction("Лишение ВУ", tid, "Срок: " . licYears . " г.", 0)
 TriggerSmartScreenshot("Аннулирование ВУ")
+TrayTip, Калькулятор УГИБДД, 🪪 Лишение ВУ успешно отправлено!, 2, 1
 Return
 
 CalcSpeakArticles:
@@ -3141,6 +3161,14 @@ if (toSpeak.MaxIndex() = "" || toSpeak.MaxIndex() = 0) {
     MsgBox, 48, Калькулятор УГИБДД, Отметьте галочкой или выделите хотя бы одну статью!
     Return
 }
+if (WinExist("ahk_group ProvinceGameGroup")) {
+    WinActivate, ahk_group ProvinceGameGroup
+    WinWaitActive, ahk_group ProvinceGameGroup,, 2
+    Sleep, 200
+} else {
+    MsgBox, 48, Калькулятор УГИБДД, Окно MTA Province не найдено! Запустите игру.
+    Return
+}
 Gui, 5:Hide
 Sleep 350
 SendMessage, 0x50,, 0x4190419,, A
@@ -3154,12 +3182,27 @@ for idx, art in toSpeak {
         SmartSleep(1800)
     }
 }
+TrayTip, Калькулятор УГИБДД, 📢 Статьи зачитаны в чат!, 2, 1
 Return
 
 CalcPlayAndTsu:
 Gui, 5:Submit, NoHide
 if (InStr(CalcReadyCmd, "[Статьи не выбраны]")) {
     MsgBox, 48, Калькулятор УГИБДД, Сначала отметьте галочками статьи КоАП для расчёта штрафа!
+    Return
+}
+tid := Trim(CalcTargetID)
+if (tid = "" || tid = "ID" || !RegExMatch(tid, "^\d+$")) {
+    MsgBox, 48, Калькулятор УГИБДД, Введите корректный цифровой ID гражданина в верхнем поле калькулятора!
+    GuiControl, 5:Focus, CalcTargetID
+    Return
+}
+if (WinExist("ahk_group ProvinceGameGroup")) {
+    WinActivate, ahk_group ProvinceGameGroup
+    WinWaitActive, ahk_group ProvinceGameGroup,, 2
+    Sleep, 200
+} else {
+    MsgBox, 48, Калькулятор УГИБДД, Окно MTA Province не найдено! Запустите игру.
     Return
 }
 Gui, 5:Hide
@@ -3173,10 +3216,12 @@ Sleep 500
 Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
 Sleep 300
 Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
-Sleep 250
-Send, %CalcReadyCmd%{Space}
+Sleep 300
+Send, %CalcReadyCmd%{Enter}
+Sleep, 400
 LogJournalAction("Штраф", tid, artList, cappedFine)
 TriggerSmartScreenshot("Выписка штрафа")
+TrayTip, Калькулятор УГИБДД, ✅ Штраф успешно оформлен и отправлен!, 2, 1
 Return
 
 ; =================================================================================================
@@ -3784,7 +3829,7 @@ InitTimersAndLogReader() {
 
     CreateHudGui()
     SetTimer, UpdateHudTick, 1000
-    SetTimer, ReadConsoleLogTail, 750
+    SetTimer, ReadConsoleLogTail, 1500
 }
 
 CreateHudGui() {
@@ -3967,17 +4012,10 @@ if (DutyType != "Нет") {
             dutyPct := 0
         if (dutyPct > 100)
             dutyPct := 100
-        GuiControl, 6:, HudDutyBar, %dutyPct%
-        if (DutyRemainSec <= 120 && DutyRemainSec > 0)
-            GuiControl, 6:+cFFB84D, HudDutyBar
-        else if (DutyRemainSec = 0)
-            GuiControl, 6:+cE74C3C, HudDutyBar
-        else
-            GuiControl, 6:+c58A6FF, HudDutyBar
     }
 } else {
     dutyTxt := "⏱ Дежурство: не активно (/п1 | /пост1)"
-    GuiControl, 6:, HudDutyBar, 0
+    dutyPct := 0
 }
 
 ; 2. Погоня и Мегафоны
@@ -3997,18 +4035,8 @@ if (ChaseActive) {
     cdStr := (ChaseCooldownSec > 0) ? ("КД: " . ChaseCooldownSec . "с [ЖДИ]") : "ГОТОВ К ВЫДАЧЕ!"
     stStr := (ChaseTotalSec > 0) ? ("Белый " . FormatMMSS(ChaseTotalSec)) : "🔥 ЖЁЛТЫЙ (ОГОНЬ)!"
     chaseTxt := "🚨 Пред " . ChaseStage . "/3 | " . cdStr . " | " . stStr
-
-    if (ChaseCooldownSec > 0) {
-        GuiControl, 6:+cE74C3C, HudChaseBar
-        GuiControl, 6:, HudChaseBar, % 15 - ChaseCooldownSec
-    } else {
-        GuiControl, 6:+c3FB950, HudChaseBar
-        GuiControl, 6:, HudChaseBar, 15
-    }
 } else {
     chaseTxt := "🚨 Погоня: нет | Мегафон готов (^Space | Alt+0)"
-    GuiControl, 6:+c3FB950, HudChaseBar
-    GuiControl, 6:, HudChaseBar, 15
 }
 
 ; 3. Смена и баллы нормы OSD
@@ -4039,6 +4067,31 @@ idDisp := (LastTargetID != "") ? LastTargetID : "—"
 logTxt := "📡 ID: [" . idDisp . "] | TRY: " . LastTryResult . " | " . LastRadioAlert
 
 if (HudVisible) {
+    if (DutyType != "Нет" && DutyTotalSec > 0) {
+        GuiControl, 6:, HudDutyBar, %dutyPct%
+        if (DutyRemainSec <= 120 && DutyRemainSec > 0)
+            GuiControl, 6:+cFFB84D, HudDutyBar
+        else if (DutyRemainSec = 0)
+            GuiControl, 6:+cE74C3C, HudDutyBar
+        else
+            GuiControl, 6:+c58A6FF, HudDutyBar
+    } else {
+        GuiControl, 6:, HudDutyBar, 0
+    }
+
+    if (ChaseActive) {
+        if (ChaseCooldownSec > 0) {
+            GuiControl, 6:+cE74C3C, HudChaseBar
+            GuiControl, 6:, HudChaseBar, % 15 - ChaseCooldownSec
+        } else {
+            GuiControl, 6:+c3FB950, HudChaseBar
+            GuiControl, 6:, HudChaseBar, 15
+        }
+    } else {
+        GuiControl, 6:+c3FB950, HudChaseBar
+        GuiControl, 6:, HudChaseBar, 15
+    }
+
     GuiControl, 6:, HudDutyTxt, %dutyTxt%
     GuiControl, 6:, HudChaseTxt, %chaseTxt%
     GuiControl, 6:, HudStatsTxt, %statsTxt%
@@ -4090,6 +4143,8 @@ ReadLogTailString(LogFilePath, MaxBytes := 4096) {
 }
 
 ReadConsoleLogTail:
+if (!WinExist("ahk_group ProvinceGameGroup"))
+    Return
 LogFile := ResolveConsoleLogPath()
 if (LogFile = "" || !FileExist(LogFile))
     Return
@@ -4939,6 +4994,21 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(250)
 Send, {F8}{Space}{Backspace}s Гражданин останавливаемся, в противном случае к вам будет применена физическая сила{!}{Enter}{F8}
+Return
+
+Bind_ReportChase:
+AbortBindFlag := 0
+if (!WinActive("ahk_group ProvinceGameGroup")) {
+    TrayTip, 🚨 Жалоба ВПС, Откройте окно MTA Province для ввода жалобы!, 2, 2
+    Return
+}
+SetCapsOff()
+SetLocaleRu()
+Sleep, 50
+Send, {F6}
+Sleep, 150
+SendInput, /report Нарушение ВПС при погоне ID{Space}
+TrayTip, 🚨 Жалоба в репорт, Введите ID нарушителя и нажмите Enter для отправки администраторам., 3, 1
 Return
 
 Bind_KpkOpen:
@@ -10448,8 +10518,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.5.0"
-global AppVersionCode       := 250
+global AppNumericVersion    := "2.6.1"
+global AppVersionCode       := 261
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10458,6 +10528,17 @@ global PendingUpdateMirror  := ""
 global PendingUpdateVer     := ""
 
 InitAutoUpdater() {
+    global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
+    global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
+    AppNumericVersion    := "2.6.1"
+    AppVersionCode       := 261
+    UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
+    UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
+    UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
+    PendingUpdateUrl     := ""
+    PendingUpdateMirror  := ""
+    PendingUpdateVer     := ""
+
     ; Отложенная фоновая проверка через 5 секунд после старта (не блокирует загрузку GUI)
     SetTimer, BackgroundUpdateCheckTimer, -5000
 }
@@ -10473,6 +10554,12 @@ Return
 CheckForUpdates(IsSilent := 1) {
     global UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl, AppVersionCode, AppNumericVersion
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
+
+    if (UpdatePrimaryUrl = "") {
+        UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
+        AppNumericVersion  := "2.6.1"
+        AppVersionCode     := 261
+    }
 
     if (!IsSilent)
         TrayTip, AHK УГИБДД, Проверка наличия обновлений на сервере..., 2, 1
@@ -10527,11 +10614,11 @@ CheckForUpdates(IsSilent := 1) {
     newChangelog := StrReplace(StrReplace(mLog1, "\n", "`n"), "\""", """")
 
     if (A_IsCompiled) {
-        PendingUpdateUrl := mDown1
-        PendingUpdateMirror := mDownMirror1 ? mDownMirror1 : "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe"
+        PendingUpdateUrl := mDown1 ? mDown1 : "http://152.234.229.245:3000/download/exe"
+        PendingUpdateMirror := mDownMirror1 ? mDownMirror1 : "http://152.234.229.245:3000/download/exe"
     } else {
-        PendingUpdateUrl := mAhk1
-        PendingUpdateMirror := mAhkMirror1 ? mAhkMirror1 : "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
+        PendingUpdateUrl := mAhk1 ? mAhk1 : "http://152.234.229.245:3000/download/ahk"
+        PendingUpdateMirror := mAhkMirror1 ? mAhkMirror1 : "http://152.234.229.245:3000/download/ahk"
     }
 
     PendingUpdateVer := newVer
@@ -10545,7 +10632,7 @@ CheckForUpdates(IsSilent := 1) {
 }
 
 ShowUpdateDialog(NewVer, NewTitle, NewChangelog, DownUrl) {
-    global AppNumericVersion
+    global AppNumericVersion, UpdateStatusTxt
     Gui, 7:Destroy
     Gui, 7:Color, 121622, 1B2234
     Gui, 7:Font, S11 C58A6FF Bold, Segoe UI
@@ -10557,7 +10644,7 @@ ShowUpdateDialog(NewVer, NewTitle, NewChangelog, DownUrl) {
     Gui, 7:Font, S9 C8B949E Norm, Segoe UI
     Gui, 7:Add, Text, x16 y248 w568 h20 vUpdateStatusTxt, Обновление будет загружено и установлено автоматически.
     Gui, 7:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 7:Add, Button, x16 y274 w276 h38 gStartUpdateInstallation, ⚡ Обновить сейчас
+    Gui, 7:Add, Button, x16 y274 w276 h38 vBtnUpdateNow gStartUpdateInstallation, ⚡ Обновить сейчас
     Gui, 7:Add, Button, x308 y274 w276 h38 gCloseUpdateDialog, ⏱️ Напомнить позже
     Gui, 7:Show, w600 h324, AHK УГИБДД — Доступно обновление
 }
@@ -10567,8 +10654,8 @@ Gui, 7:Destroy
 Return
 
 StartUpdateInstallation:
-GuiControl, 7:Disable, StartUpdateInstallation
-GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка файлов обновления...
+GuiControl, 7:Disable, BtnUpdateNow
+GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка обновления с сервера...
 SetTimer, PerformUpdateAction, -100
 Return
 
@@ -10599,23 +10686,10 @@ PerformDownloadAndUpdate() {
     currentPath := A_ScriptFullPath
 
     if (A_IsCompiled) {
-        ; Создаём bat-скрипт с принудительной UTF-8 кодировкой для поддержки кириллицы в путях
-        batScript := A_Temp . "\replace_gibdd_" . A_TickCount . ".bat"
-        batContent := "@echo off`r`n"
-        batContent .= "chcp 65001 > nul`r`n"
-        batContent .= "ping 127.0.0.1 -n 3 > nul`r`n"
-        batContent .= ":retry`r`n"
-        batContent .= "move /y """ . tempFile . """ """ . currentPath . """ > nul 2>&1`r`n"
-        batContent .= "if exist """ . tempFile . """ (`r`n"
-        batContent .= "    ping 127.0.0.1 -n 1 > nul`r`n"
-        batContent .= "    goto retry`r`n"
-        batContent .= ")`r`n"
-        batContent .= "start """" """ . currentPath . """`r`n"
-        batContent .= "del ""%~f0""`r`n"
-
-        FileDelete, %batScript%
-        FileAppend, %batContent%, %batScript%, UTF-8
-        Run, "%batScript%",, Hide
+        GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Перезапуск...
+        Sleep, 400
+        psCmd := "powershell.exe -WindowStyle Hidden -Command ""Start-Sleep -Seconds 2; Move-Item -LiteralPath '" . tempFile . "' -Destination '" . currentPath . "' -Force; Start-Process -FilePath '" . currentPath . "'"""
+        Run, %psCmd%,, Hide
         ExitApp
     } else {
         FileCopy, %tempFile%, %currentPath%, 1
@@ -10898,8 +10972,10 @@ RefreshFluentWebData() {
 }
 
 SyncFluentLiveTelemetry(tId, dMode, dClock, dPct, cTxt, cPct, sTime, fPts, fCnt, aCnt, lCnt, rCnt) {
-    global FluentWB, FluentUiMode
-    if (!FluentUiMode || !IsObject(FluentWB))
+    global FluentWB, FluentUiMode, FluentGuiHwnd
+    if (!FluentUiMode || !IsObject(FluentWB) || !FluentGuiHwnd)
+        Return
+    if (!DllCall("IsWindowVisible", "Ptr", FluentGuiHwnd))
         Return
     try {
         jsCall := "updateLiveState('" . JsonEscapeStr(tId) . "','" . JsonEscapeStr(dMode) . "','" . JsonEscapeStr(dClock) . "'," . (dPct + 0) . ",'" . JsonEscapeStr(cTxt) . "'," . (cPct + 0) . ",'" . JsonEscapeStr(sTime) . "'," . (fPts + 0) . "," . (fCnt + 0) . "," . (aCnt + 0) . "," . (lCnt + 0) . "," . (rCnt + 0) . ");"
@@ -11022,6 +11098,15 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         parts := StrSplit(arg1, "|")
         cmdToSend := parts[1]
         targetPlayer := (parts.MaxIndex() >= 2 && parts[2] != "") ? parts[2] : "ID"
+        if (targetPlayer = "" || targetPlayer = "ID" || !RegExMatch(targetPlayer, "^\d+$")) {
+            TrayTip, ⚖️ Калькулятор УГИБДД, Введите ID нарушителя перед выпиской штрафа!, 2, 2
+            Return
+        }
+        if (WinExist("ahk_group ProvinceGameGroup")) {
+            WinActivate, ahk_group ProvinceGameGroup
+            WinWaitActive, ahk_group ProvinceGameGroup,, 2
+            Sleep 200
+        }
         Gui, 8:Hide
         Sleep 250
         SendMessage, 0x50,, 0x4190419,, A
@@ -11033,16 +11118,27 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
         Sleep 300
         Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
-        Sleep 250
-        Send, %cmdToSend%{Space}
+        Sleep 300
+        Send, %cmdToSend%{Enter}
+        Sleep 400
         LogJournalAction("Штраф", targetPlayer, cmdToSend, 0)
         TriggerSmartScreenshot("Выписка штрафа")
+        TrayTip, Калькулятор УГИБДД, ✅ Штраф успешно оформлен и отправлен!, 2, 1
         Return
     }
     if (action = "calc_play_lic") {
         parts := StrSplit(arg1, "|")
         cmdToSend := parts[1]
         targetPlayer := (parts.MaxIndex() >= 2 && parts[2] != "") ? parts[2] : "ID"
+        if (targetPlayer = "" || targetPlayer = "ID" || !RegExMatch(targetPlayer, "^\d+$")) {
+            TrayTip, ⚖️ Калькулятор УГИБДД, Введите ID нарушителя перед аннулированием прав!, 2, 2
+            Return
+        }
+        if (WinExist("ahk_group ProvinceGameGroup")) {
+            WinActivate, ahk_group ProvinceGameGroup
+            WinWaitActive, ahk_group ProvinceGameGroup,, 2
+            Sleep 200
+        }
         Gui, 8:Hide
         Sleep 250
         SendMessage, 0x50,, 0x4190419,, A
@@ -11057,9 +11153,11 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         SmartSleep(500)
         Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
         SmartSleep(350)
-        Send, %cmdToSend%{Space}
+        Send, %cmdToSend%{Enter}
+        Sleep 400
         LogJournalAction("Лишение ВУ", targetPlayer, cmdToSend, 0)
         TriggerSmartScreenshot("Аннулирование ВУ")
+        TrayTip, Калькулятор УГИБДД, 🪪 Лишение ВУ успешно отправлено!, 2, 1
         Return
     }
     if (action = "calc_speak_articles") {
@@ -11640,7 +11738,11 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         if (tid != "") {
             SetLocaleRu()
             SetCapsOff()
-            SendPlay {F8}^A{Delete}/id %tid%{Enter}{F8}
+            Send, {F8}
+            Sleep, 40
+            SendInput, ^a{Delete}/id %tid%{Enter}
+            Sleep, 40
+            Send, {F8}
         } else {
             TrayTip, ⚠️ Планшет, Сначала укажите ID цели в поле сверху!, 2, 2
         }
@@ -11704,7 +11806,11 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         }
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/ticket %tid% %sumVal% %artsVal%{Enter}{F8}
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/ticket %tid% %sumVal% %artsVal%{Enter}
+        Sleep, 40
+        Send, {F8}
         SoundBeep, 750, 150
         return
     }
@@ -11782,36 +11888,56 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду патрулирование города. Код: 10-4.{Enter}{F8}
-        Sleep, 250
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду патрулирование города. Код: 10-4.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
         PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_chase") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду преследование нарушителя! Код: 10-57.{Enter}{F8}
-        Sleep, 250
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Веду преследование нарушителя! Код: 10-57.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
         PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_help") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Срочно требуется поддержка экипажа! Код: 10-33.{Enter}{F8}
-        Sleep, 250
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Срочно требуется поддержка экипажа! Код: 10-33.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
         PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_start") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Выехал в патруль. Код: 10-8.{Enter}{F8}
-        Sleep, 250
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Выехал в патруль. Код: 10-8.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
         PlayRadioSfx("radio_stop.wav")
     } else if (cmd = "report_end") {
         PlayRadioSfx("radio_start.wav")
         SetLocaleRu()
         SetCapsOff()
-        SendPlay {F8}^A{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Окончил патрулирование, перерыв. Код: 10-7.{Enter}{F8}
-        Sleep, 250
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r [%Teg%-%Prop2%] Докладывает %Rank% %Fio1%. Окончил патрулирование, перерыв. Код: 10-7.{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
         PlayRadioSfx("radio_stop.wav")
     }
 }
@@ -11838,32 +11964,8 @@ PlayRadioSfx(soundName) {
     }
 }
 
-#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
-~*z::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_start.wav")
-}
-return
-
-~*z Up::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_stop.wav")
-}
-return
-
-~*b::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_start.wav")
-}
-return
-
-~*b Up::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_stop.wav")
-}
-return
-
 ; Тестовый хоткей проверки звука рации (Ctrl + Alt + S)
+#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
 ^!s::
 PlayRadioSfx("radio_start.wav")
 Sleep, 300
