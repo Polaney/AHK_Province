@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion := "2.6.1"
-global AppVersionCode    := 261
+global AppNumericVersion := "2.6.2"
+global AppVersionCode    := 262
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -3070,13 +3070,19 @@ if (InStr(CalcReadyOverflowCmd, "[Сумма не превышает")) {
     MsgBox, 48, Калькулятор УГИБДД, Сумма выбранных статей не превышает 100.000 рублей!
     Return
 }
+if (WinExist("ahk_group ProvinceGameGroup")) {
+    WinActivate, ahk_group ProvinceGameGroup
+    WinWaitActive, ahk_group ProvinceGameGroup,, 2
+    Sleep, 200
+}
 Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
 Send, {F6}
 SmartSleep(200)
-Send, %CalcReadyOverflowCmd%{Space}
+SendInput, {Text}%CalcReadyOverflowCmd% 
+TrayTip, ⚖️ Остаток штрафа, Команда остатка введена в чат! Нажмите ENTER для отправки., 7, 1
 Return
 
 CalcClearChecks:
@@ -3113,9 +3119,6 @@ if (WinExist("ahk_group ProvinceGameGroup")) {
     WinActivate, ahk_group ProvinceGameGroup
     WinWaitActive, ahk_group ProvinceGameGroup,, 2
     Sleep, 200
-} else {
-    MsgBox, 48, Калькулятор УГИБДД, Окно MTA Province не найдено! Запустите игру.
-    Return
 }
 Gui, 5:Hide
 Sleep 250
@@ -3123,19 +3126,27 @@ SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
 Send, {F6}
 SmartSleep(250)
-Send, /me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"{Enter}{F6}
+SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+SendInput, {Text}/me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /do Информация о недействительности ВУ внесена в базу данных.{Enter}{F6}
+SendInput, {Text}/do Информация о недействительности ВУ внесена в базу данных.
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+SendInput, {Text}Ваши права больше недействительны. Идите на пересдачу в автошколу!
+Send, {Enter}{F6}
 SmartSleep(350)
-Send, %CalcReadyLicCmd%{Enter}
-Sleep, 400
-LogJournalAction("Лишение ВУ", tid, "Срок: " . licYears . " г.", 0)
-TriggerSmartScreenshot("Аннулирование ВУ")
-TrayTip, Калькулятор УГИБДД, 🪪 Лишение ВУ успешно отправлено!, 2, 1
+SendInput, {Text}%CalcReadyLicCmd% 
+TrayTip, 🪪 Лишение ВУ, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
+KeyWait, Enter, D, T30
+if (!ErrorLevel) {
+    Sleep, 400
+    LogJournalAction("Лишение ВУ", tid, "Срок: " . licYears . " г.", 0)
+    TriggerSmartScreenshot("Аннулирование ВУ")
+    TrayTip, Калькулятор УГИБДД, ✅ Лишение ВУ подтверждено и зафиксировано!, 3, 1
+}
 Return
 
 CalcSpeakArticles:
@@ -3201,9 +3212,6 @@ if (WinExist("ahk_group ProvinceGameGroup")) {
     WinActivate, ahk_group ProvinceGameGroup
     WinWaitActive, ahk_group ProvinceGameGroup,, 2
     Sleep, 200
-} else {
-    MsgBox, 48, Калькулятор УГИБДД, Окно MTA Province не найдено! Запустите игру.
-    Return
 }
 Gui, 5:Hide
 Sleep 250
@@ -3211,17 +3219,24 @@ SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
 Send, {F6}
 Sleep 250
-Send, /me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"{Enter}{F6}
+SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"
+Send, {Enter}{F6}
 Sleep 500
-Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+SendInput, {Text}/me вн%ok9% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
+Send, {Enter}{F6}
 Sleep 300
-Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
+SendInput, {Text}/do Информация о штрафах введена в базу данных.
+Send, {Enter}{F6}
 Sleep 300
-Send, %CalcReadyCmd%{Enter}
-Sleep, 400
-LogJournalAction("Штраф", tid, artList, cappedFine)
-TriggerSmartScreenshot("Выписка штрафа")
-TrayTip, Калькулятор УГИБДД, ✅ Штраф успешно оформлен и отправлен!, 2, 1
+SendInput, {Text}%CalcReadyCmd% 
+TrayTip, ⚖️ Выписка штрафа, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
+KeyWait, Enter, D, T30
+if (!ErrorLevel) {
+    Sleep, 400
+    LogJournalAction("Штраф", tid, artList, cappedFine)
+    TriggerSmartScreenshot("Выписка штрафа")
+    TrayTip, Калькулятор УГИБДД, ✅ Штраф подтверждён и зафиксирован!, 3, 1
+}
 Return
 
 ; =================================================================================================
@@ -10518,8 +10533,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.1"
-global AppVersionCode       := 261
+global AppNumericVersion    := "2.6.2"
+global AppVersionCode       := 262
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10530,8 +10545,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.1"
-    AppVersionCode       := 261
+    AppNumericVersion    := "2.6.2"
+    AppVersionCode       := 262
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10557,8 +10572,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion  := "2.6.1"
-        AppVersionCode     := 261
+        AppNumericVersion  := "2.6.2"
+        AppVersionCode     := 262
     }
 
     if (!IsSilent)
@@ -11113,17 +11128,24 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         SetCapsOff()
         Send, {F6}
         Sleep 250
-        Send, /me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"{Enter}{F6}
+        SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"
+        Send, {Enter}{F6}
         Sleep 500
-        Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+        SendInput, {Text}/me вн%ok9% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
+        Send, {Enter}{F6}
         Sleep 300
-        Send, /do Информация о штрафах введена в базу данных.{Enter}{F6}
+        SendInput, {Text}/do Информация о штрафах введена в базу данных.
+        Send, {Enter}{F6}
         Sleep 300
-        Send, %cmdToSend%{Enter}
-        Sleep 400
-        LogJournalAction("Штраф", targetPlayer, cmdToSend, 0)
-        TriggerSmartScreenshot("Выписка штрафа")
-        TrayTip, Калькулятор УГИБДД, ✅ Штраф успешно оформлен и отправлен!, 2, 1
+        SendInput, {Text}%cmdToSend% 
+        TrayTip, ⚖️ Выписка штрафа, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
+        KeyWait, Enter, D, T30
+        if (!ErrorLevel) {
+            Sleep 400
+            LogJournalAction("Штраф", targetPlayer, cmdToSend, 0)
+            TriggerSmartScreenshot("Выписка штрафа")
+            TrayTip, Калькулятор УГИБДД, ✅ Штраф подтверждён и зафиксирован!, 3, 1
+        }
         Return
     }
     if (action = "calc_play_lic") {
@@ -11145,19 +11167,27 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         SetCapsOff()
         Send, {F6}
         SmartSleep(250)
-        Send, /me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"{Enter}{F6}
+        SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"
+        Send, {Enter}{F6}
         SmartSleep(500)
-        Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+        SendInput, {Text}/me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
+        Send, {Enter}{F6}
         SmartSleep(500)
-        Send, /do Информация о недействительности ВУ внесена в базу данных.{Enter}{F6}
+        SendInput, {Text}/do Информация о недействительности ВУ внесена в базу данных.
+        Send, {Enter}{F6}
         SmartSleep(500)
-        Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+        SendInput, {Text}Ваши права больше недействительны. Идите на пересдачу в автошколу!
+        Send, {Enter}{F6}
         SmartSleep(350)
-        Send, %cmdToSend%{Enter}
-        Sleep 400
-        LogJournalAction("Лишение ВУ", targetPlayer, cmdToSend, 0)
-        TriggerSmartScreenshot("Аннулирование ВУ")
-        TrayTip, Калькулятор УГИБДД, 🪪 Лишение ВУ успешно отправлено!, 2, 1
+        SendInput, {Text}%cmdToSend% 
+        TrayTip, 🪪 Лишение ВУ, Команда подготовлена в строке! Проверьте и нажмите ENTER для отправки., 7, 1
+        KeyWait, Enter, D, T30
+        if (!ErrorLevel) {
+            Sleep 400
+            LogJournalAction("Лишение ВУ", targetPlayer, cmdToSend, 0)
+            TriggerSmartScreenshot("Аннулирование ВУ")
+            TrayTip, Калькулятор УГИБДД, ✅ Лишение ВУ подтверждено и зафиксировано!, 3, 1
+        }
         Return
     }
     if (action = "calc_speak_articles") {
