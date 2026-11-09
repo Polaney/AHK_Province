@@ -10647,7 +10647,7 @@ CheckForUpdates(IsSilent := 1) {
 }
 
 ShowUpdateDialog(NewVer, NewTitle, NewChangelog, DownUrl) {
-    global AppNumericVersion, UpdateStatusTxt
+    global
     Gui, 7:Destroy
     Gui, 7:Color, 121622, 1B2234
     Gui, 7:Font, S11 C58A6FF Bold, Segoe UI
@@ -10679,7 +10679,7 @@ PerformDownloadAndUpdate()
 Return
 
 PerformDownloadAndUpdate() {
-    global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
+    global
 
     if (PendingUpdateUrl = "" && PendingUpdateMirror = "") {
         MsgBox, 48, Ошибка, Ссылка для загрузки не определена.
@@ -10703,7 +10703,7 @@ PerformDownloadAndUpdate() {
     if (A_IsCompiled) {
         GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Перезапуск...
         Sleep, 400
-        psCmd := "powershell.exe -WindowStyle Hidden -Command ""Start-Sleep -Seconds 2; Move-Item -LiteralPath '" . tempFile . "' -Destination '" . currentPath . "' -Force; Start-Process -FilePath '" . currentPath . "'"""
+        psCmd := "powershell.exe -WindowStyle Hidden -Command ""$src = '" . tempFile . "'; $dst = '" . currentPath . "'; for (`$i=0; `$i -lt 30; `$i++) { try { Move-Item -LiteralPath `$src -Destination `$dst -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 500 } }; Start-Process -FilePath `$dst"""
         Run, %psCmd%,, Hide
         ExitApp
     } else {
