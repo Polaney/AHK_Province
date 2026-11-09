@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion := "2.6.2"
-global AppVersionCode    := 262
+global AppNumericVersion := "2.6.3"
+global AppVersionCode    := 263
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -3124,12 +3124,13 @@ Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
 Send, {F6}
 SmartSleep(250)
 SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"
 Send, {Enter}{F6}
 SmartSleep(500)
-SendInput, {Text}/me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
+SendInput, {Text}/me %vnesWord% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
 Send, {Enter}{F6}
 SmartSleep(500)
 SendInput, {Text}/do Информация о недействительности ВУ внесена в базу данных.
@@ -3217,12 +3218,13 @@ Gui, 5:Hide
 Sleep 250
 SendMessage, 0x50,, 0x4190419,, A
 SetCapsOff()
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
 Send, {F6}
 Sleep 250
 SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"
 Send, {Enter}{F6}
 Sleep 500
-SendInput, {Text}/me вн%ok9% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
+SendInput, {Text}/me %vnesWord% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
 Send, {Enter}{F6}
 Sleep 300
 SendInput, {Text}/do Информация о штрафах введена в базу данных.
@@ -4786,31 +4788,40 @@ Return
 Bind_Tsu:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
 SmartSleep(200)
 Send,{F6}
 SmartSleep(500)
-Send, /me отрыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений" {Enter}{F6}
+SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /me вн%ok9% данные о нарушении водителя в базу, затем нажал "Внести"{Enter}{F6}
+SendInput, {Text}/me %vnesWord% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
+Send, {Enter}{F6}
 SmartSleep(200)
-Send, /do Информация о штрафах введена в базу данных.{Enter}{F6} 
+SendInput, {Text}/do Информация о штрафах введена в базу данных.
+Send, {Enter}{F6} 
 SmartSleep(100)
-Send, /tsu{Space}
+SendInput, {Text}/tsu 
 Return
 Bind_TakeLic:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
+vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
 Send,{F6}
 SmartSleep(250)
-Send, /me отрыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ" {Enter}{F6}
+SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"{Enter}{F6}
+SendInput, {Text}/me %vnesWord% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /do Информация о недействительности ВУ внесена в базу данных. {Enter}{F6} 
+SendInput, {Text}/do Информация о недействительности ВУ внесена в базу данных.
+Send, {Enter}{F6} 
 SmartSleep(500)
-Send, Ваши права больше недействительны. Идите на пересдачу в автошколу{!}{Enter}{F6}
+SendInput, {Text}Ваши права больше недействительны. Идите на пересдачу в автошколу!
+Send, {Enter}{F6}
 SmartSleep(500)
-Send, /takecarlic{Space}
+SendInput, {Text}/takecarlic 
 Return
 #UseHook, Off
 #UseHook, On
@@ -10533,8 +10544,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.2"
-global AppVersionCode       := 262
+global AppNumericVersion    := "2.6.3"
+global AppVersionCode       := 263
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10545,8 +10556,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.2"
-    AppVersionCode       := 262
+    AppNumericVersion    := "2.6.3"
+    AppVersionCode       := 263
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10572,8 +10583,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion  := "2.6.2"
-        AppVersionCode     := 262
+        AppNumericVersion  := "2.6.3"
+        AppVersionCode     := 263
     }
 
     if (!IsSilent)
@@ -11010,7 +11021,7 @@ if (FluentGuiHwnd && WinExist("ahk_id " . FluentGuiHwnd)) {
 Return
 
 OnFluentWebAction(action, arg1 := "", arg2 := "") {
-    global FluentGuiHwnd, FluentUiMode, HIDDEN_NOW, OnlyInGameMode, AutoScreenMode, HotkeyById
+    global
     if (action = "mobile_action") {
         if (arg1 != "")
             ExecuteMobilePatrolCommand(arg1)
@@ -11126,12 +11137,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Sleep 250
         SendMessage, 0x50,, 0x4190419,, A
         SetCapsOff()
+        vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
         Send, {F6}
         Sleep 250
         SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Фиксация нарушений"
         Send, {Enter}{F6}
         Sleep 500
-        SendInput, {Text}/me вн%ok9% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
+        SendInput, {Text}/me %vnesWord% данные о нарушении водителя в базу, затем нажал%ok1% "Внести"
         Send, {Enter}{F6}
         Sleep 300
         SendInput, {Text}/do Информация о штрафах введена в базу данных.
@@ -11165,12 +11177,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Sleep 250
         SendMessage, 0x50,, 0x4190419,, A
         SetCapsOff()
+        vnesWord := (Ok1 = "а" || Gender = "Я девочка") ? "внесла" : "внёс"
         Send, {F6}
         SmartSleep(250)
         SendInput, {Text}/me открыл%ok1% базу данных и зашёл во вкладку "Аннулирование ВУ"
         Send, {Enter}{F6}
         SmartSleep(500)
-        SendInput, {Text}/me вн%ok9% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
+        SendInput, {Text}/me %vnesWord% данные гражданина и срок лишения, после чего нажал%ok1% "Аннулировать"
         Send, {Enter}{F6}
         SmartSleep(500)
         SendInput, {Text}/do Информация о недействительности ВУ внесена в базу данных.
@@ -11330,7 +11343,6 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         Return
     }
     if (action = "save_profile_web") {
-        global Frak, Fio1, Rank, Teg, Prop2, Znak, Otdel, Gibdd, Gender, CheckMB, Vers
         parts := StrSplit(arg1, "|")
         if (parts.MaxIndex() >= 9) {
             Frak := Trim(parts[1])
