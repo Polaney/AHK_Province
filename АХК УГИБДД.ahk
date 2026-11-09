@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.6.5"
-global AppVersionCode       := 265
+global AppNumericVersion := "2.6.6"
+global AppVersionCode    := 266
 global MegaphoneCooldownConfig := 15
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -73,6 +73,31 @@ if (!FileExist(A_ScriptDir . "\assets\radio_start.wav")) {
 if (!FileExist(A_ScriptDir . "\assets\radio_stop.wav")) {
     try {
         FileInstall, assets\radio_stop.wav, %A_ScriptDir%\assets\radio_stop.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\warn_green.wav")) {
+    try {
+        FileInstall, assets\warn_green.wav, %A_ScriptDir%\assets\warn_green.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\warn_yellow.wav")) {
+    try {
+        FileInstall, assets\warn_yellow.wav, %A_ScriptDir%\assets\warn_yellow.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\warn_red.wav")) {
+    try {
+        FileInstall, assets\warn_red.wav, %A_ScriptDir%\assets\warn_red.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\warn_fire.wav")) {
+    try {
+        FileInstall, assets\warn_fire.wav, %A_ScriptDir%\assets\warn_fire.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\warn_ready.wav")) {
+    try {
+        FileInstall, assets\warn_ready.wav, %A_ScriptDir%\assets\warn_ready.wav, 1
     }
 }
 
@@ -230,6 +255,36 @@ SetAppSoundVolume(volPercent) {
     if (volPercent > 100)
         volPercent := 100
     SfxVolume := volPercent
+
+    ; 1. Регулировка громкости процесса в Windows Core Audio Mixer (Windows 10 / Windows 11 WASAPI)
+    try {
+        volFloat := volPercent / 100.0
+        CLSID_MMDeviceEnumerator := "{BCDE0395-E52F-467C-8E3D-C4579291692E}"
+        IID_IMMDeviceEnumerator  := "{A95664D2-9614-4F35-A746-DE8DB63617E6}"
+        IID_IAudioSessionManager2 := "{77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F}"
+
+        deviceEnumerator := ComObjCreate(CLSID_MMDeviceEnumerator, IID_IMMDeviceEnumerator)
+        if (deviceEnumerator) {
+            hr := DllCall(NumGet(NumGet(deviceEnumerator+0)+4*A_PtrSize), "Ptr", deviceEnumerator, "Int", 0, "Int", 0, "Ptr*", defaultDevice)
+            ObjRelease(deviceEnumerator)
+            if (hr = 0 && defaultDevice) {
+                VarSetCapacity(iidASM2, 16)
+                DllCall("ole32\CLSIDFromString", "WStr", IID_IAudioSessionManager2, "Ptr", &iidASM2)
+                hr := DllCall(NumGet(NumGet(defaultDevice+0)+3*A_PtrSize), "Ptr", defaultDevice, "Ptr", &iidASM2, "UInt", 23, "Ptr", 0, "Ptr*", sessionManager)
+                ObjRelease(defaultDevice)
+                if (hr = 0 && sessionManager) {
+                    hr := DllCall(NumGet(NumGet(sessionManager+0)+4*A_PtrSize), "Ptr", sessionManager, "Ptr", 0, "UInt", 0, "Ptr*", simpleVolume)
+                    ObjRelease(sessionManager)
+                    if (hr = 0 && simpleVolume) {
+                        DllCall(NumGet(NumGet(simpleVolume+0)+3*A_PtrSize), "Ptr", simpleVolume, "Float", volFloat, "Ptr", 0)
+                        ObjRelease(simpleVolume)
+                    }
+                }
+            }
+        }
+    }
+
+    ; 2. Резервная WinMM waveOut
     normVol := Round(volPercent * 65535 / 100)
     volDword := (normVol & 0xFFFF) | ((normVol & 0xFFFF) << 16)
     DllCall("winmm\waveOutSetVolume", "Ptr", 0, "UInt", volDword)
@@ -239,17 +294,22 @@ PlaySafeBeep(freq := 750, dur := 120) {
     global SfxVolume
     if (SfxVolume <= 0)
         return
-    SoundBeep, %freq%, %dur%
+    readyWav := A_ScriptDir . "\assets\warn_ready.wav"
+    if (FileExist(readyWav)) {
+        PlayRadioSfx("warn_ready.wav")
+    } else {
+        SoundBeep, %freq%, %dur%
+    }
 }
 
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.5") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.6") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.5") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.6") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -1329,7 +1389,7 @@ ExecuteSmartMegaphoneStep() {
         Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
         SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-        PlaySafeBeep(800, 150)
+        PlayRadioSfx("warn_green.wav")
         cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
         TrayTip, % "🚔 [" . dept . "] Мегафон 1/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
         LogJournalAction("Погоня", "Мегафон №1", "Требование об остановке ТС (1/" . maxSt . ")", 0)
@@ -1372,7 +1432,7 @@ ExecuteSmartMegaphoneStep() {
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
 
         if (nextStage = maxSt) {
-            PlaySafeBeep(1100, 200)
+            PlayRadioSfx("warn_red.wav")
             if (ChaseTotalSec <= 0) {
                 TrayTip, % "⚠️ [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " (ФИНАЛ)!", "ТРЕБОВАНИЯ ВЫПОЛНЕНЫ! ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП)!", 4, 2
             } else {
@@ -1381,7 +1441,7 @@ ExecuteSmartMegaphoneStep() {
             LogJournalAction("Погоня", "Мегафон №" . nextStage, "Финальное требование (" . nextStage . "/" . maxSt . ")", 0)
             TriggerSmartScreenshot("Мегафон " . nextStage . "/" . maxSt)
         } else {
-            PlaySafeBeep(950, 150)
+            PlayRadioSfx("warn_yellow.wav")
             cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
             TrayTip, % "🚔 [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
             LogJournalAction("Погоня", "Мегафон №" . nextStage, "Требование об остановке (" . nextStage . "/" . maxSt . ")", 0)
@@ -1391,9 +1451,7 @@ ExecuteSmartMegaphoneStep() {
     }
 
     if (ChaseStage >= maxSt) {
-        PlaySafeBeep(1200, 100)
-        Sleep, 50
-        PlaySafeBeep(1200, 150)
+        PlayRadioSfx("warn_fire.wav")
         if (ChaseTotalSec <= 0) {
             TrayTip, ⚠️ ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП), % "Все " . maxSt . " мегафонов выданы и 3 минуты истекли! Разрешён огонь по колёсам!", 3, 2
         } else {
@@ -4110,12 +4168,12 @@ if (ChaseActive) {
     if (ChaseCooldownSec > 0) {
         ChaseCooldownSec--
         if (ChaseCooldownSec = 0)
-            PlaySafeBeep(1000, 180)
+            PlayRadioSfx("warn_ready.wav")
     }
     if (ChaseTotalSec > 0) {
         ChaseTotalSec--
         if (ChaseTotalSec = 0) {
-            PlaySafeBeep(1500, 300)
+            PlayRadioSfx("warn_fire.wav")
             dept := GetChaseDept()
             maxSt := GetMaxChaseStages()
             if (ChaseStage >= maxSt)
@@ -10826,8 +10884,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.5"
-global AppVersionCode       := 265
+global AppNumericVersion := "2.6.6"
+global AppVersionCode    := 266
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10838,8 +10896,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.5"
-    AppVersionCode       := 265
+    AppNumericVersion    := "2.6.6"
+    AppVersionCode       := 266
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10865,8 +10923,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion    := "2.6.5"
-        AppVersionCode       := 265
+        AppNumericVersion    := "2.6.6"
+        AppVersionCode       := 266
     }
 
     if (!IsSilent)
@@ -11704,9 +11762,10 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     }
     if (action = "test_sfx") {
         PlayRadioSfx("radio_start.wav")
+        Sleep, 150
+        PlayRadioSfx("warn_green.wav")
         Sleep, 200
         PlayRadioSfx("radio_stop.wav")
-        PlaySafeBeep(900, 150)
         Return
     }
     if (action = "save_profile_web") {
