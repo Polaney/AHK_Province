@@ -12481,6 +12481,139 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         Send, {F8}
         Sleep, 200
         PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_post_start") {
+        cityPrefix := (Frak = "Невский") ? "Н" : (Frak = "Мирный") ? "М" : "П"
+        postNum := (Post != "" ? Post : "1")
+        StartDutyTimer("Пост №" . postNum, 1200)
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-4 %cityPrefix%-%postNum%{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Доклад на посту")
+    } else if (cmd = "report_post_continue") {
+        cityPrefix := (Frak = "Невский") ? "Н" : (Frak = "Мирный") ? "М" : "П"
+        postNum := (Post != "" ? Post : "1")
+        StartDutyTimer("Пост №" . postNum, 1200)
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-4-4 %cityPrefix%-%postNum%{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Доклад на посту")
+    } else if (cmd = "report_post_end") {
+        cityPrefix := (Frak = "Невский") ? "Н" : (Frak = "Мирный") ? "М" : "П"
+        postNum := (Post != "" ? Post : "1")
+        DutyRemainSec := 0
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-4-1 %cityPrefix%-%postNum%{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+        TriggerSmartScreenshot("Сдал пост")
+    } else if (cmd = "report_1010_start") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-10{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1011_start") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-11{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1024") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-24{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1025") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-25{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1026") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-26{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_103") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-3{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_1033") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% 10-3-3{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+    } else if (cmd = "report_code2") {
+        PlayRadioSfx("radio_start.wav")
+        SetLocaleRu()
+        SetCapsOff()
+        Send, {F8}
+        Sleep, 40
+        SendInput, ^a{Delete}/r %Teg%-%Prop2% Код-2{Enter}
+        Sleep, 40
+        Send, {F8}
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
     }
 }
 
