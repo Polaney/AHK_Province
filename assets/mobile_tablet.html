@@ -32,7 +32,13 @@ html, body {
     flex-direction: column;
     height: 100%;
     width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
     background: radial-gradient(circle at 50% -20%, rgba(31,111,235,0.22) 0%, rgba(6,9,19,0.98) 75%);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.85);
+    border-left: 1px solid rgba(56, 139, 253, 0.15);
+    border-right: 1px solid rgba(56, 139, 253, 0.15);
 }
 
 /* TOP POLICE STROBE LIGHTS */
@@ -267,6 +273,13 @@ html, body {
     -webkit-overflow-scrolling: touch;
     padding: 12px 14px;
     padding-bottom: 95px;
+}
+.content-area.map-active-mode {
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 68px !important;
 }
 
 .tab-pane {
@@ -608,8 +621,10 @@ html, body {
 .tab-bar {
     position: fixed;
     bottom: 0;
-    left: 0;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 680px;
     background: rgba(10, 16, 32, 0.96);
     border-top: 1px solid rgba(56, 139, 253, 0.3);
     display: flex;
@@ -679,6 +694,21 @@ html, body {
 /* ========================================================
    ТАБ 5: ТАКТИЧЕСКИЙ РАДАР И КАРТА РЕСПУБЛИКИ ПРОВИНЦИЯ
    ======================================================== */
+#pane-5 {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+}
+#pane-5.active {
+    display: flex;
+}
 .map-hud-top {
     display: flex;
     justify-content: space-between;
@@ -1007,6 +1037,174 @@ html, body {
 .drawer-unit-card:hover {
     border-color: #388BFD;
     background: rgba(56, 139, 253, 0.15);
+}
+
+/* ========================================================
+   RESPONSIVE ADAPTATION FOR ALL SCREENS & DEVICES
+   ======================================================== */
+
+/* TABLETS & HORIZONTAL SMARTPHONES (600px - 900px) */
+@media (min-width: 600px) {
+    #app {
+        max-width: 820px;
+        border-left: 1px solid rgba(56, 139, 253, 0.25);
+        border-right: 1px solid rgba(56, 139, 253, 0.25);
+    }
+    .tab-bar {
+        max-width: 820px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .grid-3 {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 8px;
+    }
+    .hud-title {
+        font-size: 15px;
+    }
+    .kpi-card-num {
+        font-size: 15px;
+    }
+    .btn-tablet {
+        padding: 13px 12px;
+    }
+    .btn-main-text {
+        font-size: 13px;
+    }
+}
+
+/* DESKTOP & WIDE MONITORS (> 900px) */
+@media (min-width: 900px) {
+    #app {
+        max-width: 960px;
+        border-left: 1px solid rgba(56, 139, 253, 0.35);
+        border-right: 1px solid rgba(56, 139, 253, 0.35);
+    }
+    .tab-bar {
+        max-width: 960px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+    .grid-3 {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 8px;
+    }
+    .btn-tablet {
+        font-size: 13px;
+        padding: 12px 10px;
+    }
+    .btn-main-text {
+        font-size: 12.5px;
+    }
+    .map-modal-card {
+        max-width: 520px;
+    }
+    .ten-codes-selector {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* COMPACT PHONES (iPhone SE, Small Android <= 375px) */
+@media (max-width: 375px) {
+    .hud-header {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+    .hud-title {
+        font-size: 11.5px;
+        letter-spacing: 0.2px;
+    }
+    .hud-sub {
+        font-size: 9.5px;
+    }
+    .status-indicator {
+        font-size: 9.5px;
+        padding: 2px 6px;
+    }
+    .target-label {
+        font-size: 9.5px;
+    }
+    .target-id-input {
+        width: 44px;
+        font-size: 12px;
+        height: 22px;
+    }
+    .kpi-card {
+        padding: 2px 4px;
+    }
+    .kpi-card-num {
+        font-size: 11.5px;
+    }
+    .kpi-card-lbl {
+        font-size: 8px;
+    }
+    .content-area {
+        padding: 8px 10px;
+        padding-bottom: 85px;
+    }
+    .grid-2 {
+        gap: 6px;
+    }
+    .btn-tablet {
+        padding: 9px 7px;
+        gap: 6px;
+        border-radius: 9px;
+    }
+    .btn-icon {
+        font-size: 16px;
+    }
+    .btn-main-text {
+        font-size: 11.5px;
+    }
+    .btn-sub-text {
+        font-size: 8.5px;
+    }
+    .tab-bar {
+        height: 60px;
+    }
+    .tab-btn {
+        font-size: 9px;
+    }
+    .tab-btn-icon {
+        font-size: 17px;
+    }
+}
+
+/* LANDSCAPE ORIENTATION FOR MOBILE (max-height <= 520px) */
+@media (max-height: 520px) and (orientation: landscape) {
+    .hud-header {
+        padding: 4px 10px;
+        gap: 4px;
+    }
+    .hud-stats-row {
+        display: none;
+    }
+    .content-area {
+        padding: 6px 10px;
+        padding-bottom: 60px;
+    }
+    .tab-bar {
+        height: 48px;
+        padding-bottom: 2px;
+    }
+    .tab-btn-icon {
+        font-size: 15px;
+    }
+    .tab-btn span {
+        font-size: 8.5px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    .btn-tablet {
+        padding: 8px 8px;
+        font-size: 11.5px;
+    }
 }
 </style>
 </head>
@@ -1502,7 +1700,7 @@ html, body {
             </div>
         </div>
         <!-- TAB 5: ТАКТИЧЕСКИЙ РАДАР И ИНТЕРАКТИВНАЯ КАРТА РЕСПУБЛИКИ ПРОВИНЦИЯ -->
-        <div class="tab-pane" id="pane-5" style="display:none; padding:0; height:calc(100vh - 120px); position:relative; overflow:hidden; flex-direction:column;">
+        <div class="tab-pane" id="pane-5">
             <!-- TOP BAR -->
             <div class="map-hud-top">
                 <div class="map-title-wrap">
@@ -1528,7 +1726,7 @@ html, body {
             <!-- INTERACTIVE MAP VIEWPORT -->
             <div id="map-viewport">
                 <div id="map-stage">
-                    <img id="map-canvas-img" src="assets/province_map.jpg" alt="Карта Провинции" draggable="false">
+                    <img id="map-canvas-img" src="/assets/province_map.jpg" onerror="if(this.src.indexOf('assets/province_map.jpg')===-1||this.src.charAt(0)==='/')this.src='assets/province_map.jpg'" alt="Карта Республики Провинция" draggable="false">
                     <!-- Dynamic Markers Layer -->
                     <div id="map-markers-layer"></div>
                 </div>
@@ -1777,10 +1975,21 @@ function toggleFullscreen() {
 function switchMobileTab(num) {
     playSoundEffect('beep');
     if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
+    var contentArea = document.querySelector('.content-area');
+    if (contentArea) {
+        if (num === 5) {
+            contentArea.classList.add('map-active-mode');
+        } else {
+            contentArea.classList.remove('map-active-mode');
+        }
+    }
     for (var i = 1; i <= 5; i++) {
         var pane = document.getElementById('pane-' + i);
         var nav = document.getElementById('tab-nav-' + i);
-        if (pane) pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
+        if (pane) {
+            pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
+            pane.style.display = (i === num) ? 'flex' : 'none';
+        }
         if (nav) nav.className = (i === num) ? 'tab-btn active' : 'tab-btn';
     }
     if (num === 5) {
@@ -2124,7 +2333,10 @@ function updateMapMyStatusDisplay() {
 
 function onOpenTacticalMap() {
     initTacticalMapIfNeeded();
-    fetchMapUnits();
+    setTimeout(function() {
+        jumpMapCity('all');
+        fetchMapUnits();
+    }, 60);
     if (!mapPollingTimer) {
         mapPollingTimer = setInterval(fetchMapUnits, 4000);
     }
@@ -2258,6 +2470,22 @@ function applyMapTransform() {
     stage.style.transform = 'translate(' + mapPosX + 'px, ' + mapPosY + 'px) scale(' + mapScale + ')';
 }
 
+window.addEventListener('resize', function() {
+    var p5 = document.getElementById('pane-5');
+    if (p5 && (p5.style.display === 'flex' || p5.classList.contains('active'))) {
+        jumpMapCity('all');
+    }
+});
+
+window.addEventListener('orientationchange', function() {
+    setTimeout(function() {
+        var p5 = document.getElementById('pane-5');
+        if (p5 && (p5.style.display === 'flex' || p5.classList.contains('active'))) {
+            jumpMapCity('all');
+        }
+    }, 150);
+});
+
 function handleMapClick(clientX, clientY) {
     var stage = document.getElementById('map-stage');
     if (!stage) return;
@@ -2273,8 +2501,8 @@ function handleMapClick(clientX, clientY) {
 
 function jumpMapCity(city) {
     var vp = document.getElementById('map-viewport');
-    var w = vp ? vp.clientWidth : 400;
-    var h = vp ? vp.clientHeight : 500;
+    var w = (vp && vp.clientWidth > 50) ? vp.clientWidth : (window.innerWidth || 400);
+    var h = (vp && vp.clientHeight > 50) ? vp.clientHeight : ((window.innerHeight - 130) || 500);
 
     // Reset pills
     var pills = ['all', 'priv', 'mirny', 'nevsky'];
