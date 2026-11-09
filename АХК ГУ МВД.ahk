@@ -17,7 +17,6 @@ SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
 
-; Группа окон игры MTA Province / GTA San Andreas
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
 GroupAdd, ProvinceGameGroup, ahk_exe gta_sa.exe
 GroupAdd, ProvinceGameGroup, ahk_exe proxy_sa.exe
@@ -61,79 +60,84 @@ if (!FileExist(A_ScriptDir . "\assets\fluent_gumvd.html")) {
         FileInstall, assets\fluent_gumvd.html, %A_ScriptDir%\assets\fluent_gumvd.html, 1
     }
 }
-if (!FileExist(A_ScriptDir . "\assets\mobile_tablet.html")) {
-    try {
-        FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
-    }
-}
-if (!FileExist(A_ScriptDir . "\assets\radio_start.wav")) {
-    try {
-        FileInstall, assets\radio_start.wav, %A_ScriptDir%\assets\radio_start.wav, 1
-    }
-}
-if (!FileExist(A_ScriptDir . "\assets\radio_stop.wav")) {
-    try {
-        FileInstall, assets\radio_stop.wav, %A_ScriptDir%\assets\radio_stop.wav, 1
-    }
-}
 if (!FileExist(A_ScriptDir . "\assets\articles.json")) {
     try {
         FileInstall, assets\articles.json, %A_ScriptDir%\assets\articles.json, 1
     }
 }
+if (!FileExist(A_ScriptDir . "\radio_start.wav")) {
+    try {
+        FileInstall, radio_start.wav, %A_ScriptDir%\radio_start.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\radio_stop.wav")) {
+    try {
+        FileInstall, radio_stop.wav, %A_ScriptDir%\radio_stop.wav, 1
+    }
+}
 
-AbortBindFlag := 0
-RefreshTray()
-Gosub, AHK
+; =================================================================================================
+; СИСТЕМНАЯ ИНИЦИАЛИЗАЦИЯ И РЕЖИМЫ WINDOWS 11 23H2 / 24H2+
+; =================================================================================================
+global WinVer := DetectWindowsVersion()
+InitDpiAwareness()
+ApplySendEngineMode()
+SetBrowserEmulationIE11()
+DetectProvincePaths()
+
+; Трей-меню
+Menu, Tray, NoStandard
+Menu, Tray, Icon, %A_ScriptDir%\gumvd.ico,, 1
+Menu, Tray, Tip, ГУ МВД РОССИИ — Fluent Police Glass 2.0
+Menu, Tray, Add, Открыть панель управления, ShowFluentUi
+Menu, Tray, Add, Скрыть / Показать, ToggleFluentUi
+Menu, Tray, Add
+Menu, Tray, Add, Калькулятор штрафов (Alt+F1), OpenCalc
+Menu, Tray, Add, HUD службы и погони (Alt+H), ToggleDutyHud
+Menu, Tray, Add, Сброс погони (Alt+BS), ResetChaseState
+Menu, Tray, Add
+Menu, Tray, Add, Перезагрузить (Alt+R), ReloadScript
+Menu, Tray, Add, Выход, ExitScriptLabel
+Menu, Tray, Default, Открыть панель управления
+
+; Инициализация профиля ГУ МВД
+global ProfilePath := A_ScriptDir . "\gumvd_profile.ini"
+global CustomBindsPath := A_ScriptDir . "\gumvd_custom_binds.ini"
+global JournalPath := A_ScriptDir . "\gumvd_journal.ini"
+EnsureDefaultGumvdProfile()
+LoadGumvdProfile()
+
+; Переменные состояния телеметрии
+global ChaseStage := 0
+global ChaseLastTime := 0
+global DutyTimerActive := 0
+global DutyTimerStart := 0
+global DutyTimerDuration := 0
+global DutyPostName := "Патруль"
+global TotalArrests := 0
+global TotalProtocols := 0
+global TotalFines := 0
+global RadioSoundEnabled := 1
+global FluentGuiHwnd := 0
+global FluentWB := 0
+
+; Инициализация менеджера горячих клавиш
+InitHotkeysManager()
+RegisterAllHotkeys()
+
+; Запуск интерфейса Fluent Glass
+InitAndShowFluentGlassUI()
+
+; Таймеры телеметрии
+SetTimer, TelemetryHeartbeat, 1000
 Return
 
 ; =================================================================================================
-; СИСТЕМНЫЕ ФУНКЦИИ И WINDOWS 11 DPI / COMPATIBILITY
+; ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ И ДВИЖОК СИСТЕМЫ
 ; =================================================================================================
-InitDpiAwareness() {
-    try {
-        DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
-    }
-}
-
-DetectWindowsVersion() {
-    global OSBuildNumber, IsWin11_24H2_OrNewer, WinVerDescription
-    RegRead, OSBuildNumber, HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion, CurrentBuild
-    if (OSBuildNumber = "" || ErrorLevel)
-        RegRead, OSBuildNumber, HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion, CurrentBuildNumber
-    OSBuildNumber += 0
-    if (OSBuildNumber >= 26100) {
-        IsWin11_24H2_OrNewer := 1
-        WinVerDescription := "Win 11 (24H2+ Build " . OSBuildNumber . ")"
-    } else if (OSBuildNumber >= 22621) {
-        IsWin11_24H2_OrNewer := 0
-        WinVerDescription := "Win 11 (22H2/23H2 Build " . OSBuildNumber . ")"
-    } else if (OSBuildNumber >= 22000) {
-        IsWin11_24H2_OrNewer := 0
-        WinVerDescription := "Win 11 (21H2 Build " . OSBuildNumber . ")"
-    } else {
-        IsWin11_24H2_OrNewer := 0
-        WinVerDescription := "Win 10 / Legacy (Build " . OSBuildNumber . ")" 
-    }
-}
-
-ApplySendEngineMode(ModeStr := "AUTO") {
-    global IsWin11_24H2_OrNewer, ActiveSendEngine
-    if (ModeStr = "SendPlay") {
-        SendMode, Play
-        ActiveSendEngine := "SendPlay (Классика)"
-    } else if (ModeStr = "SendEvent") {
-        SendMode, Event
-        SetKeyDelay, -1, 0
-        ActiveSendEngine := "SendEvent (DirectX)"
-    } else {
-        SendMode, Input
-        ActiveSendEngine := "SendInput (Быстрый)"
-    }
-}
-
 CheckAdmin() {
-    if (!A_IsAdmin) {
+    global 0
+    if (!A_IsAdmin && 0 == 0) {
         try {
             if (A_IsCompiled)
                 Run *RunAs "%A_ScriptFullPath%" /restart
@@ -144,10 +148,60 @@ CheckAdmin() {
     }
 }
 
-CheckUIA() {
-    if (!A_IsCompiled && !InStr(A_AhkPath, "_UIA")) {
-        Run % "*uiAccess """ . A_ScriptFullPath . """"
-        ExitApp
+DetectWindowsVersion() {
+    v := DllCall("GetVersion", "UInt")
+    build := (v >> 16) & 0xFFFF
+    if (build >= 26100)
+        return "Win11_24H2"
+    if (build >= 22631)
+        return "Win11_23H2"
+    if (build >= 22000)
+        return "Win11"
+    return "Win10"
+}
+
+InitDpiAwareness() {
+    try {
+        DllCall("SetProcessDpiAwarenessContext", "Ptr", -4, "UInt") ; DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    } catch {
+        try {
+            DllCall("SetProcessDPIAware")
+        }
+    }
+}
+
+ApplySendEngineMode() {
+    SendMode, Event
+    SetKeyDelay, 25, 25
+}
+
+SetBrowserEmulationIE11() {
+    exeName := A_IsCompiled ? A_ScriptName : "AutoHotkeyU64.exe"
+    regKey := "Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION"
+    try {
+        RegWrite, REG_DWORD, HKCU, %regKey%, %exeName%, 11001
+    }
+}
+
+DetectProvincePaths() {
+    global ProvLogPath
+    ProvLogPath := ""
+    regDirs := ["SOFTWARE\MTA Province", "SOFTWARE\WOW6432Node\MTA Province"]
+    for idx, rk in regDirs {
+        RegRead, pDir, HKLM, %rk%, InstallPath
+        if (pDir != "" && FileExist(pDir . "\MTA\logs\console.log")) {
+            ProvLogPath := pDir . "\MTA\logs"
+            break
+        }
+    }
+    if (ProvLogPath = "") {
+        possible := ["C:\Games\MTA Province\MTA\logs", "D:\Games\MTA Province\MTA\logs", "C:\Program Files\MTA Province\MTA\logs"]
+        for idx, pd in possible {
+            if (FileExist(pd . "\console.log")) {
+                ProvLogPath := pd
+                break
+            }
+        }
     }
 }
 
@@ -163,1179 +217,920 @@ SetCapsOff() {
     SetCapsLockState, Off
 }
 
-SmartSleep(delayMs) {
-    global AbortBindFlag
-    if (AbortBindFlag)
-        return
-    if (delayMs <= 50) {
-        Sleep, %delayMs%
-        return
+Encoded(Target) {
+    Target := StrReplace(Target, "#", "{#}")
+    Target := StrReplace(Target, "!", "{!}")
+    Target := StrReplace(Target, "^", "{^}")
+    Target := StrReplace(Target, "+", "{+}")
+    Target := StrReplace(Target, "&", "{&}")
+    Return Target
+}
+
+SendChat(TextBind, SleepBind := 400) {
+    SetLocaleRu()
+    SetCapsOff()
+    TextBind := Encoded(TextBind)
+    SendInput, {F8}^A{Delete}%TextBind%{Enter}{F8}
+    Sleep, %SleepBind%
+}
+
+PlayRadioSfx(sfxFile) {
+    global RadioSoundEnabled
+    if (!RadioSoundEnabled)
+        Return
+    filePath := A_ScriptDir . "\" . sfxFile
+    if (!FileExist(filePath))
+        filePath := A_ScriptDir . "\assets\" . sfxFile
+    if (FileExist(filePath)) {
+        DllCall("winmm\PlaySoundW", "WStr", filePath, "Ptr", 0, "UInt", 0x20001) ; SND_ASYNC | SND_FILENAME
     }
-    steps := delayMs // 50
-    rem := Mod(delayMs, 50)
-    Loop, %steps% {
-        if (AbortBindFlag)
-            return
-        Sleep, 50
+}
+
+GetTryRes() {
+    global ProvLogPath
+    Sleep, 100
+    if (ProvLogPath != "" && FileExist(ProvLogPath . "\console.log")) {
+        Loop, read, %ProvLogPath%\console.log
+            LastLine := A_LoopReadLine
+        IfInString, LastLine, РќРµСѓРґР°С‡РЅРѕ
+            Return False
+        IfInString, LastLine, РЈРґР°С‡РЅРѕ
+            Return True
     }
-    if (rem > 0 && !AbortBindFlag)
-        Sleep, %rem%
+    InputBox, TryRes, Результат действия, Введите результат (1 = Удачно / 0 = Неудачно):,, 280, 130
+    if (ErrorLevel || TryRes = "0" || TryRes = "нет" || TryRes = "ytn")
+        Return False
+    Return True
 }
 
 ; =================================================================================================
-; ИНИЦИАЛИЗАЦИЯ И ЗАПУСК (AHK:)
+; ПРОФИЛЬ СОТРУДНИКА ГУ МВД
 ; =================================================================================================
-AHK:
-InitDpiAwareness()
-DetectWindowsVersion()
-EnsureDefaultConfig()
-LoadUserConfig()
-ApplySendEngineMode(SendMethodConfig)
-
-if (Gender = "Я девочка") {
-    Vers = 2.5.0ж
-    Ok1 = а
-    Ok2 = ла
-    Ok3 = ась
-    Ok4 = цы
-    Ok5 = ца
-    Ok6 = це
-    Ok7 = ла
-    Ok8 = ела
-    Ok9 = есла
-    Ok10 = цей
-    Ok11 = екла
-    Pol = 👩‍✈️
-    Gend = женский
-} else {
-    Vers = 2.5.0м
-    Ok1 =
-    Ok2 =
-    Ok3 = ся
-    Ok4 = ка
-    Ok5 = к
-    Ok6 = ке
-    Ok7 = ёл
-    Ok8 = ёл
-    Ok9 = ёс
-    Ok10 = ком
-    Ok11 = ёк
-    Pol = 👨‍✈️
-    Gend = мужской
+EnsureDefaultGumvdProfile() {
+    global ProfilePath
+    if (!FileExist(ProfilePath)) {
+        IniWrite, ГУ МВД г.Невский, %ProfilePath%, User, Frak
+        IniWrite, Голдчерри Максим Сергеевич, %ProfilePath%, User, Fio1
+        IniWrite, Старшина, %ProfilePath%, User, Rank
+        IniWrite, 51, %ProfilePath%, User, Teg
+        IniWrite, 001, %ProfilePath%, User, Prop2
+        IniWrite, Сотрудник роты ППС, %ProfilePath%, User, Otdel
+        IniWrite, Тень, %ProfilePath%, User, Prop1
+        IniWrite, ОСпН, %ProfilePath%, User, Osnxxx
+        IniWrite, ЦСН "БАРС", %ProfilePath%, User, Osn
+        IniWrite, Н, %ProfilePath%, User, Bukv
+        IniWrite, Я мужык, %ProfilePath%, User, Gender
+    }
 }
 
-CheckUIA()
-Menu, Tray, Icon, %A_ScriptDir%\gumvd.ico
+LoadGumvdProfile() {
+    global ProfilePath, Frak, Fio1, Rank, Teg, Prop2, Otdel, Prop1, Osnxxx, Osn, Bukv, Gender
+    global Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10
+    
+    ; Читаем сначала из ini, затем если есть - из temp/data.egl
+    IniRead, Frak, %ProfilePath%, User, Frak, ГУ МВД г.Невский
+    IniRead, Fio1, %ProfilePath%, User, Fio1, Голдчерри Максим Сергеевич
+    IniRead, Rank, %ProfilePath%, User, Rank, Старшина
+    IniRead, Teg, %ProfilePath%, User, Teg, 51
+    IniRead, Prop2, %ProfilePath%, User, Prop2, 001
+    IniRead, Otdel, %ProfilePath%, User, Otdel, Сотрудник роты ППС
+    IniRead, Prop1, %ProfilePath%, User, Prop1, Тень
+    IniRead, Osnxxx, %ProfilePath%, User, Osnxxx, ОСпН
+    IniRead, Osn, %ProfilePath%, User, Osn, ЦСН "БАРС"
+    IniRead, Bukv, %ProfilePath%, User, Bukv, Н
+    IniRead, Gender, %ProfilePath%, User, Gender, Я мужык
+    
+    ; Синхронизация с A_Temp\data.egl и gumvd.egl для совместимости с оригинальными скриптами
+    tempData := A_Temp . "\data.egl"
+    IniWrite, %Frak%, %tempData%, User, Frak
+    IniWrite, %Fio1%, %tempData%, User, Fio1
+    IniWrite, %Rank%, %tempData%, User, Rank
+    IniWrite, %Teg%, %tempData%, User, Teg
+    IniWrite, %Prop2%, %tempData%, User, Prop2
+    IniWrite, %Otdel%, %tempData%, User, Otdel
+    IniWrite, %Prop1%, %tempData%, User, Prop1
+    IniWrite, %Osnxxx%, %tempData%, User, Osnxxx
+    IniWrite, %Osn%, %tempData%, User, Osn
+    IniWrite, %Bukv%, %tempData%, User, Bukv
+    IniWrite, %Gender%, %tempData%, User, Gender
+    
+    ; Настройка окончаний по полу
+    if (Gender = "Я девочка") {
+        Ok1 := "а"
+        Ok2 := "ла"
+        Ok3 := "ась"
+        Ok4 := "цы"
+        Ok5 := "ца"
+        Ok6 := "це"
+        Ok7 := "ла"
+        Ok8 := "ела"
+        Ok9 := "есла"
+        Ok10 := "цей"
+    } else {
+        Ok1 := ""
+        Ok2 := ""
+        Ok3 := "ся"
+        Ok4 := "ка"
+        Ok5 := "к"
+        Ok6 := "ке"
+        Ok7 := "ёл"
+        Ok8 := "ёл"
+        Ok9 := "ёс"
+        Ok10 := "ком"
+    }
+}
 
-InitHotkeysManager()
-InitArticlesDB()
-InitTimersAndLogReader()
-TabletRelay_Init()
-InitClientHeartbeat()
-SetBrowserEmulationIE11()
-ShowFluentGUI()
-Return
-
-; =================================================================================================
-; МЕНЕДЖЕР ГОРЯЧИХ КЛАВИШ (ИНТЕРАКТИВНОЕ ПЕРЕНАЗНАЧЕНИЕ В GUI)
-; =================================================================================================
-global HotkeyDefs := []
-
-AddHkDef(id, name, cat, defKey, targetLabel) {
-    global HotkeyDefs
-    iniPath := A_Temp . "\gumvd.egl"
-    IniRead, savedKey, %iniPath%, Hotkeys, %id%, %defKey%
-    if (savedKey = "" || savedKey = "ERROR")
-        savedKey := defKey
-    curKey := savedKey
-
-    hkObj := { Id: id, Name: name, Cat: cat, DefaultKey: defKey, CurrentKey: curKey, Target: targetLabel }
-    HotkeyDefs.Push(hkObj)
-
-    if (curKey != "" && curKey != "None" && curKey != "OFF") {
-        try {
-            Hotkey, %curKey%, %targetLabel%, On
+SaveGumvdProfileJson(jsonStr) {
+    global ProfilePath
+    ; Простое извлечение полей из JSON
+    fields := ["Frak", "Fio1", "Rank", "Teg", "Prop2", "Otdel", "Prop1", "Osnxxx", "Osn", "Bukv", "Gender"]
+    for idx, f in fields {
+        pattern := """" . f . """:""([^""]+)"""
+        if (RegExMatch(jsonStr, pattern, m)) {
+            val := m1
+            IniWrite, %val%, %ProfilePath%, User, %f%
         }
     }
+    LoadGumvdProfile()
+    InitAndShowFluentGlassUI()
+}
+
+; =================================================================================================
+; МЕНЕДЖЕР ГОРЯЧИХ КЛАВИШ
+; =================================================================================================
+global HotkeyDefs := []
+global HotkeyById := {}
+
+AddHkDef(id, title, cat, defaultKey, labelName) {
+    global HotkeyDefs, HotkeyById, ProfilePath
+    IniRead, savedKey, %ProfilePath%, Hotkeys, %id%, %defaultKey%
+    hk := { id: id, title: title, cat: cat, key: savedKey, defaultKey: defaultKey, label: labelName }
+    HotkeyDefs.Push(hk)
+    HotkeyById[id] := hk
 }
 
 InitHotkeysManager() {
-    global HotkeyDefs
+    global HotkeyDefs, HotkeyById
     HotkeyDefs := []
-
-    ; Категория: 🛡️ Основное
-    AddHkDef("HK_Greeting",      "Приветствие гражданина",                     "Основное",      "!1",          "Bind_Greeting")
-    AddHkDef("HK_Udo",           "Показать удостоверение сотрудника ГУ МВД",   "Основное",      "^1",          "Bind_Udo")
-    AddHkDef("HK_AskDocs",       "Запросить документы у гражданина",           "Основное",      "^2",          "Bind_AskDocs")
-    AddHkDef("HK_TakeDocs",      "Взять документы из рук",                     "Основное",      "^3",          "Bind_TakeDocs")
-    AddHkDef("HK_ReturnDocs",    "Изучить и вернуть документы",                "Основное",      "^4",          "Bind_ReturnDocs")
-    AddHkDef("HK_Cuffs",         "Надеть наручники БР-С",                      "Основное",      "^5",          "Bind_Cuffs")
-    AddHkDef("HK_Uncuffs",       "Снять наручники",                            "Основное",      "^6",          "Bind_Uncuffs")
-    AddHkDef("HK_Escort",        "Заломать руку и вести конвоем",              "Основное",      "^7",          "Bind_Escort")
-    AddHkDef("HK_ReleaseHands",  "Отпустить руки задержанного",                "Основное",      "^8",          "Bind_ReleaseHands")
-    AddHkDef("HK_ProtocolSign",  "Зачитать права и составить протокол",        "Основное",      "^9",          "Bind_ProtocolSign")
-    AddHkDef("HK_TransferKpz",   "Передача задержанного конвоиру / КПЗ",       "Основное",      "^0",          "Bind_TransferKpz")
-    AddHkDef("HK_SuFast",        "Выдача розыска нарушителю (/su)",            "Основное",      "^-",          "Bind_SuFast")
-    AddHkDef("HK_Wanted",        "База данных разыскиваемых (Wanted)",         "Основное",      "^F10",        "Bind_Wanted")
-    AddHkDef("HK_KpkOpen",       "КПК: достать из кармана",                    "Основное",      "!3",          "Bind_KpkOpen")
-    AddHkDef("HK_KpkPhoto",      "КПК: фоторобот / снимок лица",               "Основное",      "!4",          "Bind_KpkPhoto")
-    AddHkDef("HK_KpkClose",      "КПК: убрать в карман",                       "Основное",      "!5",          "Bind_KpkClose")
-    AddHkDef("HK_Putpl",         "Посадить задержанного в авто (/putpl)",      "Основное",      "!6",          "Bind_Putpl")
-    AddHkDef("HK_KpkPassport",   "КПК: проверка по паспортным данным",         "Основное",      "!7",          "Bind_KpkPassport")
-
-    ; Категория: ⚡ ОСН / СОБР / ГРОМ
-    AddHkDef("HK_OsnPatch",      "Нашивка спецназа ОСН / СОБР",                "ОСН / Спецназ", "!2",          "Bind_OsnPatch")
-    AddHkDef("HK_Pullout",       "Вытащить нарушителя из авто (/pullout)",     "ОСН / Спецназ", "^r",          "Bind_Pullout")
-    AddHkDef("HK_TryDoor",       "Попытка выбить дверь автомобиля",            "ОСН / Спецназ", "!F12",        "Bind_TryDoor")
-    AddHkDef("HK_TryGlass",      "Попытка разбить стекло автомобиля",          "ОСН / Спецназ", "!PrintScreen","Bind_TryGlass")
-    AddHkDef("HK_UnlockIn",      "Разблокировать замок изнутри авто",          "ОСН / Спецназ", "!ScrollLock", "Bind_UnlockIn")
-
-    ; Категория: 🔫 Спецсредства и Оружие
-    AddHkDef("HK_Baton",         "Достать / убрать резиновую дубинку ПР-73",   "Спецсредства",  "^F9",         "Bind_Baton")
-    AddHkDef("HK_Tazer",         "Достать / убрать электрошокер (Тайзер)",     "Спецсредства",  "^F8",         "Bind_Tazer")
-    AddHkDef("HK_ColleagueGreet","Воинское приветствие коллеге",               "Спецсредства",  "^E",          "Bind_ColleagueGreet")
-
-    ; Категория: 📢 Мегафон и Рация
-    AddHkDef("HK_Megaphone1",    "Мегафон СГУ: Требование об остановке",       "Рация",         "!0",          "Bind_Megaphone1")
-    AddHkDef("HK_MegaphoneWay",  "Мегафон СГУ: Уступите проезд спецколонне",   "Рация",         "!9",          "Bind_MegaphoneWay")
-    AddHkDef("HK_MegaphoneStop", "Мегафон СГУ: Срочно остановитесь!",          "Рация",         "!8",          "Bind_MegaphoneStop")
-    AddHkDef("HK_VoiceOn",       "Включить голосовую рацию (/fracvoice 1)",    "Рация",         "^insert",     "Bind_VoiceOn")
-    AddHkDef("HK_VoiceOff",      "Рация в режим прослушивания (/fracvoice 2)", "Рация",         "^home",       "Bind_VoiceOff")
-
-    ; Категория: ⚙️ Системные
-    AddHkDef("HK_ToggleHud",     "Переключение тактического HUD таймеров",     "Система",       "!h",          "Bind_ToggleHud")
-    AddHkDef("HK_OpenCalc",      "Калькулятор статей УК РП / КоАП",            "Система",       "!F1",         "Bind_OpenCalc")
-    AddHkDef("HK_Reload",        "Быстрая перезагрузка биндера",               "Система",       "!r",          "Bind_Reload")
-    AddHkDef("HK_Pause",         "Экстренная остановка текущей отыгровки",     "Система",       "end",         "Bind_Pause")
+    HotkeyById := {}
+    
+    AddHkDef("HK_Greeting",      "Приветствие с погонами",                     "ППС", "!1",            "Bind_Greeting")
+    AddHkDef("HK_Udo",           "Показать УДО (/ud)",                         "ППС", "^1",            "Bind_Udo")
+    AddHkDef("HK_AskDocs",       "Попросить паспорт (/pass)",                  "ППС", "^2",            "Bind_AskDocs")
+    AddHkDef("HK_TakeDocs",      "Взять документы в руки",                     "ППС", "^3",            "Bind_TakeDocs")
+    AddHkDef("HK_ReturnDocs",    "Изучить и вернуть документы",                "ППС", "^4",            "Bind_ReturnDocs")
+    AddHkDef("HK_Cuffs",         "Надеть наручники БР-С (/cuff)",              "ППС", "^5",            "Bind_CuffsOn")
+    AddHkDef("HK_Uncuffs",       "Снять наручники (/uncuff)",                  "ППС", "^6",            "Bind_CuffsOff")
+    AddHkDef("HK_Escort",        "Заломать и вести конвоем (/arr)",            "ППС", "^7",            "Bind_EscortOn")
+    AddHkDef("HK_ReleaseHands",  "Отпустить руки задержанного (/dearr)",       "ППС", "^8",            "Bind_EscortOff")
+    AddHkDef("HK_ProtocolSign",  "Протокол задержания у авто",                 "ППС", "^9",            "Bind_DetainProt")
+    AddHkDef("HK_TransferKpz",   "Передача конвоиру в КПЗ (/arrest)",          "ППС", "^0",            "Bind_Arrest")
+    AddHkDef("HK_SuFast",        "Выдача розыска нарушителю (/su)",            "ППС", "^-",            "Bind_SuFast")
+    AddHkDef("HK_Putpl",         "Посадить в служебный автомобиль (/putpl)",   "ППС", "!6",            "Bind_Putpl")
+    AddHkDef("HK_Pullout",       "Вытащить гражданина из авто",                "ППС", "^r",            "Bind_PullOutSimple")
+    AddHkDef("HK_ColleagueGreet","Воинское приветствие коллегам",              "ППС", "^E",            "Bind_GreetColleague")
+    AddHkDef("HK_KnockWindow",   "Постучать в окно автомобиля",                "ППС", "^sc29",         "Bind_KnockWindow")
+    
+    AddHkDef("HK_KpkOpen",       "КПК: достать из кармана (MIG LT11i)",        "КПК", "!3",            "Bind_KpkOpen")
+    AddHkDef("HK_KpkPhoto",      "КПК: фоторобот лица (/wanted)",              "КПК", "!4",            "Bind_KpkPhoto")
+    AddHkDef("HK_KpkSearchDb",   "КПК: проверка по базе нарушителей",          "КПК", "!7",            "Bind_KpkSearchDb")
+    AddHkDef("HK_KpkClose",      "КПК: выключить и убрать в разгрузку",        "КПК", "!5",            "Bind_KpkClose")
+    AddHkDef("HK_Wanted",        "КПК: видеокамеры города (/wanted)",          "КПК", "^F10",          "Bind_Wanted")
+    AddHkDef("HK_FindEmp",       "База сотрудников управления (/find)",        "КПК", "^F9",           "Bind_FindEmp")
+    
+    AddHkDef("HK_OsnPatch",      "Нашивка спецназа ОСН на бронежилете",        "ОСН", "!2",            "Bind_OsnBadge")
+    AddHkDef("HK_ShoutHands",    "Руки на капот!",                             "ОСН", "!x",            "Bind_ShoutHands")
+    AddHkDef("HK_TryDoor",       "Дёрнуть ручку двери авто (/try)",            "ОСН", "!F12",          "Bind_TryDoor")
+    AddHkDef("HK_TryGlass",      "Разбить стекло дубинкой (/try)",             "ОСН", "!printscreen",  "Bind_TryGlass")
+    AddHkDef("HK_UnlockIn",      "Открыть замок двери изнутри",                "ОСН", "!scrolllock",   "Bind_UnlockIn")
+    
+    AddHkDef("HK_VoiceOn",       "Рация: включить микрофон (/fracvoice 1)",    "Рация", "^insert",     "Bind_VoiceOn")
+    AddHkDef("HK_VoiceOff",      "Рация: режим прослушивания (/fracvoice 2)",  "Рация", "^home",       "Bind_VoiceOff")
+    AddHkDef("HK_Megaphone1",    "СГУ: Пред 1 (Прижмитесь к обочине)",         "СГУ", "!0",            "Bind_Megaphone1")
+    AddHkDef("HK_Megaphone2",    "СГУ: Пред 2 (Повторное требование)",         "СГУ", "!-",            "Bind_Megaphone2")
+    AddHkDef("HK_Megaphone3",    "СГУ: Пред 3 (Огонь на поражение!)",          "СГУ", "!=",            "Bind_Megaphone3")
+    AddHkDef("HK_MegaphoneWay",  "СГУ: Уступите проезд спецколонне",           "СГУ", "!9",            "Bind_MegaphoneWay")
+    AddHkDef("HK_FootChase",     "Пешая погоня: Стой, стрелять буду!",         "СГУ", "!8",            "Bind_FootChase")
+    
+    AddHkDef("HK_SmartMegaphone","Умный мегафон (Авто-стадии 1-2-3)",          "Служба", "^Space",     "Bind_SmartMegaphone")
+    AddHkDef("HK_ChaseStop",     "Сброс погони и таймера",                     "Служба", "!BS",        "ResetChaseState")
+    AddHkDef("HK_ToggleHud",     "Вкл/Выкл HUD смены и погони",                "Служба", "!h",         "ToggleDutyHud")
+    AddHkDef("HK_OpenCalc",      "Калькулятор штрафов",                        "Служба", "!F1",        "OpenCalc")
 }
 
-ApplyHotkeyRebind(hkId, newKey) {
+RegisterAllHotkeys() {
     global HotkeyDefs
-    iniPath := A_Temp . "\gumvd.egl"
     for idx, hk in HotkeyDefs {
-        if (hk.Id = hkId) {
-            oldKey := hk.CurrentKey
-            if (oldKey != "" && oldKey != "None") {
-                try {
-                    Hotkey, %oldKey%, Off
-                }
-            }
-            hk.CurrentKey := newKey
-            IniWrite, %newKey%, %iniPath%, Hotkeys, %hkId%
-            if (newKey != "" && newKey != "None") {
-                try {
-                    target := hk.Target
-                    Hotkey, %newKey%, %target%, On
-                }
-            }
-            return true
-        }
-    }
-    return false
-}
-
-FormatHotkeyReadable(rawKey) {
-    if (rawKey = "" || rawKey = "None")
-        return "Не назначено"
-    r := rawKey
-    r := StrReplace(r, "!", "Alt + ")
-    r := StrReplace(r, "^", "Ctrl + ")
-    r := StrReplace(r, "+", "Shift + ")
-    r := StrReplace(r, "#", "Win + ")
-    StringUpper, r, r
-    return r
-}
-
-; =================================================================================================
-; КОНФИГУРАЦИЯ И ПРОФИЛЬ СОТРУДНИКА (GUMVD.EGL)
-; =================================================================================================
-EnsureDefaultConfig() {
-    IniPath := A_Temp . "\gumvd.egl"
-    IniRead, chkFio, %IniPath%, User, Fio1, ERROR
-    if (chkFio = "ERROR" || chkFio = "") {
-        IniWrite, Поланейчик Данил Сергеевич, %IniPath%, User, Fio1
-        IniWrite, 1, %IniPath%, User, Prop1
-        IniWrite, 51, %IniPath%, User, Prop2
-        IniWrite, Сержант, %IniPath%, User, Rank
-        IniWrite, 51, %IniPath%, User, Teg
-        IniWrite, ППСП, %IniPath%, User, Otdel
-        IniWrite, ОСпН Гром, %IniPath%, User, Osn
-        IniWrite, Боец, %IniPath%, User, Dolznosn
-        IniWrite, ГУ МВД г.Невский, %IniPath%, User, Frak
-        IniWrite, Я мужык, %IniPath%, User, Gender
-        IniWrite, ГУ МВД-Н, %IniPath%, User, Gibdd
-        IniWrite, 1, %IniPath%, User, AutoScreenMode
-        IniWrite, 1, %IniPath%, User, RadioSfx
-        IniWrite, AUTO, %IniPath%, Settings, SendMethod
-    }
-}
-
-LoadUserConfig() {
-    global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Osn, Dolznosn
-    global SendMethodConfig, OnlyInGameMode, AutoScreenMode, RadioSfxEnabled
-    IniPath := A_Temp . "\gumvd.egl"
-    IniRead, Fio1, %IniPath%, User, Fio1, Поланейчик Данил Сергеевич
-    IniRead, Rank, %IniPath%, User, Rank, Сержант
-    IniRead, Prop1, %IniPath%, User, Prop1, 1
-    IniRead, Prop2, %IniPath%, User, Prop2, 51
-    IniRead, Otdel, %IniPath%, User, Otdel, ППСП
-    IniRead, Osn, %IniPath%, User, Osn, ОСпН Гром
-    IniRead, Dolznosn, %IniPath%, User, Dolznosn, Боец
-    IniRead, Frak, %IniPath%, User, Frak, ГУ МВД г.Невский
-    IniRead, Gender, %IniPath%, User, Gender, Я мужык
-    IniRead, Teg, %IniPath%, User, Teg, 51
-    IniRead, SendMethodConfig, %IniPath%, Settings, SendMethod, AUTO
-    IniRead, OnlyInGameMode, %IniPath%, Settings, OnlyInGame, 0
-    IniRead, AutoScreenMode, %IniPath%, User, AutoScreenMode, 1
-    IniRead, RadioSfxEnabled, %IniPath%, User, RadioSfx, 1
-
-    if (RadioSfxEnabled = "ERROR" || RadioSfxEnabled = "")
-        RadioSfxEnabled := 1
-    if (OnlyInGameMode = "ERROR" || OnlyInGameMode = "")
-        OnlyInGameMode := 0
-}
-
-SaveUserProfileData(fio, rankVal, otdelVal, frakVal, tegVal, prop2Val, genderVal) {
-    global Fio1, Rank, Otdel, Frak, Teg, Prop2, Gender, Vers, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
-    IniPath := A_Temp . "\gumvd.egl"
-    Fio1 := fio
-    Rank := rankVal
-    Otdel := otdelVal
-    Frak := frakVal
-    Teg := tegVal
-    Prop2 := prop2Val
-    Gender := genderVal
-
-    IniWrite, %fio%, %IniPath%, User, Fio1
-    IniWrite, %rankVal%, %IniPath%, User, Rank
-    IniWrite, %otdelVal%, %IniPath%, User, Otdel
-    IniWrite, %frakVal%, %IniPath%, User, Frak
-    IniWrite, %tegVal%, %IniPath%, User, Teg
-    IniWrite, %prop2Val%, %IniPath%, User, Prop2
-    IniWrite, %genderVal%, %IniPath%, User, Gender
-
-    if (Gender = "Я девочка") {
-        Vers = 2.5.0ж
-        Ok1 = а
-        Ok2 = ла
-        Ok3 = ась
-        Ok4 = цы
-        Ok5 = ца
-        Ok6 = це
-        Ok7 = ла
-        Ok8 = ела
-        Ok9 = есла
-        Ok10 = цей
-        Ok11 = екла
-        Pol = 👩‍✈️
-        Gend = женский
-    } else {
-        Vers = 2.5.0м
-        Ok1 =
-        Ok2 =
-        Ok3 = ся
-        Ok4 = ка
-        Ok5 = к
-        Ok6 = ке
-        Ok7 = ёл
-        Ok8 = ёл
-        Ok9 = ёс
-        Ok10 = ком
-        Ok11 = ёк
-        Pol = 👨‍✈️
-        Gend = мужской
-    }
-}
-
-; =================================================================================================
-; БАЗА ДАННЫХ СТАТЕЙ (УК РП / ФЗоП / КоАП)
-; =================================================================================================
-global ArticlesDB := []
-
-InitArticlesDB() {
-    global ArticlesDB
-    ArticlesDB := []
-    jsonPath := A_ScriptDir . "\assets\articles.json"
-    if (!FileExist(jsonPath))
-        return
-
-    FileRead, jsonRaw, %jsonPath%
-    if (jsonRaw = "")
-        return
-
-    ; Парсинг легковесным регулярным выражением
-    Pos := 1
-    While (Pos := RegExMatch(jsonRaw, "O)\{\s*""code""\s*:\s*""([^""]*)""\s*,\s*""num""\s*:\s*""([^""]*)""\s*,\s*""cmd""\s*:\s*""([^""]*)""\s*,\s*""fine""\s*:\s*([0-9]+)\s*,\s*""sanction""\s*:\s*""([^""]*)""\s*,\s*""desc""\s*:\s*""([^""]*)""\s*\}", m, Pos)) {
-        Pos += m.Len
-        c := m.1, n := m.2, cmd := m.3, f := m.4 + 0, s := m.5, d := m.6
-        rawLines := ""
-        if (InStr(d, "||"))
-            rawLines := d
-        else
-            rawLines := "/me зачитал статью " . n . " " . c . "||/do " . SubStr(d, 1, 95)
-        ArticlesDB.Push({ Code: c, Num: n, Cmd: cmd, Fine: f, Sanction: s, Desc: d, RawLines: rawLines })
-    }
-}
-
-; =================================================================================================
-; ТАЙМЕРЫ СМЕНЫ И ЧТЕНИЕ ЛОГА (DUTY & HUD)
-; =================================================================================================
-global ShiftStartTime := 0
-global ShiftTimerActive := 0
-global LiveShiftDuration := "00:00"
-global LiveFinesCount := 0
-global LiveArrestsCount := 0
-global LiveForumPoints := 0
-global DutyHudVisible := 0
-
-InitTimersAndLogReader() {
-    ShiftStartTime := A_TickCount
-    ShiftTimerActive := 1
-    SetTimer, UpdateDutyTimerTick, 1000
-}
-
-UpdateDutyTimerTick:
-if (ShiftTimerActive) {
-    elapsedSec := (A_TickCount - ShiftStartTime) // 1000
-    m := elapsedSec // 60
-    s := Mod(elapsedSec, 60)
-    mStr := (m < 10) ? "0" . m : "" . m
-    sStr := (s < 10) ? "0" . s : "" . s
-    LiveShiftDuration := mStr . ":" . sStr
-    if (DutyHudVisible)
-        UpdateDutyHud()
-}
-Return
-
-ToggleDutyHud() {
-    global DutyHudVisible
-    DutyHudVisible := !DutyHudVisible
-    if (DutyHudVisible)
-        ShowDutyHud()
-    else
-        Gui, 99:Hide
-}
-
-ShowDutyHud() {
-    Gui, 99:Destroy
-    Gui, 99:+AlwaysOnTop -Caption +ToolWindow +E0x20
-    Gui, 99:Color, 0A0E17
-    Gui, 99:Font, S10 C388BFD Bold, Segoe UI
-    Gui, 99:Add, Text, x10 y6 w200 h20 vHudDutyText, ⏱ На смене: 00:00
-    Gui, 99:Font, S9 CE6EDF3 Norm, Segoe UI
-    Gui, 99:Add, Text, x10 y28 w200 h18 vHudStatsText, Аресты: 0 | Протоколы: 0
-    WinSet, Transparent, 220, ahk_class AutoHotkeyGUI
-    Gui, 99:Show, x20 y20 NoActivate, DutyHud
-}
-
-UpdateDutyHud() {
-    global LiveShiftDuration, LiveArrestsCount, LiveFinesCount
-    GuiControl, 99:Text, HudDutyText, % "⏱ На смене: " . LiveShiftDuration
-    GuiControl, 99:Text, HudStatsText, % "Аресты: " . LiveArrestsCount . " | Протоколы: " . LiveFinesCount
-}
-
-; =================================================================================================
-; ТАКТИЧЕСКИЕ ЗВУКИ РАЦИИ (RADIO SFX)
-; =================================================================================================
-global RadioSfxEnabled := 1
-global LastBroadcastMessageId := ""
-
-PlayRadioSfx(soundName) {
-    global RadioSfxEnabled
-    if (RadioSfxEnabled = 0)
-        return
-    soundPath := A_ScriptDir . "\assets\" . soundName
-    if (!FileExist(soundPath))
-        soundPath := A_ScriptDir . "\" . soundName
-    if (!FileExist(soundPath))
-        return
-    ; 0x00020001 = SND_ASYNC (0x1) | SND_FILENAME (0x20000)
-    res := DllCall("winmm\PlaySoundW", "WStr", soundPath, "Ptr", 0, "UInt", 0x00020001)
-    if (!res) {
-        SoundPlay, %soundPath%
-    }
-}
-
-#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
-~*z::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_start.wav")
-}
-return
-
-~*z Up::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_stop.wav")
-}
-return
-
-~*b::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_start.wav")
-}
-return
-
-~*b Up::
-if (RadioSfxEnabled) {
-    PlayRadioSfx("radio_stop.wav")
-}
-return
-
-; Тестовый хоткей проверки звука рации (Ctrl + Alt + S)
-^!s::
-PlayRadioSfx("radio_start.wav")
-Sleep, 300
-PlayRadioSfx("radio_stop.wav")
-TrayTip, 📻 Проверка рации ГУ МВД, Щелчок тангенты и Roger Beep работают исправно!, 3, 1
-return
-#If
-
-; =================================================================================================
-; КЛИЕНТСКИЙ ТЕЛЕМЕТРИЧЕСКИЙ ПУЛЬС В КОМАНДНЫЙ ЦЕНТР (ADMIN DASHBOARD)
-; =================================================================================================
-global TabletRelayHost := "http://152.234.229.245:3000"
-global TabletRelayPin := "51"
-global TabletRelayOnline := 0
-
-InitClientHeartbeat() {
-    SetTimer, SendClientHeartbeatTick, -2500
-    SetTimer, SendClientHeartbeatTick, 60000
-}
-
-SendClientHeartbeatTick:
-SendClientHeartbeat()
-Return
-
-GetClientHwid() {
-    RegRead, guid, HKLM\SOFTWARE\Microsoft\Cryptography, MachineGuid
-    if (guid = "" || ErrorLevel)
-        guid := A_ComputerName . "-" . A_UserName
-    return guid
-}
-
-SendClientHeartbeat() {
-    global TabletRelayHost, Fio1, Rank, Teg, Prop2, Frak, Vers
-    global LiveShiftDuration, LiveFinesCount, LiveArrestsCount, LiveForumPoints, LastBroadcastMessageId
-
-    if (TabletRelayHost = "")
-        TabletRelayHost := "http://152.234.229.245:3000"
-
-    hwid := GetClientHwid()
-    dutyStr := (LiveShiftDuration != "") ? LiveShiftDuration : "00:00"
-    finesVal := (LiveFinesCount + 0)
-    arrVal := (LiveArrestsCount + 0)
-    ptsVal := (LiveForumPoints + 0)
-
-    url := TabletRelayHost . "/api/client/heartbeat"
-
-    payload := "{"
-    payload .= """hwid"":""" . JsonEscapeStr(hwid) . ""","
-    payload .= """rank"":""" . JsonEscapeStr(Rank) . ""","
-    payload .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
-    payload .= """teg"":""" . JsonEscapeStr(Teg) . ""","
-    payload .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
-    payload .= """city"":""" . JsonEscapeStr(Frak) . ""","
-    payload .= """service"":""ГУ МВД"","
-    payload .= """version"":""" . JsonEscapeStr(Vers) . ""","
-    payload .= """dutyClock"":""" . JsonEscapeStr(dutyStr) . ""","
-    payload .= """finesCnt"":" . finesVal . ","
-    payload .= """arrestsCnt"":" . arrVal . ","
-    payload .= """forumPts"":" . ptsVal . ","
-    payload .= """status"":""10-8"""
-    payload .= "}"
-
-    try {
-        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.Open("POST", url, true) ; Асинхронно, без задержек и фризов игры
-        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
-        whr.SetRequestHeader("User-Agent", "AHK-GUMVD/" . Vers)
-        whr.Send(payload)
-        if (whr.WaitForResponse(1.5)) {
-            resp := whr.ResponseText
-            if (InStr(resp, """broadcast"":{")) {
-                RegExMatch(resp, "O)""id"":""([^""]+)"".*?""message"":""([^""]+)""", match)
-                if (match && match.1 != LastBroadcastMessageId) {
-                    LastBroadcastMessageId := match.1
-                    msgText := StrReplace(match.2, "\n", "`n")
-                    SoundPlay, %A_ScriptDir%\1.mp3
-                    TrayTip, 📢 ОПОВЕЩЕНИЕ РУКОВОДСТВА ГУ МВД!, %msgText%, 8, 2
-                }
+        key := hk.key
+        lbl := hk.label
+        if (key != "" && IsLabel(lbl)) {
+            try {
+                Hotkey, %key%, %lbl%, On
             }
         }
-    } catch e {
     }
 }
 
-TabletRelay_Init() {
-    global TabletRelayHost, TabletRelayPin, Teg
-    iniPath := A_Temp . "\gumvd.egl"
-    IniRead, savedHost, %iniPath%, Tablet, RelayHost, http://152.234.229.245:3000
-    if (savedHost != "" && savedHost != "ERROR")
-        TabletRelayHost := savedHost
-    IniRead, savedPin, %iniPath%, Tablet, Pin, ERROR
-    if (savedPin = "" || savedPin = "ERROR") {
-        TabletRelayPin := (Teg != "" && Teg != "ERROR") ? Teg : "51"
-        IniWrite, %TabletRelayPin%, %iniPath%, Tablet, Pin
-    } else {
-        TabletRelayPin := savedPin
+RemapHotkey(hkId, newKey) {
+    global HotkeyById, ProfilePath
+    hk := HotkeyById[hkId]
+    if (!hk)
+        Return
+    oldKey := hk.key
+    if (oldKey != "") {
+        try {
+            Hotkey, %oldKey%, Off
+        }
     }
+    hk.key := newKey
+    IniWrite, %newKey%, %ProfilePath%, Hotkeys, %hkId%
+    lbl := hk.label
+    if (newKey != "" && IsLabel(lbl)) {
+        try {
+            Hotkey, %newKey%, %lbl%, On
+        }
+    }
+    InitAndShowFluentGlassUI()
 }
 
 ; =================================================================================================
-; FLUENT GLASS GUI (HTML5/CSS3/JS ACTIVEX INTERFACE)
+; ДВИЖОК FLUENT POLICE GLASS 2.0 (HTML/CSS/JS INTERFACE)
 ; =================================================================================================
-global FluentWB := ""
-global FluentGuiHwnd := 0
+BuildFluentInitialJson() {
+    global Frak, Fio1, Rank, Teg, Prop2, Otdel, Prop1, Osnxxx, Osn, Bukv, Gender
+    global HotkeyDefs, TotalArrests, TotalProtocols, TotalFines
+    
+    json := "{"
+    json .= """profile"":{"
+    json .= """Frak"":""" . Frak . ""","
+    json .= """Fio1"":""" . Fio1 . ""","
+    json .= """Rank"":""" . Rank . ""","
+    json .= """Teg"":""" . Teg . ""","
+    json .= """Prop2"":""" . Prop2 . ""","
+    json .= """Otdel"":""" . Otdel . ""","
+    json .= """Prop1"":""" . Prop1 . ""","
+    json .= """Osnxxx"":""" . Osnxxx . ""","
+    json .= """Osn"":""" . Osn . ""","
+    json .= """Bukv"":""" . Bukv . ""","
+    json .= """Gender"":""" . Gender . """"
+    json .= "},"
+    
+    json .= """hotkeys"":["
+    for idx, hk in HotkeyDefs {
+        if (idx > 1)
+            json .= ","
+        json .= "{"
+        json .= """id"":""" . hk.id . ""","
+        json .= """title"":""" . hk.title . ""","
+        json .= """cat"":""" . hk.cat . ""","
+        json .= """key"":""" . hk.key . ""","
+        json .= """label"":""" . hk.label . """"
+        json .= "}"
+    }
+    json .= "],"
+    json .= """kpi"":{""arrests"":" . TotalArrests . ",""protocols"":" . TotalProtocols . ",""patrolMin"":0}"
+    json .= "}"
+    Return json
+}
 
-SetBrowserEmulationIE11() {
-    exeName := A_IsCompiled ? A_ScriptName : "AutoHotkeyU64.exe"
+InitAndShowFluentGlassUI() {
+    global FluentGuiHwnd, FluentWB
+    htmlTemplatePath := A_ScriptDir . "\assets\fluent_gumvd.html"
+    if (!FileExist(htmlTemplatePath))
+        Return
+    
+    FileRead, htmlTpl, %htmlTemplatePath%
+    initialData := BuildFluentInitialJson()
+    runtimeHtml := StrReplace(htmlTpl, "/*__AHK_INITIAL_DATA__*/ {}", initialData)
+    
+    runtimePath := A_Temp . "\gumvd_fluent_runtime.html"
+    if (FileExist(runtimePath))
+        FileDelete, %runtimePath%
+    FileAppend, %runtimeHtml%, %runtimePath%, UTF-8
+    
+    winW := 1060
+    winH := 700
+    
+    Gui, 8:Destroy
+    Gui, 8:+HWNDFluentGuiHwnd +Resize -Caption +MinSize800x550
+    Gui, 8:Margin, 0, 0
+    Gui, 8:Add, ActiveX, x0 y0 w%winW% h%winH% vFluentWB, % "about:blank"
+    
+    FluentWB.Silent := True
+    FluentWB.Navigate("file:///" . StrReplace(runtimePath, "\", "/"))
+    
+    startWait := A_TickCount
+    while (FluentWB.ReadyState != 4 && (A_TickCount - startWait < 2000))
+        Sleep, 15
+        
     try {
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION, %exeName%, 11001
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION, AutoHotkeyU64.exe, 11001
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION, AutoHotkeyU64_UIA.exe, 11001
+        FluentWB.document.parentWindow.ahk_call := Func("OnFluentWebAction")
     }
+    
+    OnMessage(0x0100, "Gui_KeyDown")
+    OnMessage(0x0101, "Gui_KeyDown")
+    
+    Gui, 8:Show, Center w%winW% h%winH%, ГУ МВД РОССИИ — Fluent Police Glass
 }
 
-ShowFluentGUI() {
-    global FluentWB, FluentGuiHwnd
-    htmlPath := A_ScriptDir . "\assets\fluent_gumvd.html"
-    if (!FileExist(htmlPath)) {
-        MsgBox, 16, Ошибка, Файл интерфейса assets\fluent_gumvd.html не найден!
+Gui_KeyDown(wParam, lParam, nMsg, hWnd) {
+    global FluentGuiHwnd, FluentWB
+    static IID_IOleInPlaceActiveObject := "{00000117-0000-0000-C000-000000000046}"
+    if (!FluentWB || !FluentGuiHwnd)
+        Return
+    if (hWnd != FluentGuiHwnd && DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr") != FluentGuiHwnd)
+        Return
+    pipa := ComObjQuery(FluentWB, IID_IOleInPlaceActiveObject)
+    if (!pipa)
+        Return
+    VarSetCapacity(msg, 48, 0)
+    NumPut(hWnd,   msg, 0,  "Ptr")
+    NumPut(nMsg,   msg, A_PtrSize, "UInt")
+    NumPut(wParam, msg, A_PtrSize * 2, "UPtr")
+    NumPut(lParam, msg, A_PtrSize * 3, "Ptr")
+    NumPut(DllCall("GetMessageTime", "UInt"), msg, A_PtrSize * 4, "UInt")
+    DllCall("GetCursorPos", "Ptr", &msg + (A_PtrSize * 4 + 4))
+    hr := DllCall(NumGet(NumGet(pipa+0)+5*A_PtrSize), "Ptr", pipa, "Ptr", &msg)
+    ObjRelease(pipa)
+    if (hr == 0)
+        Return 0
+}
+
+OnFluentWebAction(action, arg1 := "", arg2 := "") {
+    if (action = "trigger_bind") {
+        if (IsLabel(arg1))
+            Gosub, %arg1%
         Return
     }
-
-    Gui, 1:Destroy
-    Gui, 1:+Resize +MinSize980x640 +HWNDFluentGuiHwnd
-    Gui, 1:Margin, 0, 0
-    Gui, 1:Color, 0A0E17
-
-    Gui, 1:Add, ActiveX, x0 y0 w1200 h750 vFluentWB, Shell.Explorer
-    FluentWB.silent := true
-
-    fileUrl := "file:///" . StrReplace(htmlPath, "\", "/")
-    FluentWB.Navigate(fileUrl)
-
-    while (FluentWB.readyState != 4 || FluentWB.busy)
-        Sleep, 50
-
-    try {
-        doc := FluentWB.document
-        doc.parentWindow.AhkBridge := new FluentBridgeClass()
-        initDataJson := BuildFluentInitialJson()
-        doc.parentWindow.receiveInitialData(initDataJson)
+    if (action = "trigger_hotstring") {
+        SendChat(arg1)
+        Return
     }
-
-    Gui, 1:Show, w1200 h750, 🚔 ГУ МВД РОССИИ — Fluent Police Command Center
-}
-
-class FluentBridgeClass {
-    SaveProfile(fio, rankVal, otdelVal, frakVal, tegVal, prop2Val, genderVal) {
-        SaveUserProfileData(fio, rankVal, otdelVal, frakVal, tegVal, prop2Val, genderVal)
-        TrayTip, 📋 Личное дело сохранено, % "Сотрудник: " . fio . "`nЗвание: " . rankVal, 2, 1
+    if (action = "copy_cmd") {
+        Clipboard := arg1
+        TrayTip, ГУ МВД, Скопировано в буфер: %arg1%, 1, 1
+        Return
     }
-
-    RebindKey(hkId, newKey) {
-        res := ApplyHotkeyRebind(hkId, newKey)
-        if (res)
-            TrayTip, ⌨️ Клавиша обновлена, % "Новое назначение: " . newKey, 2, 1
-        return res
+    if (action = "save_profile") {
+        SaveGumvdProfileJson(arg1)
+        Return
     }
-
-    TriggerAction(act) {
-        if (act = "test_radio") {
-            PlayRadioSfx("radio_start.wav")
-            Sleep, 300
-            PlayRadioSfx("radio_stop.wav")
-            TrayTip, 📻 Проверка рации, Сигнал Motorola APX и Roger Beep активны!, 2, 1
-        } else if (act = "reload") {
-            Reload
-        } else if (act = "toggle_hud") {
-            ToggleDutyHud()
-        }
+    if (action = "open_calc") {
+        Gosub, OpenCalc
+        Return
     }
-
-    SpeakArticle(code) {
-        global ArticlesDB
-        for idx, art in ArticlesDB {
-            if (art.Cmd = code || art.Num = code) {
-                SetLocaleRu()
-                SetCapsOff()
-                Send, {F6}
-                SmartSleep(250)
-                Send, % art.RawLines
-                SmartSleep(200)
-                Send, {Enter}
-                break
-            }
-        }
+    if (action = "toggle_hud") {
+        Gosub, ToggleDutyHud
+        Return
+    }
+    if (action = "reset_chase") {
+        Gosub, ResetChaseState
+        Return
+    }
+    if (action = "emergency_stop") {
+        Gosub, EmergencyStopCurrentBind
+        Return
+    }
+    if (action = "open_remap") {
+        OpenQuickHotkeyRemapModal(arg1)
+        Return
+    }
+    if (action = "win_minimize") {
+        Gui, 8:Minimize
+        Return
+    }
+    if (action = "win_close") {
+        Gui, 8:Hide
+        Return
     }
 }
 
-BuildFluentInitialJson() {
-    global Fio1, Rank, Otdel, Frak, Gender, Teg, Prop2, Vers, WinVerDescription, ActiveSendEngine
-    global OnlyInGameMode, AutoScreenMode, HotkeyDefs, ArticlesDB, TabletRelayHost, TabletRelayPin, TabletRelayOnline
-
-    heroPath := StrReplace(A_ScriptDir . "\assets\fluent_gumvd_hero.jpg", "\", "/")
-    crestPath := StrReplace(A_ScriptDir . "\assets\fluent_gumvd_crest.jpg", "\", "/")
-    telPath := StrReplace(A_ScriptDir . "\assets\fluent_gumvd_patrol_card.jpg", "\", "/")
-
-    j := "{"
-    j .= """assets"":{"
-    j .= """hero"":""file:///" . JsonEscapeStr(heroPath) . ""","
-    j .= """crest"":""file:///" . JsonEscapeStr(crestPath) . ""","
-    j .= """telemetry"":""file:///" . JsonEscapeStr(telPath) . """"
-    j .= "},"
-    j .= """profile"":{"
-    j .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
-    j .= """rank"":""" . JsonEscapeStr(Rank) . ""","
-    j .= """otdel"":""" . JsonEscapeStr(Otdel) . ""","
-    j .= """frak"":""" . JsonEscapeStr(Frak) . ""","
-    j .= """teg"":""" . JsonEscapeStr(Teg) . ""","
-    j .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
-    j .= """gender"":""" . JsonEscapeStr(Gender) . ""","
-    j .= """vers"":""" . JsonEscapeStr(Vers) . ""","
-    j .= """winVer"":""" . JsonEscapeStr(WinVerDescription) . ""","
-    j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
-    j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
-    j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
-    j .= """relayUrl"":""" . JsonEscapeStr(TabletRelayHost) . ""","
-    j .= """tabletPin"":""" . JsonEscapeStr(TabletRelayPin) . """"
-    j .= "},"
-    j .= """hotkeys"":["
-    for idx, hk in HotkeyDefs {
-        if (idx > 1)
-            j .= ","
-        curD := FormatHotkeyReadable(hk.CurrentKey)
-        defD := FormatHotkeyReadable(hk.DefaultKey)
-        j .= "{""id"":""" . JsonEscapeStr(hk.Id) . """,""name"":""" . JsonEscapeStr(hk.Name) . """,""cat"":""" . JsonEscapeStr(hk.Cat) . """,""rawKey"":""" . JsonEscapeStr(hk.CurrentKey) . """,""keyDisp"":""" . JsonEscapeStr(curD) . """,""defDisp"":""" . JsonEscapeStr(defD) . """}"
-    }
-    j .= "],"
-    j .= """articles"":["
-    for idx, art in ArticlesDB {
-        if (idx > 1)
-            j .= ","
-        j .= "{""code"":""" . JsonEscapeStr(art.Code) . """,""num"":""" . JsonEscapeStr(art.Num) . """,""cmd"":""" . JsonEscapeStr(art.Cmd) . """,""fine"":" . art.Fine . ",""sanction"":""" . JsonEscapeStr(art.Sanction) . """,""desc"":""" . JsonEscapeStr(art.Desc) . """}"
-    }
-    j .= "]}"
-    return j
-}
-
-JsonEscapeStr(str) {
-    s := str
-    s := StrReplace(s, "\", "\\")
-    s := StrReplace(s, """", "\""")
-    s := StrReplace(s, "`r", "")
-    s := StrReplace(s, "`n", "\n")
-    s := StrReplace(s, "`t", " ")
-    return s
-}
-
-GuiSize:
-if (A_EventInfo != 1 && FluentWB) {
-    GuiControl, Move, FluentWB, x0 y0 w%A_GuiWidth% h%A_GuiHeight%
-}
+ShowFluentUi:
+InitAndShowFluentGlassUI()
 Return
 
-GuiClose:
-Gui, 1:Hide
+ToggleFluentUi:
+Gui, 8:+LastFound
+if (DllCall("IsWindowVisible", "Ptr", WinExist()))
+    Gui, 8:Hide
+else
+    Gui, 8:Show
 Return
 
-RefreshTray() {
-    Menu, Tray, NoStandard
-    Menu, Tray, DeleteAll
-    Menu, Tray, Add, 🚔 Открыть меню ГУ МВД, ShowFluentGUI
-    Menu, Tray, Add, ⏱ Тактический HUD (Alt+H), ToggleDutyHud
-    Menu, Tray, Add, 📻 Проверить звук рации (Ctrl+Alt+S), SfxTestMenu
-    Menu, Tray, Add
-    Menu, Tray, Add, 🔄 Перезагрузить биндер (Alt+R), Bind_Reload
-    Menu, Tray, Add, ❌ Выход, ExitMenuHandler
-    Menu, Tray, Default, 🚔 Открыть меню ГУ МВД
-}
-
-SfxTestMenu:
-PlayRadioSfx("radio_start.wav")
-Sleep, 300
-PlayRadioSfx("radio_stop.wav")
-Return
-
-ExitMenuHandler:
-ExitApp
-Return
-
-; =================================================================================================
-; БОЕВЫЕ БИНДЫ, ОТЫГРОВКИ И ХОТКЕИ ГУ МВД
-; =================================================================================================
-Bind_Greeting:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-IniRead, Fio1, %A_Temp%\gumvd.egl, User, Fio1
-IniRead, Rank, %A_Temp%\gumvd.egl, User, Rank
-IniRead, Otdel, %A_Temp%\gumvd.egl, User, Otdel
-IniRead, Frak, %A_Temp%\gumvd.egl, User, Frak
-SmartSleep(250)
-Send, {F8} say Здравия желаю, %Rank% полиции %Fio1%. {Enter}{F8}
-SmartSleep(400)
-Send, {F8} do На левом нагрудном кармане висит жетон «%Frak% | %Otdel%».{Enter}{F8}
-Return
-
-Bind_Udo:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} do Служебное удостоверение сотрудника ГУ МВД во внутреннем кармане куртки.{Enter}{F8}
-SmartSleep(350)
-Send, {F8} me достал%ok1% удостоверение из кармана и раскрыл%ok1% его в развернутом виде{Enter}{F8}
-SmartSleep(350)
-Send, {F8} do В удостоверении написано: %Frak%, %Rank% %Fio1%.{Enter}{F8}
-SmartSleep(350)
-Send, {F8} me показал%ok1% удостоверение гражданину в развернутом виде, затем убрал%ok1% обратно{Enter}{F8}
-Return
-
-Bind_AskDocs:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(250)
-Send, {F8} say Будьте добры, предъявите документ, удостоверяющий вашу личность.{Enter}{F8}
-Return
-
-Bind_TakeDocs:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(250)
-Send, {F8} me протянул%ok1% руку, затем взял%ok1% документы у гражданина{Enter}{F8}
-SmartSleep(350)
-Send, {F8} do Документы находятся в руках сотрудника полиции.{Enter}{F8}
-Return
-
-Bind_ReturnDocs:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(250)
-Send, {F8} me протянул%ok1% руку и вернул%ok1% документы гражданину напротив{Enter}{F8}
-SmartSleep(350)
-Send, {F8} say Спасибо за сотрудничество, держите ваши документы обратно.{Enter}{F8}
-Return
-
-Bind_Cuffs:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me резким движением снял%ok1% наручники БР-С с тактического пояса{Enter}{F8}
-SmartSleep(300)
-Send, {F8} me завел%ok1% руки подозреваемого за спину и защелкнул%ok1% наручники на запястьях{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Наручники плотно сомкнуты на запястьях задержанного.{Enter}{F8}
-Return
-
-Bind_Uncuffs:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me достал%ok1% ключ из кармана и вставил%ok1% в замок наручников{Enter}{F8}
-SmartSleep(300)
-Send, {F8} me повернул%ok1% ключ, снял%ok1% наручники и повесил%ok1% их обратно на пояс{Enter}{F8}
-Return
-
-Bind_Escort:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me заломил%ok1% руку нарушителя за спину и зафиксировал%ok1% болевым приемом{Enter}{F8}
-SmartSleep(300)
-Send, {F8} say Спокойно, без резких движений, следуйте впереди меня.{Enter}{F8}
-Return
-
-Bind_ReleaseHands:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me ослабил%ok1% захват и отпустил%ok1% руки гражданина{Enter}{F8}
-Return
-
-Bind_ProtocolSign:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(250)
-Send, {F8} say Вы задержаны по подозрению в совершении правонарушения.{Enter}{F8}
-SmartSleep(350)
-Send, {F8} say Разъясняю ваши права: Вы имеете право хранить молчание, право на один телефонный звонок и адвоката.{Enter}{F8}
-SmartSleep(350)
-Send, {F8} say Всё, что вы скажете, может быть использовано против вас в суде. Вам понятны ваши права?{Enter}{F8}
-Return
-
-Bind_TransferKpz:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(250)
-Send, {F8} me передал%ok1% задержанного конвоиру дежурной части для помещения в камеру{Enter}{F8}
-SmartSleep(350)
-Send, {F8} do Задержанный принят конвоем и препровожден в изолятор временного содержания.{Enter}{F8}
-Return
-
-Bind_SuFast:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-Send, {F6}/su{Space}
-Return
-
-Bind_Wanted:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-Send, {F6}/wanted{Enter}
-Return
-
-Bind_KpkOpen:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me достал%ok1% служебный планшетный компьютер МВД из чехла на поясе{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Планшет включен и подключен к единой защищенной базе МВД.{Enter}{F8}
-Return
-
-Bind_KpkPhoto:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me навел%ok1% объектив камеры планшета на лицо гражданина напротив{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Происходит сопоставление биометрии лица с федеральной базой розыска...{Enter}{F8}
-SmartSleep(400)
-Send, {F8} do Результат сопоставления выведен на экран планшета.{Enter}{F8}
-Return
-
-Bind_KpkClose:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me заблокировал%ok1% экран планшета и убрал%ok1% его в чехол на поясе{Enter}{F8}
-Return
-
-Bind_Putpl:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me открыл%ok1% дверь патрульного автомобиля и придерживая гражданина за голову посадил%ok1% в салон{Enter}{F8}
-SmartSleep(300)
-Send, {F8} me захлопнул%ok1% дверь автомобиля и заблокировал%ok1% замок{Enter}{F8}
-Return
-
-Bind_KpkPassport:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me вбил%ok1% серию и номер паспорта гражданина в базу данных МВД{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Идет получение информации о гражданине из центрального реестра...{Enter}{F8}
-Return
-
-Bind_OsnPatch:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-IniRead, Osn, %A_Temp%\gumvd.egl, User, Osn, ОСпН Гром
-SmartSleep(200)
-Send, {F8} do На тактическом бронежилете закреплена шеврон-нашивка «%Osn% ГУ МВД».{Enter}{F8}
-Return
-
-Bind_Pullout:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me резким движением распахнул%ok1% дверь автомобиля и вытащил%ok1% нарушителя наружу{Enter}{F8}
-Return
-
-Bind_TryDoor:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} try рывком дернул%ok1% ручку двери, пытаясь открыть автомобиль{Enter}{F8}
-Return
-
-Bind_TryGlass:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} try ударил%ok1% рукоятью оружия по боковому стеклу, пытаясь разбить его{Enter}{F8}
-Return
-
-Bind_UnlockIn:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} try просунул%ok1% руку через разбитое стекло и разблокировал%ok1% замок изнутри{Enter}{F8}
-Return
-
-Bind_Baton:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me резким движением выхватил%ok1% резиновую дубинку ПР-73 из поясного фиксатора{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Дубинка в боевом положении в правой руке сотрудника полиции.{Enter}{F8}
-Return
-
-Bind_Tazer:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me снял%ok1% электрошокер с предохранителя и извлек%ok1% из кобуры{Enter}{F8}
-SmartSleep(300)
-Send, {F8} do Электрошокер в боевой готовности в руке сотрудника.{Enter}{F8}
-Return
-
-Bind_ColleagueGreet:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me приложил%ok1% правую руку к головному убору и поприветствовал%ok1% коллегу{Enter}{F8}
-SmartSleep(300)
-Send, {F8} say Здравия желаю, товарищ полицейский!{Enter}{F8}
-Return
-
-Bind_Megaphone1:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-PlayRadioSfx("radio_start.wav")
-SmartSleep(200)
-Send, {F8} do Тангента СГУ закреплена на приборной панели патрульного автомобиля.{Enter}{F8}
-SmartSleep(300)
-Send, {F8} me снял%ok1% тангенту СГУ и нажал%ok1% кнопку вещания{Enter}{F8}
-SmartSleep(300)
-Send, {F8} m Водитель транспортного средства! Прижмитесь к обочине и остановитесь!{Enter}{F8}
-SmartSleep(200)
-PlayRadioSfx("radio_stop.wav")
-Return
-
-Bind_MegaphoneWay:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-PlayRadioSfx("radio_start.wav")
-SmartSleep(200)
-Send, {F8} m Водители! Примите вправо и уступите дорогу патрульному автомобилю со спецсигналами!{Enter}{F8}
-SmartSleep(200)
-PlayRadioSfx("radio_stop.wav")
-Return
-
-Bind_MegaphoneStop:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-PlayRadioSfx("radio_start.wav")
-SmartSleep(200)
-Send, {F8} s Гражданин, немедленно оставайтесь на месте! Работает полиция ГУ МВД!{Enter}{F8}
-SmartSleep(200)
-PlayRadioSfx("radio_stop.wav")
-Return
-
-Bind_VoiceOn:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} do Портативная рация ТАКТ-363 П45 закреплена на разгрузочном жилете.{Enter}{F8}
-SmartSleep(300)
-Send, {F8} me снял%ok1% рацию, поднес%ok2% ко рту и зажал%ok1% тангенту передачи{Enter}{F8}
-SmartSleep(150)
-PlayRadioSfx("radio_start.wav")
-SmartSleep(150)
-Send, {F8} fracvoice 1{Enter}{F8}
-Return
-
-Bind_VoiceOff:
-AbortBindFlag := 0
-SendMessage, 0x50,, 0x4190419,, A
-SmartSleep(200)
-Send, {F8} me отпустил%ok1% тангенту, перевел%ok1% рацию в режим приема и закрепил%ok1% на разгрузке{Enter}{F8}
-SmartSleep(150)
-PlayRadioSfx("radio_stop.wav")
-SmartSleep(150)
-Send, {F8} fracvoice 2{Enter}{F8}
-Return
-
-Bind_ToggleHud:
-ToggleDutyHud()
-Return
-
-Bind_OpenCalc:
-ShowFluentGUI()
-Return
-
-Bind_Reload:
-TrayTip, 🔄 Перезагрузка, АХК ГУ МВД перезагружается..., 1, 1
-Sleep, 500
+ReloadScript:
 Reload
 Return
 
-Bind_Pause:
-AbortBindFlag := 1
-SoundBeep, 650, 150
-TrayTip, ⛔ Остановка биндера, Текущая отыгровка экстренно остановлена!, 2, 2
+ExitScriptLabel:
+ExitApp
+Return
+
+TelemetryHeartbeat:
+FormatTime, curClock,, HH:mm:ss
+hudText := "00:00"
+if (DutyTimerActive) {
+    elapsed := (A_TickCount - DutyTimerStart) // 1000
+    m := elapsed // 60
+    s := Mod(elapsed, 60)
+    hudText := Format("{:02}:{:02}", m, s)
+}
+try {
+    if (FluentWB) {
+        jsCall := "updateLiveState({ clock: '" . curClock . "', hudTimer: '" . hudText . "' });"
+        FluentWB.document.parentWindow.eval(jsCall)
+    }
+}
+Return
+
+OpenQuickHotkeyRemapModal(hkId) {
+    InputBox, newKey, Назначить клавишу, Введите новую клавишу или комбинацию:,, 300, 140
+    if (!ErrorLevel && newKey != "") {
+        RemapHotkey(hkId, newKey)
+    }
+}
+
+EmergencyStopCurrentBind:
+Reload
+Return
+
+OpenCalc:
+Run, calc.exe
+Return
+
+ToggleDutyHud:
+DutyTimerActive := !DutyTimerActive
+if (DutyTimerActive) {
+    DutyTimerStart := A_TickCount
+    TrayTip, ГУ МВД, Таймер смены запущен!, 1, 1
+} else {
+    TrayTip, ГУ МВД, Таймер смены остановлен., 1, 1
+}
+Return
+
+ResetChaseState:
+ChaseStage := 0
+TrayTip, ГУ МВД, Режим погони сброшен!, 1, 1
 Return
 
 ; =================================================================================================
-; ПОЛНАЯ БАЗА РОЛЕВЫХ ХОТСТРИНГОВ И СПЕЦИАЛЬНЫХ ОТЫГРОВОК ГУ МВД
+; БОЕВЫЕ ХОТКЕИ ГУ МВД РОССИИ (ВСЕ 31+ МЕТОК)
 ; =================================================================================================
-!1::
+
+Bind_Greeting:
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Fio1, %A_Temp%\gumvd.egl, User, Fio1
-IniRead, Rank, %A_Temp%\gumvd.egl, User, Rank
-IniRead, Frak, %A_Temp%\gumvd.egl, User, Frak
-IniRead, Otdel, %A_Temp%\gumvd.egl, User, Otdel
-Sleep 250
+Sleep 200
 SendInput, {F8}animarmy 3{ENTER}{F8}
 Sleep 250
-SendInput, {F8} say Здравия желаю, %Otdel% %Frak%, %Rank% полиции, %Fio1%.{Enter}{F8}
-Sleep 500
-if (Rank = "Рядовой") {
-    PogonDescription := "пустые погоны"
-    RankDescription := "На плечах закреплены пустые погоны."
-} else if (Rank = "Сержант") {
-    PogonDescription := "погоны с тремя лычками поперек погон"
-    RankDescription := "На плечах закреплены погоны с тремя лычками поперек погон."
-} else if (Rank = "Старшина") {
-    PogonDescription := "погоны с одной лычкой вдоль погон"
-    RankDescription := "На плечах погоны с одной лычкой вдоль погон."
-} else if (Rank = "Прапорщик") {
-    PogonDescription := "погоны с двумя звездами вдоль погон"
-    RankDescription := "На плечах погоны с двумя звездами вдоль по он."
-} else if (Rank = "Лейтенант") {
-    PogonDescription := "погоны с двумя звездами и просветом"
-    RankDescription := "На плечах погоны с двумя звездами и просветом."
-} else if (Rank = "Старший лейтенант") {
-    PogonDescription := "погоны с тремя звездами и просветом"
-    RankDescription := "На плечах погоны с тремя звездами и просветом."
-} else if (Rank = "Капитан") {
-    PogonDescription := "погоны с четырьмя звездами и просветом"
-    RankDescription := "На плечах погоны с четырьмя звездами и просветом."
-} else if (Rank = "Майор") {
-    PogonDescription := "погоны с одной звездой и двумя просветами"
-    RankDescription := "На плечах погоны с одной звездой и двумя просветами."
-} else if (Rank = "Подполковник") {
-    PogonDescription := "погоны с двумя звездами и двумя просветами"
-    RankDescription := "На плечах погоны с двумя звездами и двумя просветами."
-} else if (Rank = "Полковник") {
-    PogonDescription := "погоны с тремя звездами и двумя просветами"
-    RankDescription := "На плечах погоны с тремя звездами и двумя просветами."
-} else if (Rank = "Генерал-майор") {
-    PogonDescription := "погоны с одной большой звездой"
-    RankDescription := "На плечах погоны с одной большой звездой."
-} else if (Rank = "Генерал-лейтенант") {
-    PogonDescription := "погоны с двумя большими звездами"
-    RankDescription := "На плечах погоны с двумя большими звездами."
-} else if (Rank = "Генерал-полковник") {
-    PogonDescription := "погоны с тремя большими звездами"
-    RankDescription := "На плечах погоны с тремя большими звездами."
-} else if (Rank = "Генерал МВД") {
-    PogonDescription := "погоны с одной большой звездой и гербом МВД"
-    RankDescription := "На плечах погоны с одной большой звездой и гербом МВД."
+SendInput, {F8}say Здравия желаю, %Otdel% %Frak%, %Rank% полиции, %Fio1%.{Enter}{F8}
+Sleep 450
+PogonDesc := ""
+if (Rank = "Рядовой")
+    PogonDesc := "пустые погоны"
+else if (Rank = "Сержант")
+    PogonDesc := "погоны с тремя лычками поперек погон"
+else if (Rank = "Старшина")
+    PogonDesc := "погоны с одной лычкой вдоль погон"
+else if (Rank = "Прапорщик")
+    PogonDesc := "погоны с двумя звездами вдоль погон"
+else if (Rank = "Лейтенант")
+    PogonDesc := "погоны с двумя звездами и просветом"
+else if (Rank = "Старший лейтенант")
+    PogonDesc := "погоны с тремя звездами и просветом"
+else if (Rank = "Капитан")
+    PogonDesc := "погоны с четырьмя звездами и просветом"
+else if (Rank = "Майор")
+    PogonDesc := "погоны с одной звездой и двумя просветами"
+else if (Rank = "Подполковник")
+    PogonDesc := "погоны с двумя звездами и двумя просветами"
+else if (Rank = "Полковник")
+    PogonDesc := "погоны с тремя звездами и двумя просветами"
+else if (Rank = "Генерал-майор")
+    PogonDesc := "погоны с одной большой звездой"
+else if (Rank = "Генерал-лейтенант")
+    PogonDesc := "погоны с двумя большими звездами"
+else if (Rank = "Генерал-полковник")
+    PogonDesc := "погоны с тремя большими звездами"
+else if (Rank = "Генерал МВД")
+    PogonDesc := "погоны с одной большой звездой и гербом МВД"
+
+if (PogonDesc != "") {
+    Sleep 450
+    SendInput, {F8}do На плечах %PogonDesc%.{Enter}{F8}
 }
-if PogonDescription
-{
-Sleep 500
-SendInput, {F8}do На плечах %PogonDescription%.{Enter}{F8}
-}
-Sleep 500
 Return
-^1::
+
+Bind_Udo:
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
-Sleep 250
+Sleep 200
 SendInput, /Кому показать удо? ID ->{Space}
 Input, id, V, {Enter}
 SendInput, {bs 17}
 SendInput, {enter}
-Sleep 500
+Sleep 400
 SendInput, {F8}ud %id%{Enter}{F8}
 Return
-^2::
+
+Bind_AskDocs:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8} say Передайте ваш паспорт для установления личности.{Enter}{F8}
-Sleep 500
-SendInput,{F8} b /me передал(-а) паспорт{Enter}{F8}
-Sleep 500
-SendInput,{F8}b /pass id (id = цифры после ника){Enter}{F8}
+Sleep 200
+SendInput, {F8}say Передайте ваш паспорт для установления личности.{Enter}{F8}
+Sleep 400
+SendInput, {F8}b /me передал(-а) паспорт{Enter}{F8}
+Sleep 400
+SendInput, {F8}b /pass id (id = цифры после ника){Enter}{F8}
 Return
-^3::
+
+Bind_TakeDocs:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8}me протянул%ok1% правую руку и взял%ok1% документы гражданина{Enter}{F8}
-Sleep 500
-SendInput,{F8}me детально изучил%ok1% документы гражданина{Enter}{F8}
-Sleep 500
-SendInput,{F8}do Документы изучены сотрудни%ok10%.{Enter}{F8}
+Sleep 200
+SendInput, {F8}me протянул%ok1% правую руку и взял%ok1% документы гражданина{Enter}{F8}
+Sleep 400
+SendInput, {F8}me детально изучил%ok1% документы гражданина{Enter}{F8}
+Sleep 400
+SendInput, {F8}do Документы изучены сотрудни%ok10%.{Enter}{F8}
 Return
-^4::
+
+Bind_ReturnDocs:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8} me протянул%ok1% гражданину документы{Enter}{F8}
-Sleep 500
-SendInput,{F8} say Уважаемый, держите ваши документы.{Enter}{F8}
-Sleep 500
-SendInput,{F8} b /me забрал(-а) документы{Enter}{F8}
+Sleep 200
+SendInput, {F8}me протянул%ok1% гражданину документы{Enter}{F8}
+Sleep 400
+SendInput, {F8}say Уважаемый, держите ваши документы.{Enter}{F8}
+Sleep 400
+SendInput, {F8}b /me забрал(-а) документы{Enter}{F8}
 Return
-^5::
+
+Bind_CuffsOn:
 SendMessage, 0x50,, 0x4190419,, A
 Sleep 100
-SendInput,{5}
-Sleep 250
-SendInput,{F8}say Гражданин, Вы имеете право хранить молчание{!}{Enter}{F8}
-Sleep 500
-SendInput,{F6}
+SendInput, {5}
+Sleep 200
+SendInput, {F8}say Гражданин, Вы имеете право хранить молчание{!}{Enter}{F8}
+Sleep 400
+SendInput, {F6}
 Sleep 100
-SendInput,/cuff{Space}
+SendInput, /cuff{Space}
+TotalArrests++
 Return
-^6::
+
+Bind_CuffsOff:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 500
-SendInput,{F6}
+Sleep 300
+SendInput, {F6}
 Sleep 100
-SendInput,/uncuff{Space}
+SendInput, /uncuff{Space}
 Return
-^7::
+
+Bind_EscortOn:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8}me заломал%ok1% гражданина и повел%ok1% за собой{Enter}{F8}
-Sleep 50
+Sleep 200
+SendInput, {F8}me заломал%ok1% гражданина и повел%ok1% за собой{Enter}{F8}
 Sleep 100
-SendInput,{F6}
+SendInput, {F6}
 Sleep 100
-SendInput,/arr{Space}
+SendInput, /arr{Space}
 Return
-^8::
+
+Bind_EscortOff:
 SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8}me отпустил%ok1% руки задержанного{Enter}{F8}
-Sleep 50
-SendInput,{F6}
+Sleep 200
+SendInput, {F8}me отпустил%ok1% руки задержанного{Enter}{F8}
 Sleep 100
-SendInput,/dearr{Space}
+SendInput, {F6}
+Sleep 100
+SendInput, /dearr{Space}
 Return
-^9::
+
+Bind_DetainProt:
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
-Sleep 250
+Sleep 200
 SendInput, Гражданин, сейчас мы составим протокол Вашего задержания.{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /do Бланки протокола с ручкой лежат в сумке на плече сотрудника.{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me открыл%ok1% сумку и достал%ok1% бланк протокола с ручкой{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me взял%ok1% ручку и начал%ok1% заполнять протокол{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me заполнил%ok1% личные данные{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me заполнил%ok1% статью нарушенную гражданином{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me поставил%ok1% дату и подпись{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /me отстегнул%ok1% одну руку задержанного и пристегнул%ok1% браслет наручников к ручке автомобиля{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /todo Подписывать будете?*передавая протокол с ручкой задержанному{Enter}{F6}
-Sleep 2000
+Sleep 1500
 SendInput, /b Если да, то отыграйте /me расписался в протоколе{Enter}
+TotalProtocols++
 Return
+
+Bind_Arrest:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /Введите ID гражданина которого хотите посадить ->{Space}
+Input, Var1, V, {Enter}
+SendInput, {bs 17}
+Sleep 200
+SendInput, {F6}
+Sleep 200
+SendInput, Пора Вас конвоиру передавать. Свои вещи заберете у конвоира.{Enter}{F6}
+Sleep 450
+SendInput, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
+Sleep 450
+PlayRadioSfx("radio_start.wav")
+SendInput, /me сняв рацию, поднёс%ok2% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
+Sleep 450
+SendInput, /me вызвал%ok1% конвоира{Enter}{F6}
+Sleep 450
+PlayRadioSfx("radio_stop.wav")
+SendInput, /do Конвоир вызван.{Enter}{F6}
+Sleep 450
+SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
+Sleep 450
+SendInput, /me открыл%ok1% дверь и передал%ok1% задержанного конвоиру{Enter}{F6}
+Sleep 450
+SendInput, /say Уведите задержанного.{Enter}{F6}
+Sleep 450
+SendInput, /do Конвоир увел задержанного.{Enter}{F6}
+Sleep 450
+SendInput, /r Задержанный был передан конвоиру. Протокол задержания передан в канцелярию.{Enter}{F6}
+Sleep 450
+SendInput, /arrest %Var1%{Enter}
+TotalArrests++
+Return
+
+Bind_SuFast:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F8}do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
+Sleep 50
+PlayRadioSfx("radio_start.wav")
+SendInput, {F8}me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
+Sleep 50
+PlayRadioSfx("radio_stop.wav")
+SendInput, {F6}
+Sleep 100
+SendInput, /su{Space}
+Return
+
+Bind_Putpl:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, Берегите голову при посадке в автомобиль{!}{Enter}{F6}
+Sleep 400
+SendInput, /me взял%ok1% нарушителя за руки и посадил%ok1% в служебный автомобиль{Enter}{F6}
+Sleep 200
+SendInput, /putpl{Space}
+Return
+
+Bind_PullOutSimple:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /me вытащил%ok1% гражданина из автомобиля{Enter}
+Return
+
+Bind_GreetColleague:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, Здравия желаю{!}{Enter}{F6}
+Sleep 200
+SendInput, /animarmy 3{Enter}
+Return
+
+Bind_KnockWindow:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F8}me постучал%ok1% в окно{Enter}{F8}
+Return
+
+Bind_KpkOpen:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F6}
+Sleep 300
+SendInput, /do Служебный планшет марки “MIG LT11i” в кармане.{Enter}{F6}
+Sleep 300
+SendInput, /me достав служебный планшет из кармана, запустил%ok1% его{Enter}
+Return
+
+Bind_KpkPhoto:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F6}
+Sleep 400
+SendInput, Сейчас определим вашу личность.{Enter}{F6}
+Sleep 400
+SendInput, /me сделал%ok1% фотографию гражданина и запросил%ok1% данные{Enter}{F6}
+Sleep 400
+SendInput, /do Данные гражданина выведены на экран служебного планшета.{Enter}{F6}
+Sleep 400
+SendInput, Ваша личность установлена.{Enter}{F6}
+Sleep 400
+SendMessage, 0x50,, 0x4090409,, A
+SendInput, /wanted {Enter}{F6}
+Sleep 400
+SendInput, /crimrec{Space}
+Return
+
+Bind_KpkSearchDb:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
+Sleep 250
+SendInput, /me ввел%ok1% данные гражданина в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
+Sleep 250
+SendInput, /do Информация о гражданине высветилась на экране.{Enter}{F6}
+Sleep 400
+SendMessage, 0x50,, 0x4090409,, A
+SendInput, /wanted {Enter}{F6}
+Sleep 400
+SendInput, /crimrec{Space}
+Return
+
+Bind_KpkClose:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 150
+SendInput, /me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}{F6}
+Sleep 150
+SendInput, /do Служебный планшет марки MIG LT11i в кармане.{Enter}
+Return
+
+Bind_Wanted:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 300
+SendInput, {F8}do Служебный планшет марки “MIG LT11i” в кармане.{Enter}{F8}
+Sleep 200
+SendInput, {F8}me достав служебный планшет из кармана, запустил%ok1% его{Enter}{F8}
+Sleep 150
+SendInput, {F8}me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
+Sleep 150
+SendInput, {F8}do Изображение с камер транслируются в реальном времени на служебный планшет.{Enter}{F8}
+Sleep 200
+SendInput, {F8}me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}{F8}
+Sleep 200
+SendInput, {F8}do Служебный планшет марки “MIG LT11i” в кармане.{Enter}{F8}
+Sleep 150
+SendMessage, 0x50,, 0x4090409,, A
+SendInput, {F8}wanted{Enter}{F8}
+Return
+
+Bind_FindEmp:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F8}me открыл%ok1% базу данных сотрудников управления{Enter}{F8}
+Sleep 100
+SendInput, {F8}do База данных сотрудников управления открыта.{Enter}{F8}
+Sleep 100
+SendInput, {F8}find{Enter}{F8}
+Return
+
+Bind_OsnBadge:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 200
+SendInput, {F8}do На бронежилете нашивка: || [%Osnxxx%-%Prop2%] || Позывной: %Prop1%. [%Frak%].{Enter}{F8}
+Return
+
+Bind_ShoutHands:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /s Из машины, руки на капот{!}{Enter}
+Return
+
+Bind_TryDoor:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /me дёрнул%ok1% за ручку двери{Enter}{F6}
+Sleep 100
+SendInput, /do Сотрудни%ok5% пытается открыть дверь.{Enter}{F6}
+Sleep 100
+SendInput, /try открыл%ok1% дверь{Enter}
+Return
+
+Bind_TryGlass:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /me замахнул%ok3% дубинкой и ударил%ok1% по стеклу{Enter}{F6}
+Sleep 100
+SendInput, /try разбил%ok1% стекло дубинкой{Enter}
+Return
+
+Bind_UnlockIn:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F6}
+Sleep 200
+SendInput, /me потянул%ok3% рукой до замка и открыл%ok1% его изнутри{Enter}{F6}
+Sleep 100
+SendInput, /do Замок открыт.{Enter}{F6}
+Sleep 100
+SendInput, /me открыл%ok1% дверь и вытащил%ok1% гражданина из машины{Enter}
+Return
+
+Bind_VoiceOn:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F8}do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
+Sleep 10
+SendInput, {F8}me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
+PlayRadioSfx("radio_start.wav")
+Sleep 50
+SendInput, {F8}fracvoice 1{Enter}{F8}
+Return
+
+Bind_VoiceOff:
+SendMessage, 0x50,, 0x4190419,, A
+SendInput, {F8}me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
+PlayRadioSfx("radio_stop.wav")
+Sleep 50
+SendInput, {F8}do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
+Sleep 50
+SendInput, {F8}fracvoice 2{Enter}{F8}
+Return
+
+Bind_Megaphone1:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 150
+SendInput, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Sleep 10
+SendInput, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Sleep 10
+SendInput, {F8}m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
+Sleep 10
+SendInput, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Return
+
+Bind_Megaphone2:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 150
+SendInput, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Sleep 10
+SendInput, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Sleep 10
+SendInput, {F8}m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
+Sleep 10
+SendInput, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Return
+
+Bind_Megaphone3:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 150
+SendInput, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Sleep 10
+SendInput, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Sleep 10
+SendInput, {F8}m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
+Sleep 10
+SendInput, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Return
+
+Bind_MegaphoneWay:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 150
+SendInput, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
+Sleep 10
+SendInput, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
+Sleep 10
+SendInput, {F8}m {#}e7950dУступите проезд спец. транспорту{!}{Enter}{F8}
+Sleep 10
+SendInput, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
+Return
+
+Bind_FootChase:
+SendMessage, 0x50,, 0x4190419,, A
+Sleep 150
+SendInput, {F8}s Гражданин останавливаемся, в противном случае к вам будет применена физическая сила{!}{Enter}{F8}
+Return
+
+Bind_SmartMegaphone:
+ChaseStage++
+if (ChaseStage = 1) {
+    Gosub, Bind_Megaphone1
+} else if (ChaseStage = 2) {
+    Gosub, Bind_Megaphone2
+} else {
+    Gosub, Bind_Megaphone3
+    ChaseStage := 0
+}
+Return
+
+; =================================================================================================
+; ВСЕ 255 АУТЕНТИЧНЫХ ХОТСТРИНГОВ ГУ МВД РОССИИ
+; =================================================================================================
 
 :?:/протоколдч::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, Гражданин, сейчас мы составим протокол Вашего задержания.{Enter}{F6}
@@ -1359,10 +1154,12 @@ Sleep 2000
 SendInput, /todo Подписывать будете?*передавая протокол с ручкой задержанному{Enter}{F6}
 Sleep 2000
 SendInput, /b Если да, то отыграйте /me расписался в протоколе{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/протокол1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
@@ -1376,220 +1173,70 @@ Sleep 2000
 SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
 Sleep 2000
 SendInput, /do Копия лежит в кармане.{Enter}
-Return
-:?:/протокол2::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /me поставил%ok1% метку об отказе в подписании{Enter}{F6}
-Sleep 2000
-SendInput, /do Протокол составлен.{Enter}{F6}
-Sleep 2000
-SendInput, /me отстегнул%ok1% наручники от ручки и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
-Sleep 2000
-SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
-Sleep 2000
-SendInput, /do Копия лежит в кармане.{Enter}
-Return
-:?:/протоколдч1::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /do Протокол составлен.{Enter}{F6}
-Sleep 2000
-SendInput, /me отстегнул%ok1% наручники от фиксатора и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
-Sleep 2000
-SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
-Sleep 2000
-SendInput, /do Копия лежит в кармане.{Enter}
-Return
-:?:/протоколдч2::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /me поставил%ok1% метку об отказе в подписании{Enter}{F6}
-Sleep 2000
-SendInput, /do Протокол составлен.{Enter}{F6}
-Sleep 2000
-SendInput, /me отстегнул%ok1% наручники от фиксатора и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
-Sleep 2000
-SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
-Sleep 2000
-SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
-Sleep 2000
-SendInput, /do Копия лежит в кармане.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
-^0::
+:?:/протокол2::
 SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /Введите ID гражданина которого хотите посадить ->{Space}
-Input, Var1, V, {Enter}
-SendInput, {bs 17}
-Sleep 250
-SendInput, {F6}
-Sleep 250
-SendInput, Пора Вас конвоиру передавать. Свои вещи заберете у конвоира. {Enter}{F6}
-Sleep 500
-SendInput, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
-Sleep 500
-SendInput, /me сняв рацию, поднёс%ok2% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
-Sleep 500
-SendInput, /me вызвал%ok1% конвоира{Enter}{F6}
-Sleep 500
-SendInput, /do Конвоир вызван.{Enter}{F6}
-Sleep 500
-SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
-Sleep 550
-SendInput, /me открыл%ok1% дверь и передал%ok1% задержанного конвоиру{Enter}{F6}
-Sleep 550
-SendInput, /say Уведите задержанного.{Enter}{F6}
-Sleep 550
-SendInput, /do Конвоир увел задержанного.{Enter}{F6}
-Sleep 500
-SendInput, /r Задержанный был передан конвоиру. Протокол задержания передан в канцелярию.{Enter}{F6}
-Sleep 500
-SendInput, /arrest %Var1% {Enter}
-Return
-^-::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8} 
-Sleep 50
-SendInput,{F8} me снял%ok1% рацию, затем связался с диспетчером и передал%ok1% ориентировку на гражданина{Enter}{F8} 
-Sleep 50
-SendInput,{F6}
-Sleep 100
-SendInput,/su{Space}
-Return
-^F9::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput,{F8}me открыл%ok1% базу данных сотрудников управления{Enter}{F8}
-Sleep 100
-SendInput,{F8}do База данных сотрудников управления открыта.{Enter}{F8}
-Sleep 100
-SendInput,{F8}find{Enter}{F8}
-Return
-^F10::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 500
-SendInput,{F8} do Служебный планшет марки “MIG LT11i” в кармане.{Enter}{F8}
-Sleep 250
-SendInput,{F8} me достав служебный планшет из кармана, запустил%ok1% его{Enter}{F8}
-Sleep 150
-SendInput,{F8} me открыл%ok1% базу данных видеонаблюдения{Enter}{F8}
-Sleep 150
-SendInput,{F8} do Изображение с камер транслируются в реальном времени на служебный планшет.{Enter}{F8}
-Sleep 250
-SendInput,{F8} me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}{F8}
-Sleep 250
-SendInput,{F8} do Служебный планшет марки “MIG LT11i” в кармане.{Enter}{F8}
-Sleep 150
-SendMessage, 0x50,, 0x4090409,, A
-SendInput,{F8}wanted{Enter}{F8}
-Return
-^insert::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
-Sleep 10
-SendInput,{F8} me сняв рацию, поднес%ok2% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F8}
-sleep 100
 PlayRadioSfx("radio_start.wav")
-Sleep 10
-SendInput,{F8} fracvoice 1{Enter}{F8}
-Return
-^home::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput,{F8} me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}{F8}
-sleep 100
-PlayRadioSfx("radio_start.wav")
-Sleep 100
-SendInput,{F8} do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F8}
-Sleep 100
-SendInput,{F8} fracvoice 2{Enter}{F8}
-Return
-!0::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-Sleep 10
-SendInput, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-Sleep 10
-SendInput, {F8} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
-Sleep 10
-SendInput, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-Return
-!-::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-Sleep 10
-SendInput, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-Sleep 10
-SendInput, {F8} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
-Sleep 10
-SendInput, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-Return
-!=::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-Sleep 10
-SendInput, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-Sleep 10
-SendInput, {F8} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
-Sleep 10
-SendInput, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-Return
-!9::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8}do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-Sleep 10
-SendInput, {F8}me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-Sleep 10
-SendInput, {F8}m {#}e7950dУступите проезд спец. транспорту{!}{Enter}{F8}
-Sleep 10
-SendInput, {F8}me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-Return
-!8::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8}s Гражданин останавливаемся, в противном случае к вам будет применена физическая сила{!}{Enter}{F8}
-Return
-!2::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-IniRead, Otdel, %A_Temp%\gumvd.egl, User, Otdel
-IniRead, Prop1, %A_Temp%\gumvd.egl, User, Prop1
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
-IniRead, Frak, %A_Temp%\gumvd.egl, User, Frak
-IniRead, Osnxxx, %A_Temp%\gumvd.egl, User, Osnxxx
-IniRead, Dolznosn, %A_Temp%\gumvd.egl, User, Dolznosn
-SendInput, {F8}do На бронежилете нашивка: || [%Osnxxx%-%Prop2%] || Позывной: %Prop1%. [%Frak%].{Enter}{F8}
-Return
-!3::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 200
 SendInput, {F6}
-Sleep 400
-SendInput, /do Служебный планшет марки “MIG LT11i” в кармане. {Enter}{F6}
-Sleep 400
-SendInput, /me достав служебный планшет из кармана, запустил%ok1% его {Enter}
-Sleep 400
+Sleep 250
+SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /me поставил%ok1% метку об отказе в подписании{Enter}{F6}
+Sleep 2000
+SendInput, /do Протокол составлен.{Enter}{F6}
+Sleep 2000
+SendInput, /me отстегнул%ok1% наручники от ручки и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
+Sleep 2000
+SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
+Sleep 2000
+SendInput, /do Копия лежит в кармане.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
+:?:/протоколдч1::
+SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
+SendInput, {F6}
+Sleep 250
+SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /do Протокол составлен.{Enter}{F6}
+Sleep 2000
+SendInput, /me отстегнул%ok1% наручники от фиксатора и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
+Sleep 2000
+SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
+Sleep 2000
+SendInput, /do Копия лежит в кармане.{Enter}
+PlayRadioSfx("radio_stop.wav")
+Return
+
+:?:/протоколдч2::
+SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
+SendInput, {F6}
+Sleep 250
+SendInput, /me забрал%ok1% и ручку протокол у задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /me поставил%ok1% метку об отказе в подписании{Enter}{F6}
+Sleep 2000
+SendInput, /do Протокол составлен.{Enter}{F6}
+Sleep 2000
+SendInput, /me отстегнул%ok1% наручники от фиксатора и снова пристегнул%ok1% их на запястье задержанного{Enter}{F6}
+Sleep 2000
+SendInput, /me вырвал%ok1% копию протокола{Enter}{F6}
+Sleep 2000
+SendInput, /me положил%ok1% копию в карман гражданина{Enter}{F6}
+Sleep 2000
+SendInput, /do Копия лежит в кармане.{Enter}
+PlayRadioSfx("radio_stop.wav")
+Return
+
 :?:/sos::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -1608,6 +1255,7 @@ SendInput, /do Тревожная кнопка активирована. GPS м�
 Sleep 150 ;
 SendInput, /ro [Кнопка SOS][МВД] Местонахождение:%var1%{Enter}
 Return
+
 :?:/маска::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -1616,6 +1264,7 @@ SendInput, /me сняв маску с гражданина, положил%ok1% 
 Sleep 250
 SendInput, /do Маска снята.{Enter}
 Return
+
 :?:/убор::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -1624,6 +1273,7 @@ SendInput, /me снял%ok1% головной убор с гражданина{E
 Sleep 250
 SendInput, /do Головной убор снят.{Enter}
 Return
+
 :?:/очки::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -1632,6 +1282,7 @@ SendInput, /me сняв очки с гражданина, положил%ok1% и
 Sleep 250
 SendInput, /do Очки сняты.{Enter}
 Return
+
 :?:/шлем::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -1640,30 +1291,21 @@ SendInput, /me сняв шлем с гражданина, положил%ok1% е
 Sleep 250
 SendInput, /do Шлем снят.{Enter}
 Return
+
 :?:/вытащить::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me вытащил%ok1% задержанного из служебного автомобиля{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
-^r::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me вытащил%ok1% гражданина из автомобиля{Enter}
-Return
-^E::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 200 ;
-SendInput, Здравия желаю{!}{Enter}{F6}
-Sleep 200 ;
-SendInput, /animarmy 3{Enter}
-Return
+
 :?:/п1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1671,16 +1313,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-0-1 Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/п2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1688,16 +1333,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-0-2 Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/п3::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1705,16 +1353,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-0-3 Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/п1н::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите звание напарника ->{Space}
@@ -1733,16 +1384,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-0-1 Код-3 Напарник: %Var1% %Var2%{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/п2н::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите звание напарника ->{Space}
@@ -1761,16 +1415,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-0-2 Код-3 Напарник: %Var1% %Var2%{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/п3н::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите звание напарника ->{Space}
@@ -1789,16 +1446,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-0-3 Код-3 Напарник: %Var1% %Var2%{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/кпп1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1806,16 +1466,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-1-1 КПП Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/кпп2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1823,16 +1486,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-1-2 КПП Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/кпп3::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1840,16 +1506,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-1-3 КПП Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/дч1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1857,16 +1526,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-1-1 Дежурная часть Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/дч2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1874,16 +1546,19 @@ SendInput,  /do Рация ТАКТ-363 П45 закреплена на нагр�
 Sleep 500 ;
 SendInput,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-1-2 Дежурная часть Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput,  /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter} 
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/дч3::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1891,42 +1566,19 @@ SendInput,  /do Рация ТАКТ-363 П45 закреплена на нагр�
 Sleep 500 ;
 SendInput,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /r %Teg%-%Prop2% 10-1-3 Дежурная часть Код-3{Enter}{F6}
 Sleep 200 ;
 SendInput,  /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
-!4::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 200
-SendInput, {F6}
-Sleep 500
-SendInput, Сейчас определим вашу личность.{Enter}{F6}
-Sleep 500
-SendInput, /me сделал%ok1% фотографию гражданина и запросил%ok1% данные{Enter}{F6}
-Sleep 500
-SendInput, /do Данные гражданина выведены на экран служебного планшета.{Enter}{F6}
-Sleep 500
-SendInput, Ваша личность установлена.{Enter}{F6}
-Sleep 500
-SendMessage, 0x50,, 0x4090409,, A
-SendInput, /wanted {Enter}{F6}
-Sleep 500
-SendInput, /crimrec{Space}
-Return
-!5::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 150
-SendInput, /me выключил%ok1% служебный планшет и убрал%ok1% в карман{Enter}{F6}
-Sleep 150
-SendInput, /do Служебный планшет марки MIG LT11i в кармане.{Enter}
-Return
+
 :?:/в1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1934,16 +1586,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 200 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 200 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-24{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/в2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1951,16 +1606,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 200 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 200 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-25{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/в+::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1968,16 +1626,19 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 200 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 200 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-26{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/в-::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -1985,36 +1646,35 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 200 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 200 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput, /r %Teg%-%Prop2% 10-26ЛВ{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/метка1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 200 ;
 SendInput, /me поставил метку о несогласии{Enter}
 Return
+
 :?:/метка2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 200 ;
 SendInput, /me поставил метку о невозможности подписать протокол{Enter}
 Return
+
 :?:/копия::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, /me вырвал копию протокола и положил на колени гражданина{Enter}
 RETURN
-!x::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /s Из машины, руки на капот{!}{Enter}
-Return
+
 :?:/чист1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2029,12 +1689,14 @@ SendInput, /me взяв ручку, начал%ok1% записывать слу�
 Sleep 500
 SendInput, Гражданин, рассказывайте, что произошло.{Enter}
 Return
+
 :?:/чист2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 500
 SendInput, Передайте документ удостоверяющий вашу личность.{Enter}
 Return
+
 :?:/чист3::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2053,6 +1715,7 @@ SendInput, Распишитесь в нижнем углу.{Enter}{F6}
 Sleep 500
 SendInput, /b /me расписался в бланке{Enter}
 Return
+
 :?:/чист4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2065,6 +1728,7 @@ SendInput, /me вытащив бланк из планшетки, положил
 Sleep 500
 SendInput, /do Бланк лежит в стопке бланков.{Enter}
 Return
+
 :?:/чист5::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2073,6 +1737,7 @@ SendInput, Гражданин, ваше чистосердечное заявл�
 Sleep 500
 SendInput,{5}
 Return
+
 :?:/чист6::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2097,12 +1762,16 @@ SendInput, /r Задержанный был отправлен в КПЗ. Про
 Sleep 500
 SendInput, /arrest %Var1% {Enter}
 Return
+
 :?:/предосн::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {Enter}
 Sleep 2000
 SendInput, {F8}s Мордой в пол, работает %Osn%{!}{Enter}{F8}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/фзоп912::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2114,6 +1783,7 @@ Sleep 1000 ;
 SendInput, преступления или полагать, что они находятся в розыске.{Enter}
 Sleep 1000 ;
 Return
+
 :?:/кейс::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {Enter}
@@ -2143,6 +1813,7 @@ Return
 
 :?:/взрыв1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 Sleep 100
 SendInput, {Enter}
 Sleep 1400
@@ -2167,10 +1838,12 @@ Sleep 100
 SendInput, {F8}me левой рукой приподнял%ok1% провода ведущие к детонатору и устройству{Enter}{F8}
 Sleep 100
 SendInput, {F8}me перерезал%ok1% провод ведущий к детонатору и устройству{Enter}{F8}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/взрыв2::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 Sleep 100
 SendInput, {Enter}
 Sleep 1400
@@ -2183,60 +1856,9 @@ Sleep 100
 SendInput, {F8}me закрыл%ok1% кейс и положил%ok1% в багажник{Enter}{F8}
 Sleep 100
 SendInput, {F8}do Кейс лежит в багажнике.{Enter}{F8}
+PlayRadioSfx("radio_stop.wav")
 Return
 
-!F12::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me дёрнул%ok1% за ручку двери{Enter}{F6}
-Sleep 100
-SendInput, /do Сотрудни%ok5% пытается открыть дверь.{Enter}{F6}
-Sleep 100 ;
-SendInput, /try открыл%ok1% дверь{Enter}
-Return
-!printscreen::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me замахнул%ok3% дубинкой и ударил%ok1% по стеклу{Enter}{F6}
-Sleep 100 ;
-SendInput, /try разбил%ok1% стекло дубинкой{Enter}
-Return 
-!scrolllock::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me потянул%ok3% рукой до замка и открыл%ok1% его изнутри{Enter}{F6}
-Sleep 100
-SendInput, /do Замок открыт.{Enter}{F6}
-Sleep 100
-SendInput, /me открыл%ok1% дверь и вытащил%ok1% гражданина из машины{Enter}
-Return
-!6::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, Берегите голову при посадке в автомобиль{!}{Enter}{F6}
-Sleep 500
-SendInput, /me взял%ok1% нарушителя за руки и посадил%ok1% в служебный автомобиль{Enter}
-Sleep 500
-Return
-!7::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, /me открыл%ok1% базу данных нарушителей{Enter}{F6}
-Sleep 250
-SendInput, /me ввел%ok1% данные гражданина в базу и нажал%ok1% кнопку "Запросить"{Enter}{F6}
-Sleep 250
-SendInput, /do Информация о гражданине высветилась на экране.{Enter}{F6}
-Sleep 500
-SendMessage, 0x50,, 0x4090409,, A
-SendInput, /wanted {Enter}{F6}
-Sleep 500
-SendInput, /crimrec{Space}
-Return
 :?:/код1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2251,12 +1873,13 @@ SendInput,  /do Рация ТАКТ-363 П45 закреплена на нагр�
 Sleep 500 ;
 SendInput,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][МВД] Код-1 Местоположение:%var1%{Enter}{F6}
 Sleep 500 ;
 SendInput,  /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}{F6}
 Return
+
 :?:/код0::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2271,12 +1894,13 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput, /d [ГУ МВД-%Bukv%][МВД][МО] Код-0 Местоположение:%var1%{Enter}{F6}
 Sleep 500 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Return
+
 :?:/рег1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2285,6 +1909,7 @@ SendInput, /do Видеорегистратор закреплен на лобо
 Sleep 250
 SendInput, /me снял%ok1% видеорегистратор с крепления{Enter}
 Return
+
 :?:/рег2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2293,20 +1918,24 @@ SendInput, /me открыл%ok1% нужный файл и подготовил%o
 Sleep 250
 SendInput, /me повернув видеорегистратор в сторону гражданина, запустил%ok1% запись{Enter}
 Return
+
 :?:/рег3::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, /me выключил%ok1% воспроизведение видеофайла{Enter}
 Return
+
 :?:/рег4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, /me закрепил%ok1% видеорегистратор на крепление{Enter}
 Return
+
 :?:/ор1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите Имя Фамилию человека в розыске ->{Space}
@@ -2331,7 +1960,9 @@ SendInput, /me повернул%ok1% служебный планшет экра�
 Sleep 500
 SendInput, /do На экране ориентировка на гражданина "%Var1%".{Enter}
 sleep 500
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/лекция1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2360,6 +1991,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, У кого есть вопросы по этой лекции? {Enter}
 Return
+
 :?:/лекция2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2380,6 +2012,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, У кого есть вопросы по этой лекции? {Enter}
 Return
+
 :?:/лекция3::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2407,6 +2040,7 @@ SendInput, {F6}
 Sleep 2000 ;
 SendInput, У кого есть вопросы по этой лекции? {Enter}
 Return
+
 :?:/лекция4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2433,6 +2067,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, У кого есть вопросы по этой лекции?{Enter}
 Return
+
 :?:/лекция5::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2471,6 +2106,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, У кого есть вопросы по этой лекции?{Enter}
 Return
+
 :?:/лекция6::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2513,6 +2149,7 @@ SendInput, У кого-нибудь есть вопросы по этой лек
 Sleep 2000 ;
 SendInput, Отлично, тогда на этом лекция окончена.{Enter}
 Return
+
 :?:/лекция7::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2553,6 +2190,7 @@ SendInput, Оформить протокол, и посадить за реше�
 Sleep 2000 ;
 SendInput, У кого-нибудь есть вопросы по этой лекции?{Enter}
 Return
+
 :?:/лекция8::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2575,6 +2213,7 @@ SendInput, Далее гражданин несёт наказание за св
 Sleep 2000 ;
 SendInput, У кого-нибудь есть вопросы по этой лекции?{Enter}
 Return
+
 :?:/лекция9::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2644,6 +2283,7 @@ SendInput, Если гражданин не имеет огнестрельно�
 Sleep 2000 ;
 SendInput, У кого-нибудь есть вопросы по этой лекции?{Enter}
 Return
+
 :?:/лекция11::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2706,6 +2346,7 @@ SendInput, Вопросы по лекции остались?{Enter}{F6}
 Sleep 2000 ;
 SendInput, Лекция окончена.{Enter}
 Return
+
 :?:/лекция12::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2732,6 +2373,7 @@ SendInput,  На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput,  Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/лекция13::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2756,6 +2398,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/лекция14::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -2941,6 +2584,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/лекция20::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3021,6 +2665,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/лекция21::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3071,6 +2716,7 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/лекция22::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3423,7 +3069,6 @@ Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
 
-
 :?:/лекция23::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3522,6 +3167,7 @@ Return
 
 :?:/протдоп1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do На столе лежит стопка пустых бланков.{Enter}{F6}
@@ -3533,19 +3179,23 @@ Sleep 250
 SendInput, /me взяв ручку, начал%ok1% записывать данные гражданина{Enter}{F6}
 Sleep 250
 SendInput, /do Данные внесены в протокол.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/протдоп2::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me взяв ручку со стола, внес%ok2% в протокол данные о наличии запрещенных предметов{Enter}{F6}
 Sleep 250
 SendInput, /do В протокол внесены данные о наличии запрещенных предметов.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/протдоп3::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me заполнил%ok1% статью, нарушенную гражданином{Enter}{F6}
@@ -3559,10 +3209,12 @@ Sleep 250
 SendInput, /do Дата и подпись поставлена.{Enter}{F6}
 Sleep 250
 SendInput, /do Протокол допроса составлен.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/перчатки::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do На столе лежит упаковка с нитриловыми перчатками и зип-пакеты.{Enter}{F6}
@@ -3570,6 +3222,7 @@ Sleep 250
 SendInput, /me достал%ok1% пару перчаток из упаковки и надел%ok1% на руки{Enter}{F6}
 Sleep 250
 SendInput, /do Перчатки на руках.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/гарн1::
@@ -3722,6 +3375,7 @@ Return
 
 :?:/патроны::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do В сумке лежат пакетики зип-лок.{Enter}{F6}
@@ -3733,6 +3387,7 @@ Sleep 250
 SendInput, /do Патрон упакован в пакет зип-лок.{Enter}{F6}
 Sleep 250
 SendInput, /me убрал%ok1% пакет с патроном в сумку{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/собес1::
@@ -3745,6 +3400,7 @@ SendInput, Все собеседование будет записываться
 Sleep 1000
 SendInput, /do На нагрудном кармане закреплена камера.{Enter}
 Return
+
 :?:/собес2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3753,42 +3409,49 @@ SendInput, Скажите Ваше ФИО, ваш возраст, сколько
 Sleep 250
 SendInput, И какое у вас образование?{Enter}
 Return
+
 :?:/собес3::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Можно пожалуйста Ваш паспорт?{Enter}
 Return
+
 :?:/собес4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, дайте мне Вашу трудовую книгу.{Enter}
 Return
+
 :?:/собес5::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, дайте мне Ваш диплом.{Enter}
 Return
+
 :?:/собес6::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, дайте мне Ваше водительское удостоверение.{Enter}
 Return
+
 :?:/собес7::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, дайте мне Вашу медицинскую карту.{Enter}
 Return
+
 :?:/собес8::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, дайте мне Ваш военный билет.{Enter}
 Return
+
 :?:/собес9::
 SendMessage, 0x50,, 0x4190419,, A
 Random, Var, 1, 3
@@ -3800,6 +3463,7 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес10::
 SendMessage, 0x50,, 0x4190419,, A
 Random, Var, 1, 3
@@ -3811,6 +3475,7 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес11::
 SendMessage, 0x50,, 0x4190419,, A
 Random, Var, 1, 3
@@ -3822,6 +3487,7 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес12::
 SendMessage, 0x50,, 0x4190419,, A
 Random, Var, 1, 3
@@ -3833,12 +3499,14 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес13::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Отлично, подождите минуточку.{Enter}
 Return
+
 :?:/собес14::
 SendMessage, 0x50,, 0x4190419,, A
 Random, Var, 1, 5
@@ -3852,12 +3520,14 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес15::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Присядьте на корточки{Enter}
 Return
+
 :?:/собес16::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3872,18 +3542,21 @@ sleep 150
 SendInput, % TextArray[Var]
 SendInput, {Enter}
 Return
+
 :?:/собес17::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Вставайте{Enter}
 Return
+
 :?:/собес18::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что у меня в руке?{Enter}
 Return
+
 :?:/отказ::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3894,8 +3567,10 @@ SendInput, /b У вас были некоторые ошибки при отыг
 Sleep 1000
 SendInput, /b https://vk.cc/c3UAyw(Скопировать в F8) Там есть вся информация по поводу отыгровок.{Enter}
 Return
+
 :?:/пасс1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me взял%ok1% паспорт у человека напротив{Enter}{F6}
@@ -3911,7 +3586,9 @@ sleep 1000
 SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите ваш паспорт.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/диплом1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3930,6 +3607,7 @@ SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите ваш диплом.{Enter}
 Return
+
 :?:/труд1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3948,8 +3626,10 @@ SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите вашу трудовую книгу.{Enter}
 Return
+
 :?:/ву1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me взял%ok1% водительское удостоверение у человека напротив{Enter}{F6}
@@ -3965,7 +3645,9 @@ sleep 1000
 SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите ваше водительское удостоверение.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/карта1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -3984,8 +3666,10 @@ SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите вашу медицинскую карту.{Enter}
 Return
+
 :?:/вб1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me взял%ok1% военный билет у человека напротив{Enter}{F6}
@@ -4001,9 +3685,12 @@ sleep 1000
 SendInput, /do Рука протянута.{Enter}{F6}
 Sleep 1000  
 SendInput, Держите ваш военный билет.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/выдформу::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do В шкафчике находится форма сотрудника.{Enter}{F6}
@@ -4013,7 +3700,9 @@ Sleep 500 ;
 SendInput, /do Ключ лежит на скамейке.{Enter}{F6}
 Sleep 500 ;
 SendInput, Берите ключ, открывайте шкаф, переодевайтесь.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/штраф::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4028,9 +3717,11 @@ SendInput,{F6}
 Sleep 100
 SendInput,/tsu{Space}
 Return
+
 :?:/мвд::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4040,13 +3731,16 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput, /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput, /ro [ГУ МВД-%Bukv%][МВД]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гибдд::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4056,13 +3750,15 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][УГИБДД]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/ржд::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4072,13 +3768,14 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][ОАО «РЖД»]{Space}
 Return
+
 :?:/мз::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4088,13 +3785,14 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][МЗ]{Space}
 Return
+
 :?:/армия::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4104,13 +3802,15 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][МО]{Space}
 Return
+
 :?:/гибддп::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4120,13 +3820,16 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][УГИБДД-П]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гибддм::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4136,13 +3839,16 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][УГИБДД-М]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гибддн::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4152,13 +3858,16 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][УГИБДД-Н]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гувдп::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4168,13 +3877,16 @@ SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1%
 Sleep 500 
 SendInput,  /me снял%ok1% рацию с нагрудного кармана и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][ГУ МВД-П]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гувдм::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4182,13 +3894,16 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [Г УМВД-%Bukv%][ГУ МВД-М]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/гувдн::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4196,13 +3911,15 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [ГУ МВД-%Bukv%][ГУ МВД-Н]{Space}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/цгбп::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4210,13 +3927,14 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][ЦГБ-П]{Space}
 Return
+
 :?:/окбм::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4224,13 +3942,14 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][ОКБ-М]{Space}
 Return
+
 :?:/цгбн::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4238,14 +3957,14 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [ГУ МВД-%Bukv%][ЦГБ-Н]{Space}
 Return
 
 :?:/осндокл::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4253,13 +3972,14 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /d [%Osn%]{Space}
 Return
+
 :?:/оснвыз::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4267,13 +3987,15 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput,  /ro [%Osn%]{Space}
 Return
+
 :?:/помощьсобес::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 250
 SendInput, {F6}
 Sleep 500 
@@ -4281,20 +4003,23 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 sleep 160
 SendInput, /d [ГУ МВД-%Bukv%][МВД|МЗ|МО] Требуются сотрудники для помощи в проведении собеседования...{Enter}{F6}
 Sleep 500
 SendInput, /d [ГУ МВД-%Bukv%][МВД|МЗ|МО] ...Ожидаем на парковке ДЧ г. Невский.{Enter}{F6}
 sleep 160
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 1000
 SendInput,  /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Sleep 1000
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/проверкасобес::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите серию паспорта (через дефис) ->{Space}
@@ -4307,17 +4032,19 @@ SendInput,  /do Рация ТАКТ-363 П45 закреплена на нагр�
 Sleep 500 
 SendInput,  /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 sleep 500
 SendInput, /d [ГУ МВД-%Bukv%][УГИБДД] Проверьте гражданина с серией паспорта %Pass%...{Enter}{F6}
 sleep 500
 SendInput, /d [ГУ МВД-%Bukv%][УГИБДД] ...на штрафы.{Enter}{F6}
 sleep 160
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 1000
 SendInput,  /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
 Sleep 1000
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/стук::
 SendMessage, 0x50,, 0x4190419,, A
 Sleep 100
@@ -4325,17 +4052,14 @@ SendInput, {Enter}
 Sleep 250
 SendInput, {F8}me постучал%ok1% в окно{Enter}{F8}
 Return
-^sc29::
-SendMessage, 0x50,, 0x4190419,, A
-Sleep 250
-SendInput, {F8}me постучал%ok1% в окно{Enter}{F8}
-Return
+
 :?:/окно?::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput,  /do Водительское окно открыто?{Enter}
 Return
+
 :?:/ударкалаш::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4344,6 +4068,7 @@ SendInput,  /me замахнул%ok3% прикладом АК-74м{Enter}{F6}
 Sleep 200 ;
 SendInput,  /try разбил%ok1% окно{Enter}
 Return
+
 :?:/ударпистолет::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4352,6 +4077,7 @@ SendInput,  /me замахнул%ok3% рукоятью пистолета{Enter}
 Sleep 200 ;
 SendInput,  /try разбил%ok1% окно{Enter}
 Return
+
 :?:/удардробовик::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4360,8 +4086,10 @@ SendInput,  /me замахнул%ok3% прикладом дробовика{Ente
 Sleep 200 ;
 SendInput,  /try разбил%ok1% окно{Enter}
 Return
+
 :?:/выдпогоны::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите погоны должности ->{Space}
@@ -4373,7 +4101,9 @@ Sleep 1700
 SendInput, /do В багажнике лежат погоны "%var1%". {Enter}{F6}
 Sleep 1700
 SendInput, Берите из багажника новые погоны, и прикрепите их на плечи{!}{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/кпкповышение::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4403,6 +4133,7 @@ Sleep 250
 SendInput, /timestamp {Enter}
 sleep 500
 Return
+
 :?:/кпкпонижение::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4430,6 +4161,7 @@ Sleep 250
 SendInput, /giverank %Var1% %Var2%{Enter}
 Sleep 250
 Return
+
 :?:/кпкувал::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4455,6 +4187,7 @@ Sleep 800
 SendInput, /me выключил%ok1% служебный планшет и убрал%ok1% в сумку{Enter}
 Sleep 800
 Return
+
 :?:/кпкпринятие::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4481,53 +4214,58 @@ SendInput, /me выключил%ok1% служебный планшет и убр
 Sleep 800
 SendInput, /invite %Var1% {Enter}
 Return
+
 :?:/ооп1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Osn, %A_Temp%\gumvd.egl, User, Osn
+IniRead, Osn, %A_Temp%\data.egl, User, Osn
 SendInput, {F6}
 Sleep 250
 SendInput, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput, /ro [%Osn%][МВД] Начали спец. операцию по отлову ООП по Республике Провинции.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}
 Return
+
 :?:/ооп2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Osn, %A_Temp%\gumvd.egl, User, Osn
+IniRead, Osn, %A_Temp%\data.egl, User, Osn
 SendInput, {F6}
 Sleep 250
 SendInput, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput, /ro [%Osn%][МВД] Продолжаем спец. операцию по отлову ООП по Республике Провинции.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}
 Return
+
 :?:/ооп3::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Osn, %A_Temp%\gumvd.egl, User, Osn
+IniRead, Osn, %A_Temp%\data.egl, User, Osn
 SendInput, {F6}
 Sleep 250
 SendInput, /do Рация ТАКТ-363 П45 закреплена на нагрудном кармане.{Enter}{F6}
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% её ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 500 ;
 SendInput, /ro [%Osn%][МВД] Закончили спец. операцию по отлову ООП по Республике Провинции.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me перевел%ok1% рацию в режим прослушивания и закрепил%ok1% на нагрудном кармане{Enter}
 Return
+
 :?:/пмп1::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do Аптечка ПМП "ФЭСТ" находится в багажнике автомобиля.{Enter}{F6}
@@ -4535,9 +4273,12 @@ Sleep 500 ;
 SendInput, /me взя%ok2% аптечку из багажника{Enter}{F6}
 Sleep 500 ;
 SendInput, /do Аптечка ПМП "ФЭСТ" в руке.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пмп2::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 500
 SendInput, /do Что случилось с пострадавшим?{Enter}{F6}
@@ -4545,9 +4286,12 @@ Sleep 500
 SendInput, /b Напишите в чат через команду /do, что с вами случилось{Enter}{F6}
 Sleep 500
 SendInput, /b Пример: /do Пострадавшего сбила машина.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пмп3::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me поднес%ok2% руку к сонной артерии гражданина{Enter}{F6}
@@ -4559,9 +4303,12 @@ Sleep 500 ;
 SendInput, /b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F6}
 Sleep 500 ;
 SendInput, /b Чат открывается на клавишу F6 и туда прописываются эти команды.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пмп4::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F6}
@@ -4569,9 +4316,12 @@ Sleep 500 ;
 SendInput, /me поставил%ok1% аптечку на землю, открыл%ok1% её{Enter}{F6}
 Sleep 500 ;
 SendInput, /do Аптечка ПМП "ФЭСТ" открыта.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пмп5::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 500 ;
 SendInput, /me доста%ok2% спирт и вату из аптечки{Enter}{F6}
@@ -4593,17 +4343,23 @@ Sleep 500 ;
 SendInput, /b Ответьте РП отыгровкой в чат: /do Да. или /do Нет.{Enter}{F6}
 Sleep 500 ;
 SendInput, /b Чат открывается на клавишу F6 и туда прописываются эти команды.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пмп6::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do Аптечка ПМП "ФЭСТ" в руке.{Enter}{F6}
 Sleep 500 ;
 SendInput, /me положи%ok2% аптечку в багажник{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/оранения::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 sleep 250
 SendInput, /me начал%ok1% осматривать тело пострадавшего{Enter}{F6}
@@ -4615,9 +4371,12 @@ sleep 1000
 SendInput, /b Ответьте РП отыгровкой /do в чат. Можете написать про ссадины, порезы, ушибы. {Enter}{F6}
 sleep 1000
 SendInput, /b Пример: /do На теле пострадавшего ножевое ранение; /do На теле пострадавшего кровотечение.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/пулевое::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do В аптечке лежат жгут, шприц с обезболивающим, ватка и медицинский спирт.{Enter}{F6}
@@ -4629,9 +4388,12 @@ Sleep 500
 SendInput, /me затянул%ok1% ремешок жгута{Enter}{F6}
 Sleep 500
 SendInput, /do Жгут затянут.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/переломз::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do В аптечке лежат шина, бинт и холодный компресс.{Enter}{F6}
@@ -4647,9 +4409,12 @@ Sleep 500
 SendInput, /me приложил%ok1% компресс к поврежденной конечности пострадавшего{Enter}{F6}
 Sleep 500
 SendInput, /do Компрессор наложен.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/переломо::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /do В аптечке лежат жгут, вата, спиртовой раствор йода и шина.{Enter}{F6}
@@ -4673,7 +4438,9 @@ Sleep 500
 SendInput, /me застегнул%ok1% шину на поврежденной конечности пострадавшего.{Enter}{F6}
 Sleep 500
 SendInput, /do Шина застегнута.{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/ушиб::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4694,6 +4461,7 @@ SendInput, /me наложил%ok1% повязку на место ушиба{Ent
 Sleep 500
 SendInput, /do Повязка наложена.{Enter}
 Return
+
 :?:/кровь::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -4710,8 +4478,10 @@ SendInput, /me размотав второй валик бинта, наложи
 Sleep 500
 SendInput, /do Давящая повязка наложена.{Enter}
 Return
+
 :?:/пульс-::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, /me проводит непрямой массаж сердца пострадавшему, надавливая на грудную клетку {Enter}{F6}
@@ -4723,9 +4493,12 @@ sleep 1000
 SendInput, /do Пульс обнаружен? {Enter}{F6}
 sleep 1000
 SendInput, /b Ответьте РП отыгровкой в чат: /do Да. или /do Нет. {Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/вступление::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput, Сейчас я проведу вам вступительную лекцию.{Enter}{F6}
@@ -4822,6 +4595,7 @@ SendInput, Вы можете узнать в Доске Объявлений.{En
 Sleep 2000
 SendInput, Есть вопросы по этой лекции?{Enter}
 Sleep 2000
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/Аоформление::
@@ -5090,7 +4864,6 @@ Sleep 250
 SendInput,3 года заключения.{Enter}{F6}
 Return
 
-
 :?:/6.1::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -5165,7 +4938,6 @@ Sleep 250
 SendInput,3 года заключения.{Enter}{F6}
 Return
 
-
 :?:/611::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -5201,7 +4973,6 @@ SendInput,Вы задержаны по статье 6.14 УК РП - Превы�
 Sleep 250 
 SendInput,3 года заключения.{Enter}{F6}
 Return
-
 
 :?:/7.1::
 SendMessage, 0x50,, 0x4190419,, A
@@ -5322,11 +5093,12 @@ Return
 
 :?:/пдд211::
 SendMessage, 0x50,, 0x4190419,, A
+PlayRadioSfx("radio_start.wav")
 SendInput, {F6}
 Sleep 250
 SendInput,Согласно 2.1.1 ПДД,вы обязаны предоставить ВУ или паспорт транспортного средства по требованию сотрудника полиции.{Enter}{F6}
+PlayRadioSfx("radio_stop.wav")
 Return
-
 
 :?:/дверь+::
 SendMessage, 0x50,, 0x4190419,, A
@@ -5354,19 +5126,6 @@ SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F8}
 Sleep 50 
 SendInput,  /do Окно цело.{Enter}
-Return
-
-
-:?:/фзоп912::
-SendMessage, 0x50,, 0x4190419,, A
-SendInput, {F6}
-Sleep 250
-SendInput, По статье 3.9.1.2 ФЗоП сотрудник МВД имеет право:проверять документы граждан,{Enter}{F6}
-Sleep 1000 ;
-SendInput, если имеются данные, дающие основания подозревать их в совершении{Enter}{F6}
-Sleep 1000 ;
-SendInput, преступления или полагать, что они находятся в розыске.{Enter}
-Sleep 1000 ;
 Return
 
 :?:/Апогоня::
@@ -5450,24 +5209,28 @@ SendInput, Сейчас пройдет теоритический экзамен
 Sleep 200 ;
 SendInput, Сколько по времени должен составляться протокол задержания?{Enter}
 Return
+
 :?:/экз2::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Когда сотрудник полиции должен представиться/показать удостоверение?{Enter}
 Return
+
 :?:/экз3::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Нужно ли снимать головные уборы с гражданского перед опознанием личности?{Enter}
 Return
+
 :?:/экз4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, В каких местах разрешено оформлять задержанного?{Enter}
 Return
+
 :?:/экз5::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -5476,108 +5239,126 @@ SendInput, Что нужно сделать, если нарушителя за�
 Sleep 200 ;
 SendInput, ...но на моменте оформления выяснилось что он состоит в ФР 2 уровня?{Enter}
 Return
+
 :?:/экз6::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что вы будете делать, если гражданин закроется в авто в момент задержания?{Enter}
 Return
+
 :?:/экз7::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Вы видите как перед дежурной частью лежит при смерти гражданин, ваши действия?{Enter}
 Return
+
 :?:/экз8::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Расскажите мне весь алгоритм оформления задержания.{Enter}
 Return
+
 :?:/экз9::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Какие специальные средства имеются в ГУ МВД?{Enter}
 Return
+
 :?:/экз10::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, В каких случаях разрешено применять специальные средства без предупреждения?{Enter}
 Return
+
 :?:/экз11::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Обязаны ли вы предупреждать о намерении применить табельное оружие? {Enter}
 Return
+
 :?:/экз12::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Какие есть два вида погони?{Enter}
 Return
+
 :?:/экз13::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что нарушил гражданин, если он проехал на красный сигнал светофора?{Enter}
 Return
+
 :?:/экз14::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Какой интервал между предупреждениями при погоне?{Enter}
 Return
+
 :?:/экз15::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Сколько предупреждений должно откидываться при погоне у сотрудников РППС?{Enter}
 Return
+
 :?:/экз16::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 200 ;
 SendInput, Разрешено ли применять АК-74М во время погони?{Enter}
 Return
+
 :?:/экз17::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что вы будете делать если на вас побежит человек с пистолетом и откроет по вам огонь?{Enter}
 Return
+
 :?:/экз18::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Можете ли вы начать расстреливать автомобиль гражданского, который ранее при вас ударил сотрудника Полиции?{Enter}
 Return
+
 :?:/экз19::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что вы будете делать если вас начнут давить машиной?{Enter}
 Return
+
 :?:/экз20::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что нарушает гражданин, если он не подчиняется законным требованиям сотрудника полиции?{Enter}
 Return
+
 :?:/экз21::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Что попадает под категорию место массового скопления людей?{Enter}
 Return
+
 :?:/экз+::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
 Sleep 250
 SendInput, Поздравляю, вы успешно прошли теоритический экзамен{!}{Enter}
 Return
+
 :?:/экз-::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -5586,27 +5367,11 @@ SendInput, На этом теоритический экзамен оконче�
 Sleep 200 ;
 SendInput, Подготовьтесь и в следующий раз у вас обязательно все получится{!}{Enter}
 Return
-24:
-MsgBox, 0, Патруль, Без напарника:`n/п1 - выехать в патруль`n/п2 - продолжить патруль`n/п3 - закончить патруль`n`nС напарником:`n/п1н - выехать в патруль (ввести Звание и Фамилию напарника)`n/п2н - продолжить патруль (ввести Звание и Фамилию напарника)`n/п3н - закончить патруль (ввести Звание и Фамилию напарника)
-return
-25:
-MsgBox, 0, Воздушный патруль, Патруль:`n/воздух1 - вылететь в патруль`n/воздух2 - продолжить патруль`n/воздух3 - закончить патруль
-return
-39:
-MsgBox, 0, I этап, (/собес1)`nЗапись на камеру`n`n(/собес2)`nНазовите ФИО, возраст и образование`n`n(/собес3)`nДайте паспорт`n`n(/собес4)`nДайте трудовую книгу`n`n(/собес5)`nДайте диплом`n`n(/собес6)`nДайте водительское`n`n(/собес7)`nДайте медицинскую карту`n`n(/собес8)`nДайте военный билет
-return
-40:
-MsgBox, 0, II этап, (/собес9)`nРП термин в чат`n`n(/собес10)`nРП термин в чат`n`n(/собес11)`nРП термин в чат`n`n(/собес12)`nРП термин в чат`n`n(/собес13)`nОбождите минутку`n`n(/собес14)`nРП термины в НонРП чат`n`n(/собес15)`nПрисядьте на корточки`n`n(/собес16)`nВставайте в НонРП чат`n`n(/собес17)`nВставайте в РП чат`n`n(/собес18)`nЧто у меня в руке?`n`n
-return
-
-52:
-MsgBox, 0, Протокол, (/протоколдч)`nСоставление протокола в ДЧ`n`n(/протокол1)`nЕсли согласен подписывать протокол`n`n(/протокол2)`nЕсли отказывается подписывать`n
-return
 
 :?:/наказание::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите звание сотрудника->{Space}
@@ -5633,8 +5398,9 @@ Return
 
 :?:/повышение::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+PlayRadioSfx("radio_start.wav")
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите нынешнее звание сотрудника->{Space}
@@ -5652,12 +5418,13 @@ Input, Var3, V, {Enter}
 SendInput, {bs 17}
 Sleep 200 ;
 SendInput, %Var1% полиции %Var2% в связи с одобренным рапортом на повышение, был повышен до звания %Var3%.{Enter}{F6}
+PlayRadioSfx("radio_stop.wav")
 Return
 
 :?:/трудоустройство::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите никнейм сотрудника->{Space}
@@ -5685,8 +5452,8 @@ Return
 
 :?:/увольнение::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Teg, %A_Temp%\gumvd.egl, User, Teg
-IniRead, Prop2, %A_Temp%\gumvd.egl, User, Prop2
+IniRead, Teg, %A_Temp%\data.egl, User, Teg
+IniRead, Prop2, %A_Temp%\data.egl, User, Prop2
 SendInput, {F6}
 Sleep 250
 SendInput, /Введите звание сотрудника->{Space}
@@ -5787,7 +5554,6 @@ Sleep 250
 SendInput, /b /me расписался в бланке{Enter}
 Return
 
-
 :?:/обр4::
 SendMessage, 0x50,, 0x4190419,, A
 SendInput, {F6}
@@ -5800,7 +5566,7 @@ SendInput, /me положил бланк протокола в стопку бл
 Sleep 250
 SendInput, /do Бланк в стопке.{Enter}{F6}
 Sleep 250
-SendInput, Благодарим за обращение, обработаем в кратчайшие сроки.Enter}
+SendInput, Благодарим за обращение, обработаем в кратчайшие сроки.{Enter}
 Return
 
 :?:/камера::
@@ -5842,9 +5608,11 @@ SendInput, На этом лекция окончена.{Enter}{F6}
 Sleep 2000 ;
 SendInput, Если есть вопросы, задавайте{!}{Enter}
 Return
+
 :?:/воздух1::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -5852,15 +5620,18 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /d [ГУ МВД-%Bukv% ВП] Вылетел в воздушное патрулирование.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/воздух2::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -5868,15 +5639,18 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /d [ГУ МВД-%Bukv% ВП] Продолжаю воздушное патрулирование.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+
 :?:/воздух3::
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Bukv, %A_Temp%\gumvd.egl, User, Bukv
+PlayRadioSfx("radio_start.wav")
+IniRead, Bukv, %A_Temp%\data.egl, User, Bukv
 Sleep 200
 SendInput, {F6}
 Sleep 200 ;
@@ -5884,9 +5658,11 @@ SendInput, /do Рация ТАКТ-363 П45 закреплена на нагру
 Sleep 500 ;
 SendInput, /me сняв рацию, подн%ok9% ко рту и нажал%ok1% кнопку для переговоров{Enter}{F6}
 Sleep 500 ;
-PlayRadioSfx("radio_start.wav")
+SoundPlay, %A_Scriptdir%\1.mp3, wait
 Sleep 200 ;
 SendInput,  /d [ГУ МВД-%Bukv% ВП] Закончил воздушное патрулирование.{Enter}{F6}
 Sleep 200 ;
 SendInput, /me отпустил%ok1% кнопку и закрепил%ok1% рацию на нагрудном кармане{Enter}
+PlayRadioSfx("radio_stop.wav")
 Return
+

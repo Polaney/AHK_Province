@@ -344,7 +344,7 @@ RefreshTray()
     Menu, Tray, Add, 🎯 Переместить HUD (Drag&Drop), ToggleHudEditMode
     Menu, Tray, Add
     Menu, Tray, Add, VKowner
-    Menu, Tray, Rename, VKowner, Goldcherry (ВК)
+    Menu, Tray, Rename, VKowner, 💬 Создатель: @polaneychick (ВК)
     Menu, Tray, Add, VKmemo
     Menu, Tray, Rename, VKmemo, Памятка
     Menu, Tray, Add
@@ -357,7 +357,7 @@ RefreshTray()
 }
 
 VKowner:
-Run, https://vk.com/id218945813
+Run, https://vk.ru/polaneychick
 Return
 
 VKmemo:
@@ -559,7 +559,9 @@ Gui, 1:Add, Button, x8 yp+27 w192 h25 gManualCheckUpdates, 🚀 Проверит
 Gui, 1:Add, Button, x8 yp+27 w192 h25 gReload, 🔄 Перезапуск (F11)
 Gui, 1:Add, Button, x8 yp+27 w192 h25 gGuiClose, ❌ Свернуть в трей
 Gui, 1:Font, S8 C8B949E Norm, Segoe UI
-Gui, 1:Add, Text, x10 y654 w188 h18, % "Версия v" . Vers
+Gui, 1:Add, Text, x10 y640 w188 h16, % "Версия v" . Vers
+Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
+Gui, 1:Add, Text, x10 y656 w188 h18 gOpenVkCreator, 💬 Создатель: @polaneychick
 
 ; =================================================================================================
 ; ШАПКА ОСНОВНОЙ РАБОЧЕЙ ОБЛАСТИ
@@ -2825,7 +2827,7 @@ Gui, 3:Add, Button, x15 y314 w195 h32 gButtonURLForumKoAP, КоАП РП
 Gui, 3:Add, Button, x15 y352 w195 h32 gButtonURLMetodPDDD, ПДД РП
 Gui, 3:Add, Button, x15 y390 w195 h32 gButtonURLMetodGIBDD, Методичка УГИБДД
 Gui, 3:Add, Button, x15 y428 w195 h32 gButtonURLMoyak, 🚨 Памятка по маячкам
-Gui, 3:Add, Button, x15 y466 w195 h32 gButtonURLVKRaz, ВК разработчика АХК
+Gui, 3:Add, Button, x15 y466 w195 h32 gButtonURLVKRaz, 💬 Создатель: @polaneychick
 
 Gui, 3:Font, S10 CFFB84D Bold, Segoe UI
 Gui, 3:Add, Text, x225 y54 w270 h24, Форумный раздел МВД
@@ -2839,7 +2841,7 @@ Gui, 3:Add, Text, x225 y320 w270 h24, Кодекс об адм. правонар
 Gui, 3:Add, Text, x225 y358 w270 h24, Правила дорожного движения
 Gui, 3:Add, Text, x225 y396 w270 h24, Методичка сотрудника УГИБДД
 Gui, 3:Add, Text, x225 y434 w270 h24, Режимы проблесковых маячков (1–6)
-Gui, 3:Add, Text, x225 y472 w270 h24, Связь с автором сборки
+Gui, 3:Add, Text, x225 y472 w270 h24, Связь с создателем: vk.ru/polaneychick
 
 Gui, 3:Font, S9 C8B949E Norm, Segoe UI
 Gui, 3:Add, Text, x15 y512 w200 h18, v%Vers%
@@ -2881,7 +2883,8 @@ ButtonURLMetodPDDD:
 Run https://vk.cc/cn94ui
 Return
 ButtonURLVKRaz:
-Run https://vk.com/id218945813
+OpenVkCreator:
+Run, https://vk.ru/polaneychick
 Return
 
 ButtonURLMoyak:
@@ -11477,6 +11480,10 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     }
     if (action = "open_moyak_memo") {
         Gosub, ButtonURLMoyak
+        Return
+    }
+    if (action = "open_vk_creator") {
+        Run, https://vk.ru/polaneychick
         Return
     }
     if (action = "calc_send_overflow") {
