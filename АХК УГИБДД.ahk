@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.6.7"
-global AppVersionCode       := 267
+global AppNumericVersion    := "2.7.0"
+global AppVersionCode       := 270
 global MegaphoneCooldownConfig := 15
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -98,6 +98,16 @@ if (!FileExist(A_ScriptDir . "\assets\warn_fire.wav")) {
 if (!FileExist(A_ScriptDir . "\assets\warn_ready.wav")) {
     try {
         FileInstall, assets\warn_ready.wav, %A_ScriptDir%\assets\warn_ready.wav, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\province_map.jpg")) {
+    try {
+        FileInstall, assets\province_map.jpg, %A_ScriptDir%\assets\province_map.jpg, 1
+    }
+}
+if (!FileExist(A_ScriptDir . "\assets\tactical_radar_hud.jpg")) {
+    try {
+        FileInstall, assets\tactical_radar_hud.jpg, %A_ScriptDir%\assets\tactical_radar_hud.jpg, 1
     }
 }
 
@@ -2591,7 +2601,7 @@ LoadUserConfig() {
     global MegaphoneCooldownConfig, ChaseDeptMode, SfxVolume, ChaseTargetText, AutoScreenMode
     IniPath := A_Temp . "\gibdd.egl"
     IniRead, Fio1, %IniPath%, User, Fio1, Имя Фамилия
-    if (Fio1 = "Имя Фамилия" || Fio1 = "")
+    if (Fio1 = "Имя Фамилия" || Fio1 = "Имя Фамилия Отчество" || Fio1 = "")
         IniRead, Fio1, %IniPath%, Save, FIO1, Имя Фамилия
     IniRead, Rank, %IniPath%, User, Rank, Рядовой
     if (Rank = "Рядовой" || Rank = "")
@@ -10884,8 +10894,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.7"
-global AppVersionCode       := 267
+global AppNumericVersion    := "2.7.0"
+global AppVersionCode       := 270
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10896,8 +10906,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.7"
-    AppVersionCode       := 267
+    AppNumericVersion    := "2.7.0"
+    AppVersionCode       := 270
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10923,8 +10933,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion    := "2.6.7"
-        AppVersionCode       := 267
+        AppNumericVersion    := "2.7.0"
+        AppVersionCode       := 270
     }
 
     if (!IsSilent)
@@ -12556,8 +12566,16 @@ SendClientHeartbeat() {
     payload .= """dutyClock"":""" . JsonEscapeStr(dutyStr) . ""","
     payload .= """finesCnt"":" . finesVal . ","
     payload .= """arrestsCnt"":" . arrVal . ","
+    curStatus := "10-0"
+    if (ChaseActive)
+        curStatus := "10-15"
+    else if (DutyType != "" && InStr(DutyType, "Пост"))
+        curStatus := "10-4"
+    else if (DutyType != "" && InStr(DutyType, "Патруль"))
+        curStatus := "10-0-1"
+
     payload .= """forumPts"":" . ptsVal . ","
-    payload .= """status"":""10-8"""
+    payload .= """status"":""" . curStatus . """"
     payload .= "}"
 
     try {
