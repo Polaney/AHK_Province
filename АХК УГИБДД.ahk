@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion := "2.6.6"
-global AppVersionCode    := 266
+global AppNumericVersion    := "2.6.7"
+global AppVersionCode       := 267
 global MegaphoneCooldownConfig := 15
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -10884,8 +10884,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion := "2.6.6"
-global AppVersionCode    := 266
+global AppNumericVersion    := "2.6.7"
+global AppVersionCode       := 267
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10896,8 +10896,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.6"
-    AppVersionCode       := 266
+    AppNumericVersion    := "2.6.7"
+    AppVersionCode       := 267
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10923,8 +10923,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion    := "2.6.6"
-        AppVersionCode       := 266
+        AppNumericVersion    := "2.6.7"
+        AppVersionCode       := 267
     }
 
     if (!IsSilent)
@@ -11736,7 +11736,6 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             IniWrite, %ChaseDeptMode%, %iniPath%, Settings, ChaseDeptMode
         }
         TrayTip, 🚔 Режим погони, % "Установлен отдел: " . GetChaseDept() . " (" . GetMaxChaseStages() . " предов)", 2, 1
-        RefreshFluentWebData()
         Return
     }
     if (action = "set_megaphone_cd") {
@@ -11748,7 +11747,6 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             IniWrite, %MegaphoneCooldownConfig%, %iniPath%, Settings, MegaphoneCooldown
         }
         TrayTip, ⏱ КД мегафонов, % "Интервал между требованиями: " . MegaphoneCooldownConfig . " сек.", 2, 1
-        RefreshFluentWebData()
         Return
     }
     if (action = "set_sfx_volume") {
@@ -11757,7 +11755,6 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
             IniWrite, %SfxVolume%, %iniPath%, Settings, SfxVolume
         }
-        RefreshFluentWebData()
         Return
     }
     if (action = "test_sfx") {
@@ -12485,9 +12482,21 @@ PlayRadioSfx(soundName) {
         soundPath := A_ScriptDir . "\" . soundName
     if (!FileExist(soundPath))
         return
-    ; 0x00020001 = SND_ASYNC (0x1) | SND_FILENAME (0x20000)
-    res := DllCall("winmm\PlaySoundW", "WStr", soundPath, "Ptr", 0, "UInt", 0x00020001)
-    if (!res) {
+
+    vol1000 := Round(SfxVolume * 10)
+    static sfxCounter := 0
+    sfxCounter := Mod(sfxCounter + 1, 8)
+    alias := "sfx_" . sfxCounter
+
+    DllCall("winmm\mciSendStringW", "WStr", "close " . alias, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    cmdOpen := "open """ . soundPath . """ type MPEGVideo alias " . alias
+    res := DllCall("winmm\mciSendStringW", "WStr", cmdOpen, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    if (res = 0) {
+        cmdVol := "setaudio " . alias . " volume to " . vol1000
+        DllCall("winmm\mciSendStringW", "WStr", cmdVol, "Ptr", 0, "UInt", 0, "Ptr", 0)
+        cmdPlay := "play " . alias . " from 0"
+        DllCall("winmm\mciSendStringW", "WStr", cmdPlay, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    } else {
         SoundPlay, %soundPath%
     }
 }

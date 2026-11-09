@@ -1172,10 +1172,16 @@ html, body {
                         </div>
 
                         <!-- Регулировка громкости -->
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                            <span style="font-size:12px; color:#C9D1D9;">🔊 Громкость звуков:</span>
-                            <input type="range" id="sfx-vol-range" min="0" max="100" value="80" style="width:120px; cursor:pointer;" oninput="onSfxVolumeChange(this.value)">
-                            <span id="sfx-vol-badge" style="font-size:12px; font-weight:700; color:#58A6FF; min-width:36px;">80%</span>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:#C9D1D9;">🔊 Громкость:</span>
+                            <div class="filter-bar" style="margin:0; padding:2px;">
+                                <button class="filter-pill" id="vol-pill-0" onclick="setVolumePreset(0)">🔇 0%</button>
+                                <button class="filter-pill" id="vol-pill-25" onclick="setVolumePreset(25)">🔈 25%</button>
+                                <button class="filter-pill" id="vol-pill-50" onclick="setVolumePreset(50)">🔉 50%</button>
+                                <button class="filter-pill active" id="vol-pill-80" onclick="setVolumePreset(80)">🔊 80%</button>
+                                <button class="filter-pill" id="vol-pill-100" onclick="setVolumePreset(100)">📢 100%</button>
+                            </div>
+                            <span id="sfx-vol-badge" style="font-size:12px; font-weight:700; color:#58A6FF; min-width:38px;">80%</span>
                             <button class="btn-fluent" style="padding:4px 10px; font-size:11px;" onclick="callAhk('test_sfx')">Тест звука</button>
                         </div>
                     </div>
@@ -1833,19 +1839,21 @@ html, body {
             </div>
         </div>
 
-        <div class="form-row">
-            <div class="form-lbl">Отдел (XX) / Тен-код сотрудника (YY):</div>
-            <div class="form-ctrl" style="display:flex;">
-                <input type="text" id="pf-teg" class="fluent-input" style="width:48%; margin-right:4%;" placeholder="Отдел (51-56)">
-                <input type="text" id="pf-prop2" class="fluent-input" style="width:48%;" placeholder="ID (напр. 05)">
-            </div>
-            <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('51', 'Курсант ВПА')">51 ВПА</button>
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('52', 'Инспектор ОР')">52 ОР</button>
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('53', 'Инспектор СР')">53 СР</button>
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('54', 'Инспектор МР')">54 МР</button>
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('55', 'Зам. Начальника ГИБДД')">55 Зам</button>
-                <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('56', 'Начальник ГИБДД')">56 Нач</button>
+        <div class="form-row" style="align-items:flex-start;">
+            <div class="form-lbl" style="padding-top:6px;">Отдел (XX) / Тен-код (YY):</div>
+            <div class="form-ctrl">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="pf-teg" class="fluent-input" style="flex:1;" placeholder="Отдел (51-56)">
+                    <input type="text" id="pf-prop2" class="fluent-input" style="flex:1;" placeholder="ID (напр. 05)">
+                </div>
+                <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('51', 'Курсант ВПА')">51 ВПА</button>
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('52', 'Инспектор ОР')">52 ОР</button>
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('53', 'Инспектор СР')">53 СР</button>
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('54', 'Инспектор МР')">54 МР</button>
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('55', 'Зам. Начальника ГИБДД')">55 Зам</button>
+                    <button type="button" class="btn-glass" style="font-size:11px; padding:3px 8px;" onclick="setDeptPreset('56', 'Начальник ГИБДД')">56 Нач</button>
+                </div>
             </div>
         </div>
 
@@ -2994,35 +3002,54 @@ function updateChaseDeptUI(mode) {
     }
 }
 
-function setMegaphoneCd(sec) {
-    var val = parseInt(sec, 10);
+function updateMegaphoneCdUI(val) {
+    val = parseInt(val, 10);
     if (isNaN(val) || val < 1) val = 15;
-    if (APP_DATA && APP_DATA.profile) {
-        APP_DATA.profile.megaphoneCd = val;
-    }
     var cds = [5, 10, 15, 20, 30];
     for (var i = 0; i < cds.length; i++) {
         var el = document.getElementById('cd-pill-' + cds[i]);
         if (el) el.className = (cds[i] === val) ? 'filter-pill active' : 'filter-pill';
     }
     var inp = document.getElementById('custom-cd-input');
-    if (inp && cds.indexOf(val) === -1) {
-        inp.value = val;
+    if (inp) inp.value = val;
+}
+
+function setMegaphoneCd(sec) {
+    var val = parseInt(sec, 10);
+    if (isNaN(val) || val < 1) val = 15;
+    if (APP_DATA && APP_DATA.profile) {
+        APP_DATA.profile.megaphoneCd = val;
     }
+    updateMegaphoneCdUI(val);
     callAhk('set_megaphone_cd', String(val));
 }
 
-function onSfxVolumeChange(val) {
+function updateVolumeUI(val) {
     var v = parseInt(val, 10);
     if (isNaN(v)) v = 80;
     if (v < 0) v = 0;
     if (v > 100) v = 100;
     var badge = document.getElementById('sfx-vol-badge');
     if (badge) badge.innerText = v + '%';
+    var presets = [0, 25, 50, 80, 100];
+    for (var i = 0; i < presets.length; i++) {
+        var el = document.getElementById('vol-pill-' + presets[i]);
+        if (el) el.className = (presets[i] === v) ? 'filter-pill active' : 'filter-pill';
+    }
+}
+
+function setVolumePreset(val) {
+    var v = parseInt(val, 10);
+    if (isNaN(v)) v = 80;
     if (APP_DATA && APP_DATA.profile) {
         APP_DATA.profile.sfxVolume = v;
     }
+    updateVolumeUI(v);
     callAhk('set_sfx_volume', String(v));
+}
+
+function onSfxVolumeChange(val) {
+    setVolumePreset(val);
 }
 
 function initDashboard() {
@@ -3079,12 +3106,9 @@ function initDashboard() {
     var deptMode = p.chaseDeptMode || 'AUTO';
     updateChaseDeptUI(deptMode);
     var cdVal = p.megaphoneCd || 15;
-    setMegaphoneCd(cdVal);
+    updateMegaphoneCdUI(cdVal);
     var volVal = (p.sfxVolume !== undefined) ? p.sfxVolume : 80;
-    var volRange = document.getElementById('sfx-vol-range');
-    if (volRange) volRange.value = volVal;
-    var volBadge = document.getElementById('sfx-vol-badge');
-    if (volBadge) volBadge.innerText = volVal + '%';
+    updateVolumeUI(volVal);
 }
 
 var agentRelayWs = null;
