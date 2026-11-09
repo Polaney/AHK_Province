@@ -1134,6 +1134,53 @@ html, body {
 
             <!-- ================= ВКЛАДКА 2: ПАТРУЛЬ И СГУ ================= -->
             <div class="tab-pane" id="tab-2">
+                <!-- БЛОК НАСТРОЙКИ СГУ, ОТДЕЛОВ ОР/СР И ЗВУКА -->
+                <div class="glass-card" style="margin-bottom:14px; padding:14px 18px; border-left:4px solid #58A6FF; background:rgba(18,26,46,0.7);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:700; color:#58A6FF; display:flex; align-items:center; gap:8px;">
+                                <span>🚨 ТАКТИКА ПОГОНИ И СГУ (MTA PROVINCE 5 СЕРВЕР)</span>
+                                <span id="chase-dept-badge" style="font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(88,166,255,0.2); color:#79C0FF; border:1px solid rgba(88,166,255,0.4);">ОР • 5 ПРЕДОВ</span>
+                            </div>
+                            <div style="font-size:11px; color:#8B949E; margin-top:3px;" id="chase-dept-rule-desc">
+                                ОР: 5 предупреждений (1 зелёный + 3 жёлтых + 1 красный). Огонь разрешён строго после всех предов И 3 минут (180с) погони.
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:#C9D1D9;">Отдел:</span>
+                            <div class="filter-bar" style="margin:0; padding:2px;">
+                                <button class="filter-pill active" id="chase-dept-btn-AUTO" onclick="setChaseDeptMode('AUTO')">Авто</button>
+                                <button class="filter-pill" id="chase-dept-btn-OR" onclick="setChaseDeptMode('OR')">ОР (5 предов)</button>
+                                <button class="filter-pill" id="chase-dept-btn-SR" onclick="setChaseDeptMode('SR')">СР (3 преда)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">
+                        <!-- КД мегафонов -->
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:#C9D1D9;">⏱ КД между предами:</span>
+                            <div class="filter-bar" style="margin:0; padding:2px;">
+                                <button class="filter-pill" id="cd-pill-5" onclick="setMegaphoneCd(5)">5с</button>
+                                <button class="filter-pill" id="cd-pill-10" onclick="setMegaphoneCd(10)">10с</button>
+                                <button class="filter-pill active" id="cd-pill-15" onclick="setMegaphoneCd(15)">15с (ФЗоП)</button>
+                                <button class="filter-pill" id="cd-pill-20" onclick="setMegaphoneCd(20)">20с</button>
+                                <button class="filter-pill" id="cd-pill-30" onclick="setMegaphoneCd(30)">30с</button>
+                            </div>
+                            <input type="number" id="custom-cd-input" min="1" max="120" style="width:58px; background:rgba(13,17,23,0.8); border:1px solid #30363D; border-radius:6px; color:#E6EDF3; padding:3px 6px; font-size:12px; text-align:center;" onchange="setMegaphoneCd(this.value)" placeholder="сек">
+                        </div>
+
+                        <!-- Регулировка громкости -->
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:#C9D1D9;">🔊 Громкость звуков:</span>
+                            <input type="range" id="sfx-vol-range" min="0" max="100" value="80" style="width:120px; cursor:pointer;" oninput="onSfxVolumeChange(this.value)">
+                            <span id="sfx-vol-badge" style="font-size:12px; font-weight:700; color:#58A6FF; min-width:36px;">80%</span>
+                            <button class="btn-fluent" style="padding:4px 10px; font-size:11px;" onclick="callAhk('test_sfx')">Тест звука</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid-row">
                     <div class="col-4">
                         <div class="glass-card">
@@ -2902,6 +2949,82 @@ function renderJournalTable() {
     tbody.innerHTML = html.join('');
 }
 
+function setChaseDeptMode(mode) {
+    if (APP_DATA && APP_DATA.profile) {
+        APP_DATA.profile.chaseDeptMode = mode;
+    }
+    updateChaseDeptUI(mode);
+    callAhk('set_chase_dept_mode', mode);
+}
+
+function updateChaseDeptUI(mode) {
+    var modes = ['AUTO', 'OR', 'SR'];
+    for (var i = 0; i < modes.length; i++) {
+        var btn = document.getElementById('chase-dept-btn-' + modes[i]);
+        if (btn) btn.className = (modes[i] === mode) ? 'filter-pill active' : 'filter-pill';
+    }
+    var badge = document.getElementById('chase-dept-badge');
+    var desc = document.getElementById('chase-dept-rule-desc');
+    var actual = mode;
+    if (mode === 'AUTO') {
+        var teg = (APP_DATA && APP_DATA.profile && APP_DATA.profile.teg) ? APP_DATA.profile.teg : '52';
+        var otdel = (APP_DATA && APP_DATA.profile && APP_DATA.profile.otdel) ? APP_DATA.profile.otdel : '';
+        actual = (teg === '53' || otdel.indexOf('СР') !== -1) ? 'SR' : 'OR';
+    }
+    if (actual === 'SR') {
+        if (badge) {
+            badge.innerText = 'СР • 3 ПРЕДА';
+            badge.style.color = '#7EE787';
+            badge.style.borderColor = 'rgba(126,231,135,0.4)';
+            badge.style.background = 'rgba(126,231,135,0.15)';
+        }
+        if (desc) {
+            desc.innerText = 'СР (Спец. рота): 3 предупреждения (1 зелёный + 1 жёлтый + 1 красный). Огонь разрешён строго после 3 предов И 3 минут (180с) погони.';
+        }
+    } else {
+        if (badge) {
+            badge.innerText = 'ОР • 5 ПРЕДОВ';
+            badge.style.color = '#79C0FF';
+            badge.style.borderColor = 'rgba(88,166,255,0.4)';
+            badge.style.background = 'rgba(88,166,255,0.15)';
+        }
+        if (desc) {
+            desc.innerText = 'ОР (Отдельная рота): 5 предупреждений (1 зелёный + 3 жёлтых + 1 красный). Огонь разрешён строго после 5 предов И 3 минут (180с) погони.';
+        }
+    }
+}
+
+function setMegaphoneCd(sec) {
+    var val = parseInt(sec, 10);
+    if (isNaN(val) || val < 1) val = 15;
+    if (APP_DATA && APP_DATA.profile) {
+        APP_DATA.profile.megaphoneCd = val;
+    }
+    var cds = [5, 10, 15, 20, 30];
+    for (var i = 0; i < cds.length; i++) {
+        var el = document.getElementById('cd-pill-' + cds[i]);
+        if (el) el.className = (cds[i] === val) ? 'filter-pill active' : 'filter-pill';
+    }
+    var inp = document.getElementById('custom-cd-input');
+    if (inp && cds.indexOf(val) === -1) {
+        inp.value = val;
+    }
+    callAhk('set_megaphone_cd', String(val));
+}
+
+function onSfxVolumeChange(val) {
+    var v = parseInt(val, 10);
+    if (isNaN(v)) v = 80;
+    if (v < 0) v = 0;
+    if (v > 100) v = 100;
+    var badge = document.getElementById('sfx-vol-badge');
+    if (badge) badge.innerText = v + '%';
+    if (APP_DATA && APP_DATA.profile) {
+        APP_DATA.profile.sfxVolume = v;
+    }
+    callAhk('set_sfx_volume', String(v));
+}
+
 function initDashboard() {
     if (!APP_DATA || !APP_DATA.profile) return;
     var p = APP_DATA.profile;
@@ -2952,6 +3075,16 @@ function initDashboard() {
     renderHotkeysTable();
     renderJournalTable();
     initAgentRelayWs();
+
+    var deptMode = p.chaseDeptMode || 'AUTO';
+    updateChaseDeptUI(deptMode);
+    var cdVal = p.megaphoneCd || 15;
+    setMegaphoneCd(cdVal);
+    var volVal = (p.sfxVolume !== undefined) ? p.sfxVolume : 80;
+    var volRange = document.getElementById('sfx-vol-range');
+    if (volRange) volRange.value = volVal;
+    var volBadge = document.getElementById('sfx-vol-badge');
+    if (volBadge) volBadge.innerText = volVal + '%';
 }
 
 var agentRelayWs = null;

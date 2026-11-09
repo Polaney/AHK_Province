@@ -745,6 +745,27 @@ html, body {
         <!-- ТАБ 1: ПАТРУЛЬ & СПЕЦСИГНАЛЫ -->
         <div class="tab-pane active" id="pane-1">
             <div class="section-title">🚨 Мегафон и спецсигналы (СГУ)</div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button class="btn-tablet danger" style="flex:2;" onclick="triggerAction('smart_meg')">
+                    <span class="btn-icon">⚡</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Умный мегафон (следующий)</span>
+                        <span class="btn-sub-text">Авто-прогресс предов с КД</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" style="flex:1;" onclick="triggerAction('stop_chase')">
+                    <span class="btn-icon">🛑</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Сброс</span>
+                    </div>
+                </button>
+                <button class="btn-tablet warning" style="flex:1;" onclick="triggerAction('report_chase')">
+                    <span class="btn-icon">⚖️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Репорт</span>
+                    </div>
+                </button>
+            </div>
             <div class="grid-1">
                 <button class="btn-tablet warning" onclick="triggerAction('meg1')">
                     <span class="btn-icon">📢</span>

@@ -11,8 +11,11 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion := "2.6.4"
-global AppVersionCode    := 264
+global AppNumericVersion    := "2.6.5"
+global AppVersionCode       := 265
+global MegaphoneCooldownConfig := 15
+global ChaseDeptMode     := "AUTO"
+global SfxVolume         := 80
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -212,13 +215,45 @@ SmartSleep(DurationMs)
 Bind_StopAction:
 AbortBindFlag := 1
 SetTimer, ClearAbortBindFlag, -450
-SoundBeep, 750, 120
+PlaySafeBeep(750, 120)
 TrayTip, УГИБДД АХК, ⛔ Текущая отыгровка / лекция остановлена!, 2, 2
 Return
 
 ClearAbortBindFlag:
 AbortBindFlag := 0
 Return
+
+SetAppSoundVolume(volPercent) {
+    global SfxVolume
+    if (volPercent < 0)
+        volPercent := 0
+    if (volPercent > 100)
+        volPercent := 100
+    SfxVolume := volPercent
+    normVol := Round(volPercent * 65535 / 100)
+    volDword := (normVol & 0xFFFF) | ((normVol & 0xFFFF) << 16)
+    DllCall("winmm\waveOutSetVolume", "Ptr", 0, "UInt", volDword)
+}
+
+PlaySafeBeep(freq := 750, dur := 120) {
+    global SfxVolume
+    if (SfxVolume <= 0)
+        return
+    SoundBeep, %freq%, %dur%
+}
+
+UpdateGenderVariables() {
+    global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
+    if (Gender = "Я девочка") {
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.5") . "ж"
+        Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
+        Pol := "👩‍⚕️", Gend := "женский"
+    } else {
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.5") . "м"
+        Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
+        Pol := "👨‍⚕️", Gend := "мужской"
+    }
+}
 
 RefreshTray()
 {
@@ -383,41 +418,7 @@ EnsureDefaultConfig()
 LoadUserConfig()
 ApplySendEngineMode(SendMethodConfig)
 
-if (Gender = "Я девочка")
-{
-    Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.0") . "ж"
-    Ok1 = а
-    Ok2 = ла
-    Ok3 = ась
-    Ok4 = цы
-    Ok5 = ца
-    Ok6 = це
-    Ok7 = ла
-    Ok8 = ела
-    Ok9 = есла
-    Ok10 = цей
-    Ok11 = екла
-    Pol = 👩‍⚕️
-    Gend = женский
-}
-else
-{
-    Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.0") . "м"
-    Ok1 =
-    Ok2 =
-    Ok2 =
-    Ok3 = ся
-    Ok4 = ка
-    Ok5 = к
-    Ok6 = ке
-    Ok7 = ёл
-    Ok8 = ёл
-    Ok9 = ёс
-    Ok10 = ком
-    Ok11 = ёк
-    Pol = 👨‍⚕️
-    Gend = мужской
-}
+UpdateGenderVariables()
 
 Random, Var, 1, 5
 TextArray := ["УГИБДД МВД Провинции — Служба, Честь и Безопасность на дорогах!"
@@ -1291,10 +1292,30 @@ StopChaseModeLabel:
 StopChaseMode()
 Return
 
+GetChaseDept() {
+    global ChaseDeptMode, Teg, Otdel
+    if (ChaseDeptMode = "SR" || ChaseDeptMode = "СР")
+        return "СР"
+    if (ChaseDeptMode = "OR" || ChaseDeptMode = "ОР")
+        return "ОР"
+    ; AUTO: Teg 53 или наличие "СР" в названии отдела = СР (3 преда)
+    if (Teg = "53" || InStr(Otdel, "СР"))
+        return "СР"
+    return "ОР"
+}
+
+GetMaxChaseStages() {
+    dept := GetChaseDept()
+    return (dept = "СР") ? 3 : 5
+}
+
 ExecuteSmartMegaphoneStep() {
-    global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec, ok1, ok2, OnlyInGameMode
+    global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec, ok1, ok2, OnlyInGameMode, MegaphoneCooldownConfig
     if (OnlyInGameMode && !WinActive("ahk_exe gta_sa.exe") && !WinActive("ahk_class Grand Theft Auto San Andreas") && !WinActive("ahk_exe Multi Theft Auto.exe"))
         Return
+
+    dept := GetChaseDept()
+    maxSt := GetMaxChaseStages()
 
     if (!ChaseActive || ChaseStage = 0) {
         StartChaseTimer(1)
@@ -1308,20 +1329,22 @@ ExecuteSmartMegaphoneStep() {
         Send, {F8}{Space}{Backspace} m {#}7ae70dВодитель, принимаем крайнее правое положение и останавливаемся{!}{Enter}{F8}
         SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-        SoundBeep, 800, 150
-        TrayTip, 🚔 Мегафон 1/3 отправлен, До 2-го мегафона: 15 секунд по ст. 15 ФЗоП., 3, 1
-        LogJournalAction("Погоня", "Мегафон №1", "Требование об остановке ТС (1/3)", 0)
-        TriggerSmartScreenshot("Мегафон 1/3")
+        PlaySafeBeep(800, 150)
+        cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
+        TrayTip, % "🚔 [" . dept . "] Мегафон 1/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
+        LogJournalAction("Погоня", "Мегафон №1", "Требование об остановке ТС (1/" . maxSt . ")", 0)
+        TriggerSmartScreenshot("Мегафон 1/" . maxSt)
         Return
     }
 
-    if (ChaseStage = 1) {
+    if (ChaseStage < maxSt) {
         if (ChaseCooldownSec > 0) {
-            SoundBeep, 450, 120
-            TrayTip, ⏳ КД мегафона (ст. 15 ФЗоП), Подождите ещё %ChaseCooldownSec% сек. перед 2-м мегафоном!, 2, 2
+            PlaySafeBeep(450, 120)
+            TrayTip, ⏳ КД мегафона, % "Подождите ещё " . ChaseCooldownSec . " сек. перед следующим мегафоном!", 2, 2
             Return
         }
-        StartChaseTimer(2)
+        nextStage := ChaseStage + 1
+        StartChaseTimer(nextStage)
         SetCapsOff()
         SetLocaleRu()
         SmartSleep(100)
@@ -1329,45 +1352,56 @@ ExecuteSmartMegaphoneStep() {
         SmartSleep(600)
         Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
         SmartSleep(600)
-        Send, {F8}{Space}{Backspace} m {#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}{Enter}{F8}
-        SmartSleep(600)
-        Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-        SoundBeep, 950, 150
-        TrayTip, 🚔 Мегафон 2/3 отправлен, До финального предупреждения: 15 сек., 3, 1
-        LogJournalAction("Погоня", "Мегафон №2", "Повторное требование об остановке (2/3)", 0)
-        TriggerSmartScreenshot("Мегафон 2/3")
-        Return
-    }
 
-    if (ChaseStage = 2) {
-        if (ChaseCooldownSec > 0) {
-            SoundBeep, 450, 120
-            TrayTip, ⏳ КД мегафона (ст. 15 ФЗоП), Подождите ещё %ChaseCooldownSec% сек. перед 3-м мегафоном!, 2, 2
-            Return
+        ; Выбор текста мегафона: ОР (5 предов) / СР (3 преда)
+        if (nextStage = maxSt) {
+            if (dept = "ОР")
+                msgText := "{#}e74c3cОстанавливайтесь{!} В случае отказа будет открыт огонь по колёсам{!}"
+            else
+                msgText := "{#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}"
+        } else if (nextStage = 2) {
+            if (dept = "ОР")
+                msgText := "{#}e7950dПовторяю, водитель, примите крайнее правое положение и остановитесь{!}"
+            else
+                msgText := "{#}e7950dПовторяю, водитель, примите вправо и остановитесь{!}"
+        } else if (nextStage = 3) {
+            msgText := "{#}e7950dВодитель, немедленно прижмитесь к обочине и совершите остановку{!}"
+        } else if (nextStage = 4) {
+            msgText := "{#}e7950dВодитель, это последнее предупреждение! Примите вправо и остановитесь{!}"
         }
-        StartChaseTimer(3)
-        SetCapsOff()
-        SetLocaleRu()
-        SmartSleep(100)
-        Send, {F8} do Тангента СГУ "Ермак" закреплена на торпеде.{Enter}{F8}
-        SmartSleep(600)
-        Send, {F8} me сняв тангенту с крепления, поднес%ok2% её ко рту и зажал%ok1% кнопку звукоусиления{Enter}{F8}
-        SmartSleep(600)
-        Send, {F8}{Space}{Backspace} m {#}e74c3cОстанавливайтесь{!} В случае отказа откроем огонь{!}{Enter}{F8}
+
+        Send, {F8}{Space}{Backspace} m %msgText%{Enter}{F8}
         SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
-        SoundBeep, 1100, 200
-        TrayTip, ⚠️ Мегафон 3/3 отправлен!, ТРЕБОВАНИЯ ВЫПОЛНЕНЫ! ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП)!, 4, 2
-        LogJournalAction("Погоня", "Мегафон №3", "Финальное требование (3/3) - Огонь санкционирован", 0)
-        TriggerSmartScreenshot("Мегафон 3/3 (Огонь)")
+
+        if (nextStage = maxSt) {
+            PlaySafeBeep(1100, 200)
+            if (ChaseTotalSec <= 0) {
+                TrayTip, % "⚠️ [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " (ФИНАЛ)!", "ТРЕБОВАНИЯ ВЫПОЛНЕНЫ! ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП)!", 4, 2
+            } else {
+                TrayTip, % "⚠️ [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " (ФИНАЛ)!", % "Все преды выданы! Ждите 3 мин погони (осталось " . FormatMMSS(ChaseTotalSec) . ") перед открытием огня!", 4, 2
+            }
+            LogJournalAction("Погоня", "Мегафон №" . nextStage, "Финальное требование (" . nextStage . "/" . maxSt . ")", 0)
+            TriggerSmartScreenshot("Мегафон " . nextStage . "/" . maxSt)
+        } else {
+            PlaySafeBeep(950, 150)
+            cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
+            TrayTip, % "🚔 [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
+            LogJournalAction("Погоня", "Мегафон №" . nextStage, "Требование об остановке (" . nextStage . "/" . maxSt . ")", 0)
+            TriggerSmartScreenshot("Мегафон " . nextStage . "/" . maxSt)
+        }
         Return
     }
 
-    if (ChaseStage >= 3) {
-        SoundBeep, 1200, 100
+    if (ChaseStage >= maxSt) {
+        PlaySafeBeep(1200, 100)
         Sleep, 50
-        SoundBeep, 1200, 150
-        TrayTip, ⚠️ ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП), Все 3 мегафона выданы! Применяйте таран и огонь по колесам!, 3, 2
+        PlaySafeBeep(1200, 150)
+        if (ChaseTotalSec <= 0) {
+            TrayTip, ⚠️ ОГОНЬ ПО КОЛЕСАМ РАЗРЕШЁН (ст. 15 ФЗоП), % "Все " . maxSt . " мегафонов выданы и 3 минуты истекли! Разрешён огонь по колёсам!", 3, 2
+        } else {
+            TrayTip, ⏳ ЖДИТЕ ОКОНЧАНИЯ 3 МИНУТ ПОГОНИ, % "Все " . maxSt . " мегафонов выданы. До открытия огня осталось: " . FormatMMSS(ChaseTotalSec) . "!", 3, 2
+        }
     }
 }
 
@@ -1381,7 +1415,7 @@ StopChaseMode() {
     ChaseStage := 0
     ChaseCooldownSec := 0
     ChaseTotalSec := 0
-    SoundBeep, 650, 150
+    PlaySafeBeep(650, 150)
     TrayTip, 🏁 Погоня сброшена, Таймеры погони и мегафонов отключены., 2, 1
     Gosub, UpdateHudTick
 }
@@ -1558,7 +1592,7 @@ reportText .= "--------------------------------------------------`n"
 reportText .= "Все фиксации сохранены с /timestamp. Отчёт сгенерирован автоматически скриптом «АХК УГИБДД»."
 
 Clipboard := reportText
-SoundBeep, 900, 150
+PlaySafeBeep(900, 150)
 TrayTip, 📋 Отчёт скопирован!, Готовый текст отчёта с нормой скопирован в буфер обмена для форума!, 3, 1
 MsgBox, 64, Готовый отчёт для форума, Текст отчёта успешно сформирован и скопирован в буфер обмена!`nВставьте его на форуме в тему онлайн-протокола (Ctrl+V).
 Return
@@ -1577,7 +1611,7 @@ utf8Bom := FileOpen(csvPath, "w", "UTF-8")
 if (IsObject(utf8Bom)) {
     utf8Bom.Write(csvContent)
     utf8Bom.Close()
-    SoundBeep, 850, 120
+    PlaySafeBeep(850, 120)
     TrayTip, 📁 Экспорт CSV завершён, Журнал сохранён в файл: %csvPath%, 3, 1
 }
 Return
@@ -1999,7 +2033,7 @@ if (FileExist(cbIni)) {
     }
 }
 
-SoundBeep, 850, 150
+PlaySafeBeep(850, 150)
 TrayTip, 📤 Бэкап создан!, % "Файл резервной копии сохранён: " . backupFile, 3, 1
 MsgBox, 64, Резервная копия создана, % "Все данные профиля, горячие клавиши и созданные бинды успешно экспортированы в файл:`n" . backupFile
 Return
@@ -2047,7 +2081,7 @@ if (cbCount > 0) {
     }
 }
 
-SoundBeep, 950, 200
+PlaySafeBeep(950, 200)
 MsgBox, 64, Импорт завершен, Профиль и настройки успешно восстановлены из резервной копии!`nСкрипт будет перезапущен для применения изменений.
 Reload
 Return
@@ -2499,17 +2533,36 @@ EnsureDefaultConfig() {
 
 LoadUserConfig() {
     global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Znak, CheckMB, Post, ProvLogPath, OnlyInGameMode, RadioSfxEnabled
+    global MegaphoneCooldownConfig, ChaseDeptMode, SfxVolume, ChaseTargetText, AutoScreenMode
     IniPath := A_Temp . "\gibdd.egl"
     IniRead, Fio1, %IniPath%, User, Fio1, Имя Фамилия
+    if (Fio1 = "Имя Фамилия" || Fio1 = "")
+        IniRead, Fio1, %IniPath%, Save, FIO1, Имя Фамилия
     IniRead, Rank, %IniPath%, User, Rank, Рядовой
+    if (Rank = "Рядовой" || Rank = "")
+        IniRead, Rank, %IniPath%, Save, RANK, Рядовой
     IniRead, Prop1, %IniPath%, User, Prop1, 1
     IniRead, Prop2, %IniPath%, User, Prop2, 000
+    if (Prop2 = "000" || Prop2 = "")
+        IniRead, Prop2, %IniPath%, Save, PROP2, 000
     IniRead, Otdel, %IniPath%, User, Otdel, Инспектор ОР
+    if (Otdel = "Инспектор ОР" || Otdel = "")
+        IniRead, Otdel, %IniPath%, Save, OTDEL, Инспектор ОР
     IniRead, Frak, %IniPath%, User, Frak, Невский
+    if (Frak = "Невский" || Frak = "")
+        IniRead, Frak, %IniPath%, Save, FRAK, Невский
     IniRead, Gender, %IniPath%, User, Gender, Я мужык
-    IniRead, Teg, %IniPath%, User, Teg, 61
+    if (Gender = "Я мужык" || Gender = "")
+        IniRead, Gender, %IniPath%, Save, GENDER, Я мужык
+    IniRead, Teg, %IniPath%, User, Teg, 52
+    if (Teg = "52" || Teg = "61" || Teg = "")
+        IniRead, Teg, %IniPath%, Save, TEG, 52
     IniRead, Gibdd, %IniPath%, User, Gibdd, УГИБДД-Н
+    if (Gibdd = "УГИБДД-Н" || Gibdd = "")
+        IniRead, Gibdd, %IniPath%, Save, GIBDD, УГИБДД-Н
     IniRead, Znak, %IniPath%, User, Znak, 77-000000
+    if (Znak = "77-000000" || Znak = "")
+        IniRead, Znak, %IniPath%, Save, ZNAK, 77-000000
     IniRead, CheckMB, %IniPath%, User, CheckMB, ОР/СР
     IniRead, Post, %IniPath%, User, Post, 1
     IniRead, ProvLogPath, %IniPath%, User, ProvLogPath, AUTO
@@ -2517,6 +2570,20 @@ LoadUserConfig() {
     IniRead, AutoScreenMode, %IniPath%, User, AutoScreenMode, 1
     IniRead, RadioSfxEnabled, %IniPath%, User, RadioSfx, 1
     IniRead, ChaseTargetText, %IniPath%, User, ChaseTargetText, ТС нарушителя
+
+    IniRead, MegaphoneCooldownConfig, %IniPath%, Settings, MegaphoneCooldown, 15
+    if (MegaphoneCooldownConfig = "ERROR" || MegaphoneCooldownConfig = "" || MegaphoneCooldownConfig < 1)
+        MegaphoneCooldownConfig := 15
+
+    IniRead, ChaseDeptMode, %IniPath%, Settings, ChaseDeptMode, AUTO
+    if (ChaseDeptMode = "ERROR" || ChaseDeptMode = "")
+        ChaseDeptMode := "AUTO"
+
+    IniRead, SfxVolume, %IniPath%, Settings, SfxVolume, 80
+    if (SfxVolume = "ERROR" || SfxVolume = "" || SfxVolume < 0)
+        SfxVolume := 80
+    SetAppSoundVolume(SfxVolume)
+
     if (Prop1 = "ERROR" || Prop1 = "")
         Prop1 := "1"
     if (Post = "ERROR" || Post = "")
@@ -2652,6 +2719,18 @@ for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"
     IniWrite, %Gibdd%, %targetIni%, User, Gibdd
     IniWrite, %CheckMB%, %targetIni%, User, CheckMB
     IniWrite, %ProvLogPath%, %targetIni%, User, ProvLogPath
+
+    IniWrite, %Fio1%, %targetIni%, Save, FIO1
+    IniWrite, %Prop1%, %targetIni%, Save, PROP1
+    IniWrite, %Prop2%, %targetIni%, Save, PROP2
+    IniWrite, %Rank%, %targetIni%, Save, RANK
+    IniWrite, %Teg%, %targetIni%, Save, TEG
+    IniWrite, %Otdel%, %targetIni%, Save, OTDEL
+    IniWrite, %Znak%, %targetIni%, Save, ZNAK
+    IniWrite, %Frak%, %targetIni%, Save, FRAK
+    IniWrite, %Gender%, %targetIni%, Save, GENDER
+    IniWrite, %Gibdd%, %targetIni%, Save, GIBDD
+    IniWrite, %CheckMB%, %targetIni%, Save, CHECKMB
 }
 MsgBox, 64, Анкета сохранена (%Vers%), Личные данные сотрудника успешно сохранены!
 Reload
@@ -3920,7 +3999,7 @@ if (HudEditMode) {
     Gui, 6:Color, 182642
     WinSet, Transparent, 245, ahk_id %HudHwnd%
     GuiControl, 6:, HudTitle, 🎯 [РЕДАКТОР] Зажмите ЛКМ и перетащите HUD
-    SoundBeep, 850, 120
+    PlaySafeBeep(850, 120)
     TrayTip, 🎯 Режим перемещения HUD, Зажмите ЛКМ на панели HUD и перетащите её мышкой.`nПовторите Alt+Shift+H для сохранения., 4, 1
 } else {
     ; Сохраняем координаты и возвращаем сквозной клик (+E0x20)
@@ -3938,7 +4017,7 @@ if (HudEditMode) {
     }
     callsignDisp := (Teg != "" ? Teg : "ДПС") . "-" . (Prop2 != "" ? Prop2 : "01")
     GuiControl, 6:, HudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | Alt+Shift+H: Двигать"
-    SoundBeep, 1200, 150
+    PlaySafeBeep(1200, 150)
     TrayTip, 📍 Положение HUD сохранено, % "Координаты: X=" . HudPosX . ", Y=" . HudPosY, 3, 1
 }
 Return
@@ -3968,9 +4047,9 @@ StopDutyTimer() {
 }
 
 StartChaseTimer(StageNum) {
-    global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec
+    global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec, MegaphoneCooldownConfig
     ChaseStage := StageNum
-    ChaseCooldownSec := 15
+    ChaseCooldownSec := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
     if (!ChaseActive) {
         ChaseActive := 1
         ChaseTotalSec := 180
@@ -4001,13 +4080,13 @@ if (DutyType != "Нет") {
     if (DutyRemainSec > 0) {
         DutyRemainSec--
         if (DutyRemainSec = 120) {
-            SoundBeep, 800, 120
+            PlaySafeBeep(800, 120)
             TrayTip, ⏱️ Доклад через 2 минуты, % "Внимание: пора подготовиться к докладу (" . DutyType . ")!", 2, 1
         } else if (DutyRemainSec = 60) {
-            SoundBeep, 900, 150
+            PlaySafeBeep(900, 150)
         } else if (DutyRemainSec = 0) {
-            SoundBeep, 1200, 250
-            SoundBeep, 1400, 250
+            PlaySafeBeep(1200, 250)
+            PlaySafeBeep(1400, 250)
             TrayTip, ⚠️ ВРЕМЯ ДОКЛАДА!, % "Пора сделать доклад в рацию (/п2 или /пост2)!", 4, 2
         }
     }
@@ -4034,20 +4113,32 @@ if (ChaseActive) {
     if (ChaseCooldownSec > 0) {
         ChaseCooldownSec--
         if (ChaseCooldownSec = 0)
-            SoundBeep, 1000, 180
+            PlaySafeBeep(1000, 180)
     }
     if (ChaseTotalSec > 0) {
         ChaseTotalSec--
         if (ChaseTotalSec = 0) {
-            SoundBeep, 1500, 300
-            TrayTip, 🔥 ЖЁЛТЫЙ СТАТУС ПОГОНИ!, % "3 минуты погони истекли! Разрешён огонь по колёсам ТС (ст. 15 ФЗоП)!", 4, 2
+            PlaySafeBeep(1500, 300)
+            dept := GetChaseDept()
+            maxSt := GetMaxChaseStages()
+            if (ChaseStage >= maxSt)
+                TrayTip, 🔥 ЖЁЛТЫЙ СТАТУС ПОГОНИ!, % "3 минуты погони истекли и все " . maxSt . " предов выданы! ОГОНЬ ПО КОЛЁСАМ РАЗРЕШЁН!", 4, 2
+            else
+                TrayTip, ⏱️ 3 МИНУТЫ ПОГОНИ ИСТЕКЛИ, % "Выдайте оставшиеся мегафоны (" . ChaseStage . "/" . maxSt . ") для открытия огня!", 4, 2
         }
     }
-    cdStr := (ChaseCooldownSec > 0) ? ("КД: " . ChaseCooldownSec . "с [ЖДИ]") : "ГОТОВ К ВЫДАЧЕ!"
-    stStr := (ChaseTotalSec > 0) ? ("Белый " . FormatMMSS(ChaseTotalSec)) : "🔥 ЖЁЛТЫЙ (ОГОНЬ)!"
-    chaseTxt := "🚨 Пред " . ChaseStage . "/3 | " . cdStr . " | " . stStr
+    maxSt := GetMaxChaseStages()
+    dept := GetChaseDept()
+    cdStr := (ChaseCooldownSec > 0) ? ("КД: " . ChaseCooldownSec . "с [ЖДИ]") : "ГОТОВ"
+    if (ChaseTotalSec > 0)
+        stStr := "Белый " . FormatMMSS(ChaseTotalSec)
+    else
+        stStr := (ChaseStage >= maxSt) ? "🔥 ОГОНЬ РАЗРЕШЁН!" : "🔥 3 МИН ИСТЕКЛИ"
+    chaseTxt := "🚨 [" . dept . "] Пред " . ChaseStage . "/" . maxSt . " | " . cdStr . " | " . stStr
 } else {
-    chaseTxt := "🚨 Погоня: нет | Мегафон готов (^Space | Alt+0)"
+    dept := GetChaseDept()
+    maxSt := GetMaxChaseStages()
+    chaseTxt := "🚨 [" . dept . "] Погоня: нет | Мегафон готов (^Space | Alt+0)"
 }
 
 ; 3. Смена и баллы нормы OSD
@@ -4573,11 +4664,7 @@ Return
 Bind_Greeting:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-    IniRead, Fio1, %A_Temp%\gibdd.egl, User, Fio1
-    IniRead, Rank, %A_Temp%\gibdd.egl, User, Rank
-    IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
-    IniRead, Znak, %A_Temp%\gibdd.egl, User, Znak
-    IniRead, Otdel, %A_Temp%\gibdd.egl, User, Otdel
+    LoadUserConfig()
     ; Определяем название по городу
     if (Frak = "Невский")
         Okr := "УГИБДД по городу Невский и Невской области Республики Провинция"
@@ -10742,8 +10829,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.6.4"
-global AppVersionCode       := 264
+global AppNumericVersion    := "2.6.5"
+global AppVersionCode       := 265
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10754,8 +10841,8 @@ global PendingUpdateVer     := ""
 InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
-    AppNumericVersion    := "2.6.4"
-    AppVersionCode       := 264
+    AppNumericVersion    := "2.6.5"
+    AppVersionCode       := 265
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -10781,8 +10868,8 @@ CheckForUpdates(IsSilent := 1) {
 
     if (UpdatePrimaryUrl = "") {
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
-        AppNumericVersion  := "2.6.4"
-        AppVersionCode     := 264
+        AppNumericVersion    := "2.6.5"
+        AppVersionCode       := 265
     }
 
     if (!IsSilent)
@@ -11060,6 +11147,10 @@ BuildFluentInitialJson() {
     j .= """gibdd"":""" . JsonEscapeStr(Gibdd) . ""","
     j .= """gender"":""" . JsonEscapeStr(Gender) . ""","
     j .= """checkMB"":" . (CheckMB ? 1 : 0) . ","
+    j .= """megaphoneCd"":" . (MegaphoneCooldownConfig ? MegaphoneCooldownConfig : 15) . ","
+    j .= """chaseDeptMode"":""" . JsonEscapeStr(ChaseDeptMode) . ""","
+    j .= """chaseDeptActual"":""" . JsonEscapeStr(GetChaseDept()) . ""","
+    j .= """sfxVolume"":" . (SfxVolume != "" ? SfxVolume : 80) . ","
     j .= """vers"":""" . JsonEscapeStr(Vers) . ""","
     j .= """winVer"":""" . JsonEscapeStr(WinVerDescription) . ""","
     j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
@@ -11299,7 +11390,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         MobileServer_Stop()
         MobileServer_Start(8088)
         RefreshFluentWebData()
-        SoundBeep, 900, 100
+        PlaySafeBeep(900, 100)
         bestIp := GetBestLocalIP()
         TrayTip, 📱 Мобильный планшет, Сервер перезапущен на порту 8088! IP: %bestIp%, 2, 1
         Return
@@ -11307,7 +11398,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     if (action = "allow_firewall") {
         try {
             Run *RunAs "%A_ComSpec%" /c netsh advfirewall firewall add rule name="AHK Mobile Tablet" dir=in action=allow protocol=TCP localport=8088 profile=any,, Hide
-            SoundBeep, 900, 120
+            PlaySafeBeep(900, 120)
             TrayTip, 🛡️ Брандмауэр Windows, Порт 8088 успешно открыт в брандмауэре!, 3, 1
         } catch {
             MsgBox, 48, Брандмауэр Windows, Требуются права администратора для разрешения входящего порта 8088!
@@ -11540,7 +11631,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             SelectedHkId := targetHk
             ApplySingleHotkeyUpdate(targetHk, rawKey)
             RefreshFluentWebData()
-            SoundBeep, 900, 120
+            PlaySafeBeep(900, 120)
             TrayTip, ⌨️ Клавиша обновлена!, % HotkeyById[targetHk].Name . ": [" . FormatHotkeyReadable(rawKey) . "]", 2, 1
         }
         Return
@@ -11551,7 +11642,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             SelectedHkId := targetHk
             ApplySingleHotkeyUpdate(targetHk, HotkeyById[targetHk].DefaultKey)
             RefreshFluentWebData()
-            SoundBeep, 800, 100
+            PlaySafeBeep(800, 100)
             TrayTip, 🔄 Клавиша сброшена, % HotkeyById[targetHk].Name . " возвращена по умолчанию", 2, 1
         }
         Return
@@ -11584,6 +11675,43 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         RefreshFluentWebData()
         Return
     }
+    if (action = "set_chase_dept_mode") {
+        ChaseDeptMode := (arg1 != "") ? arg1 : "AUTO"
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            IniWrite, %ChaseDeptMode%, %iniPath%, Settings, ChaseDeptMode
+        }
+        TrayTip, 🚔 Режим погони, % "Установлен отдел: " . GetChaseDept() . " (" . GetMaxChaseStages() . " предов)", 2, 1
+        RefreshFluentWebData()
+        Return
+    }
+    if (action = "set_megaphone_cd") {
+        cdVal := arg1 + 0
+        if (cdVal < 1)
+            cdVal := 15
+        MegaphoneCooldownConfig := cdVal
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            IniWrite, %MegaphoneCooldownConfig%, %iniPath%, Settings, MegaphoneCooldown
+        }
+        TrayTip, ⏱ КД мегафонов, % "Интервал между требованиями: " . MegaphoneCooldownConfig . " сек.", 2, 1
+        RefreshFluentWebData()
+        Return
+    }
+    if (action = "set_sfx_volume") {
+        volVal := arg1 + 0
+        SetAppSoundVolume(volVal)
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            IniWrite, %SfxVolume%, %iniPath%, Settings, SfxVolume
+        }
+        RefreshFluentWebData()
+        Return
+    }
+    if (action = "test_sfx") {
+        PlayRadioSfx("radio_start.wav")
+        Sleep, 200
+        PlayRadioSfx("radio_stop.wav")
+        PlaySafeBeep(900, 150)
+        Return
+    }
     if (action = "save_profile_web") {
         parts := StrSplit(arg1, "|")
         if (parts.MaxIndex() >= 9) {
@@ -11609,21 +11737,23 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
                 IniWrite, %Rank%, %iniPath%, Save, RANK
                 IniWrite, %Gender%, %iniPath%, Save, GENDER
                 IniWrite, %CheckMB%, %iniPath%, Save, CHECKMB
+
+                IniWrite, %Fio1%, %iniPath%, User, Fio1
+                IniWrite, %Frak%, %iniPath%, User, Frak
+                IniWrite, %Gibdd%, %iniPath%, User, Gibdd
+                IniWrite, %Otdel%, %iniPath%, User, Otdel
+                IniWrite, %Znak%, %iniPath%, User, Znak
+                IniWrite, %Teg%, %iniPath%, User, Teg
+                IniWrite, %Prop2%, %iniPath%, User, Prop2
+                IniWrite, %Rank%, %iniPath%, User, Rank
+                IniWrite, %Gender%, %iniPath%, User, Gender
+                IniWrite, %CheckMB%, %iniPath%, User, CheckMB
             }
 
-            suffix := (Gender = "Я девочка") ? "ж" : "м"
-            Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.6.4") . suffix
-            if (Gender = "Я девочка") {
-                Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
-                Pol := "👩‍⚕️", Gend := "женский"
-            } else {
-                Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
-                Pol := "👨‍⚕️", Gend := "мужской"
-            }
-
+            UpdateGenderVariables()
             UpdateSidebarOfficerCard()
             RefreshFluentWebData()
-            SoundBeep, 900, 120
+            PlaySafeBeep(900, 120)
             TrayTip, ✅ Профиль сохранён, % Rank . " " . Fio1 . " (" . Teg . "-" . Prop2 . ")", 3, 1
         }
         Return
@@ -11740,7 +11870,7 @@ Suspend, Off
 Gui, 10:Destroy
 ApplySingleHotkeyUpdate(QuickRemapTargetId, newKey)
 RefreshFluentWebData()
-SoundBeep, 900, 100
+PlaySafeBeep(900, 100)
 TrayTip, ✅ Горячая клавиша обновлена!, % targetObj.Name . " -> [" . FormatHotkeyReadable(newKey) . "]", 3, 1
 Return
 
@@ -11756,7 +11886,7 @@ Suspend, Off
 Gui, 10:Destroy
 ApplySingleHotkeyUpdate(QuickRemapTargetId, defKey)
 RefreshFluentWebData()
-SoundBeep, 800, 100
+PlaySafeBeep(800, 100)
 TrayTip, 🔄 Сброс горячей клавиши, % targetObj.Name . " -> [" . FormatHotkeyReadable(defKey) . "]", 3, 1
 Return
 
@@ -12012,7 +12142,7 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         newT := SubStr(cmd, 15)
         TargetId := newT
         IdMan := newT
-        SoundBeep, 850, 80
+        PlaySafeBeep(850, 80)
         TrayTip, 🎯 Цель обновлена, Установлен ID: %newT%, 2, 1
         return
     }
@@ -12095,14 +12225,25 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
         SendInput, ^a{Delete}/ticket %tid% %sumVal% %artsVal%{Enter}
         Sleep, 40
         Send, {F8}
-        SoundBeep, 750, 150
+        PlaySafeBeep(750, 150)
         return
     }
 
     if (cmd = "stop_bind") {
         AbortBindFlag := 1
-        SoundBeep, 600, 150
+        PlaySafeBeep(600, 150)
         TrayTip, ⛔ Остановка биндера, Текущая отыгровка экстренно остановлена!, 2, 2
+        return
+    }
+
+    if (cmd = "smart_meg") {
+        ExecuteSmartMegaphoneStep()
+        return
+    } else if (cmd = "stop_chase") {
+        StopChaseMode()
+        return
+    } else if (cmd = "report_chase") {
+        Gosub, Bind_ReportChase
         return
     }
 
@@ -12280,8 +12421,8 @@ global RadioSfxEnabled := 1
 global LastBroadcastMessageId := ""
 
 PlayRadioSfx(soundName) {
-    global RadioSfxEnabled
-    if (RadioSfxEnabled = 0)
+    global RadioSfxEnabled, SfxVolume
+    if (RadioSfxEnabled = 0 || SfxVolume <= 0)
         return
     soundPath := A_ScriptDir . "\assets\" . soundName
     if (!FileExist(soundPath))
