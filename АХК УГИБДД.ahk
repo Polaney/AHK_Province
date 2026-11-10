@@ -5882,13 +5882,7 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-    ; Определяем название по городу
-    if (CheckMB = "ОР/СР")
-        MB := "СР"
-    else if (CheckMB = "МР")
-        MB := "МР"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
+    MB := (CheckMB = "МР") ? "МР" : "СР"
     ; Отправляем приветственное сообщение
 SmartSleep(200)
 Send, {F6}
@@ -5908,13 +5902,7 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-    ; Определяем название по городу
-    if (CheckMB = "ОР/СР")
-        MB := "СР"
-    else if (CheckMB = "МР")
-        MB := "МР"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
+    MB := (CheckMB = "МР") ? "МР" : "СР"
     ; Отправляем приветственное сообщение
 SmartSleep(200)
 Send, {F6}
@@ -5934,13 +5922,7 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
-    ; Определяем название по городу
-    if (CheckMB = "ОР/СР")
-        MB := "СР"
-    else if (CheckMB = "МР")
-        MB := "МР"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
+    MB := (CheckMB = "МР") ? "МР" : "СР"
     ; Отправляем приветственное сообщение
 SmartSleep(200)
 Send, {F6}
@@ -6757,17 +6739,17 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
-Send, /do В бардачке патрульного автомобиля находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
-SmartSleep(500)
-Send, /me открыл%ok1% бардачок патрульного автомобиля и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
-SmartSleep(500)
-Send, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
-}
-else if (CheckMB = "МР") {
+if (CheckMB = "МР") {
 Send, /do В кофре патрульного мотоцикла находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
 SmartSleep(500)
 Send, /me открыл%ok1% кофр патрульного мотоцикла и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
+SmartSleep(500)
+Send, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
+}
+else {
+Send, /do В бардачке патрульного автомобиля находится кейс с тауметром и чистая тряпочка.{Enter}{F6}
+SmartSleep(500)
+Send, /me открыл%ok1% бардачок патрульного автомобиля и достал%ok1% кейс с тауметром и тряпочку{Enter}{F6}
 SmartSleep(500)
 Send, /me открыл%ok1% кейс и извл%ok11% из него тауметр{Enter}
 }
@@ -6830,16 +6812,7 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
-Send, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
-SmartSleep(500)
-Send, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в бордачок патрульного автомобиля{Enter}{F6}
-SmartSleep(500)
-Send, /me закрыл%ok1% бордачок{Enter}{F6}
-SmartSleep(500)
-Send, /do Бордачок закрыт.{Enter}
-}
-else if (CheckMB = "МР") {
+if (CheckMB = "МР") {
 Send, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
 SmartSleep(500)
 Send, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в кофр патрульного мотоцикла{Enter}{F6}
@@ -6848,6 +6821,15 @@ Send, /me закрыл%ok1% кофр{Enter}{F6}
 SmartSleep(500)
 Send, /do Кофр закрыт.{Enter}
 }
+else {
+Send, /me выключил%ok1% тауметр и аккуратно уложил%ok1% его в кейс{Enter}{F6}
+SmartSleep(500)
+Send, /me закрыл%ok1% кейс, затем убрал%ok1% кейс и тряпочку в бардачок патрульного автомобиля{Enter}{F6}
+SmartSleep(500)
+Send, /me закрыл%ok1% бардачок{Enter}{F6}
+SmartSleep(500)
+Send, /do Бардачок закрыт.{Enter}
+}
 Return
 :?:/доктаум1::
 AbortBindFlag := 0
@@ -6855,19 +6837,19 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
+if (CheckMB = "МР") {
+Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника. {Enter}{F6}
+SmartSleep(500)
+Send, /me открыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр {Enter}{F6}
+SmartSleep(500)
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+}
+else {
 Send, /do Бардачок открыт. {Enter}{F6}
 SmartSleep(500)
 Send, /do Папка с документами на тауметр лежит в бардачке патрульного автомобиля. {Enter}{F6}
 SmartSleep(500)
 Send, /me достал%ok1% из бардачка папку с документами на тауметр {Enter}{F6}
-SmartSleep(500)
-Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
-}
-else if (CheckMB = "МР") {
-Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника. {Enter}{F6}
-SmartSleep(500)
-Send, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр {Enter}{F6}
 SmartSleep(500)
 Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
@@ -6898,11 +6880,11 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
-Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
-}
-else if (CheckMB = "МР") {
+if (CheckMB = "МР") {
 Send, /me положил%ok1% папку обратно в сумку {Enter}{F6}
+}
+else {
+Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
 }
 Return
 :?:/докалко1::
@@ -6911,19 +6893,19 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
+if (CheckMB = "МР") {
+Send, /do Папка с документами на алкотестер лежит в сумке на плече сотрудника. {Enter}{F6}
+SmartSleep(500)
+Send, /me открыл%ok1% сумку, затем достал%ok1% папку с документами на алкотестер {Enter}{F6}
+SmartSleep(500)
+Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+}
+else {
 Send, /do Бардачок открыт. {Enter}{F6}
 SmartSleep(500)
 Send, /do Папка с документами на алкотестер лежит в бардачке патрульного автомобиля. {Enter}{F6}
 SmartSleep(500)
 Send, /me достал%ok1% из бардачка папку с документами на алкотестер {Enter}{F6}
-SmartSleep(500)
-Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
-}
-else if (CheckMB = "МР") {
-Send, /do Папка с документами на алкотестер лежит в сумке на плече сотрудника. {Enter}{F6}
-SmartSleep(500)
-Send, /me отрыл%ok1% сумку, затем достал%ok1% папку с документами на алкотестер {Enter}{F6}
 SmartSleep(500)
 Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
 }
@@ -6954,11 +6936,11 @@ SendMessage, 0x50,, 0x4190419,, A
 IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
-if (CheckMB = "ОР/СР") {
-Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
-}
-else if (CheckMB = "МР") {
+if (CheckMB = "МР") {
 Send, /me положил%ok1% папку обратно в сумку {Enter}{F6}
+}
+else {
+Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
 }
 Return
 :?:/ор1::
@@ -11410,7 +11392,7 @@ BuildFluentInitialJson() {
     j .= """frak"":""" . JsonEscapeStr(Frak) . ""","
     j .= """gibdd"":""" . JsonEscapeStr(Gibdd) . ""","
     j .= """gender"":""" . JsonEscapeStr(Gender) . ""","
-    j .= """checkMB"":" . (CheckMB ? 1 : 0) . ","
+    j .= """checkMB"":""" . JsonEscapeStr(CheckMB != "" ? CheckMB : "ОР/СР") . ""","
     j .= """megaphoneCd"":" . (MegaphoneCooldownConfig ? MegaphoneCooldownConfig : 15) . ","
     j .= """chaseDeptMode"":""" . JsonEscapeStr(ChaseDeptMode) . ""","
     j .= """chaseDeptActual"":""" . JsonEscapeStr(GetChaseDept()) . ""","
@@ -11990,7 +11972,8 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             Otdel := Trim(parts[7])
             Gibdd := Trim(parts[8])
             Gender := Trim(parts[9])
-            CheckMB := (parts.MaxIndex() >= 10 && parts[10] = "1") ? 1 : 0
+            rawMb := (parts.MaxIndex() >= 10) ? Trim(parts[10]) : "ОР/СР"
+            CheckMB := (rawMb = "МР" || rawMb = "1") ? "МР" : "ОР/СР"
 
             for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
                 IniWrite, %Fio1%, %iniPath%, Save, FIO1
