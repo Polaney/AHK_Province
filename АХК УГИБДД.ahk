@@ -11447,6 +11447,8 @@ BuildFluentInitialJson() {
     j .= """sguVolume"":" . (SguVolume != "" ? SguVolume : 100) . ","
     j .= """sguPacks"":["
     j .= "{""id"":""default"",""name"":""По умолчанию (Оригинал Провинции)"",""desc"":""Стандартные звуки сирен GTA / Province""},"
+    j .= "{""id"":""custom_v1"",""name"":""СГУ «Полиция РФ v1» (Архив)"" ,""desc"":""Реальная сирена и резкий Airhorn из игрового архива v1 + Yelp""},"
+    j .= "{""id"":""custom_v2"",""name"":""СГУ «Полиция РФ v2» (Архив)"" ,""desc"":""Реальная сирена и Yelp из игрового архива v2 + крякалка""},"
     j .= "{""id"":""elina"",""name"":""СГУ «Элина Барс» (ДПС РФ)"",""desc"":""Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка""},"
     j .= "{""id"":""ermak"",""name"":""СГУ «Ермак / Премьер» (МВД)"",""desc"":""Глубокий басовитый спецсигнал МВД с низким VIP-гудком""},"
     j .= "{""id"":""federal"",""name"":""СГУ «Federal Signal Touchmaster»"",""desc"":""Агрессивная американская сирена и пневмогудок""},"
@@ -13253,16 +13255,20 @@ Gui, 15:Font, S10 CE6EDF3 Bold, Segoe UI
 Gui, 15:Add, Text, x16 y78 w180 h22, Выбор спецсигнала:
 Gui, 15:Font, S10 CE6EDF3 Norm, Segoe UI
 sguChoice := 1
-if (SelectedSguPack = "elina")
+if (SelectedSguPack = "custom_v1")
     sguChoice := 2
-else if (SelectedSguPack = "ermak")
+else if (SelectedSguPack = "custom_v2")
     sguChoice := 3
-else if (SelectedSguPack = "federal")
+else if (SelectedSguPack = "elina")
     sguChoice := 4
-else if (SelectedSguPack = "smerch")
+else if (SelectedSguPack = "ermak")
     sguChoice := 5
+else if (SelectedSguPack = "federal")
+    sguChoice := 6
+else if (SelectedSguPack = "smerch")
+    sguChoice := 7
 
-Gui, 15:Add, DropDownList, x16 y102 w520 r5 vGuiSguChoice, По умолчанию (Оригинал Провинции)|СГУ «Элина Барс» (ДПС РФ)|СГУ «Ермак / Премьер» (МВД РФ)|СГУ «Federal Signal Touchmaster»|СГУ «Смерч» (Спецбат Odincovsky)
+Gui, 15:Add, DropDownList, x16 y102 w520 r7 vGuiSguChoice, По умолчанию (Оригинал Провинции)|СГУ «Полиция РФ v1» (Архив)|СГУ «Полиция РФ v2» (Архив)|СГУ «Элина Барс» (ДПС РФ)|СГУ «Ермак / Премьер» (МВД РФ)|СГУ «Federal Signal Touchmaster»|СГУ «Смерч» (Спецбат Odincovsky)
 GuiControl, 15:Choose, GuiSguChoice, %sguChoice%
 
 Gui, 15:Font, S10 C79C0FF Bold, Segoe UI
@@ -13346,6 +13352,10 @@ Gui, 15:Destroy
 Return
 
 GetPackIdFromDropdown(val) {
+    if InStr(val, "v1")
+        return "custom_v1"
+    if InStr(val, "v2")
+        return "custom_v2"
     if InStr(val, "Элина")
         return "elina"
     if InStr(val, "Ермак")
