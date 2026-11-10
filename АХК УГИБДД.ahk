@@ -13222,32 +13222,51 @@ ApplySguPack(packId) {
 
 ScaleWavVolume(srcPath, dstPath, volPct) {
     if (volPct = 100 || volPct <= 0) {
+        FileDelete, %dstPath%
         FileCopy, %srcPath%, %dstPath%, 1
-        return
+        return true
     }
-    scale := volPct / 100.0
     fIn := FileOpen(srcPath, "r")
     if (!IsObject(fIn))
-        return
-    fOut := FileOpen(dstPath, "w")
-    if (!IsObject(fOut)) {
+        return false
+    sz := fIn.Length
+    if (sz <= 44) {
         fIn.Close()
-        return
+        return false
     }
-    VarSetCapacity(hdr, 44)
-    fIn.RawRead(hdr, 44)
-    fOut.RawWrite(hdr, 44)
-    while (!fIn.AtEOF) {
-        sample := fIn.ReadShort()
-        scaled := Round(sample * scale)
-        if (scaled > 32767)
-            scaled := 32767
-        else if (scaled < -32768)
-            scaled := -32768
-        fOut.WriteShort(scaled)
-    }
+    VarSetCapacity(buf, sz, 0)
+    fIn.RawRead(buf, sz)
     fIn.Close()
+
+    dataSize := NumGet(buf, 40, "UInt")
+    if (dataSize > sz - 44 || dataSize = 0)
+        dataSize := sz - 44
+
+    numSamples := dataSize // 2
+    scale := volPct / 100.0
+
+    ptr := &buf + 44
+    Loop, %numSamples% {
+        sample := NumGet(ptr + 0, 0, "Short")
+        val := Round(sample * scale)
+        if (val > 32767)
+            val := 32767
+        else if (val < -32768)
+            val := -32768
+        NumPut(val, ptr + 0, 0, "Short")
+        ptr += 2
+    }
+
+    NumPut(sz - 8, buf, 4, "UInt")
+    NumPut(dataSize, buf, 40, "UInt")
+
+    FileDelete, %dstPath%
+    fOut := FileOpen(dstPath, "w")
+    if (!IsObject(fOut))
+        return false
+    fOut.RawWrite(buf, sz)
     fOut.Close()
+    return true
 }
 
 TestSguSound(packId, soundType) {
@@ -13268,7 +13287,9 @@ TestSguSound(packId, soundType) {
     playFile := soundPath
     if (curVol != 100) {
         prevPath := A_Temp . "\sgu_prev_" . packId . "_" . soundType . "_" . curVol . ".wav"
-        if (!FileExist(prevPath)) {
+        FileGetSize, srcSz, %soundPath%
+        FileGetSize, prevSz, %prevPath%
+        if (!FileExist(prevPath) || prevSz != srcSz) {
             ScaleWavVolume(soundPath, prevPath, curVol)
         }
         if (FileExist(prevPath))
@@ -13277,7 +13298,7 @@ TestSguSound(packId, soundType) {
 
     alias := "sgu_preview"
     DllCall("winmm\mciSendStringW", "WStr", "close " . alias, "Ptr", 0, "UInt", 0, "Ptr", 0)
-    cmdOpen := "open """ . playFile . """ type MPEGVideo alias " . alias
+    cmdOpen := "open """ . playFile . """ alias " . alias
     res := DllCall("winmm\mciSendStringW", "WStr", cmdOpen, "Ptr", 0, "UInt", 0, "Ptr", 0)
     if (res = 0) {
         cmdPlay := "play " . alias . " from 0"
