@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.0"
-global AppVersionCode       := 270
+global AppNumericVersion    := "2.7.1"
+global AppVersionCode       := 271
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -11090,8 +11090,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.0"
-global AppVersionCode       := 270
+global AppNumericVersion    := "2.7.1"
+global AppVersionCode       := 271
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
