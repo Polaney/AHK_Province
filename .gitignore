@@ -32,3 +32,9 @@ AGENTS.md
 Р¤Р·РћРџ.txt
 РљРѕРђРџ.txt
 РЈРљ.txt
+
+# Excluded projects & scripts
+deploy-vps-update.ps1
+*gumvd*
+*�� ���*
+*����*
