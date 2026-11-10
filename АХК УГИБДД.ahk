@@ -17,6 +17,7 @@ global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
 global SelectedSguPack   := "default"
+global SguVolume         := 100
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -2697,9 +2698,11 @@ LoadUserConfig() {
         SfxVolume := 80
     SetAppSoundVolume(SfxVolume)
 
-    global SelectedSguPack
+    global SelectedSguPack, SguVolume
     IniRead, savedSgu, %IniPath%, Settings, SguPack, default
     SelectedSguPack := (savedSgu != "ERROR" && savedSgu != "") ? savedSgu : "default"
+    IniRead, savedSguVol, %IniPath%, Settings, SguVolume, 100
+    SguVolume := (savedSguVol != "ERROR" && savedSguVol != "" && savedSguVol >= 10) ? savedSguVol : 100
     if (SelectedSguPack != "default" && SelectedSguPack != "")
         SetTimer, SilentApplySguOnStart, -1800
 
@@ -11412,7 +11415,7 @@ GetBestLocalIP() {
 BuildFluentInitialJson() {
     global Fio1, Rank, Otdel, Znak, Teg, Prop2, Frak, Gibdd, Gender, CheckMB, Vers, WinVerDescription, ActiveSendEngine
     global OnlyInGameMode, AutoScreenMode, HotkeyDefs, ArticlesDB, JournalEntries
-    global TabletRelayHost, TabletRelayPin, TabletRelayOnline, SelectedSguPack
+    global TabletRelayHost, TabletRelayPin, TabletRelayOnline, SelectedSguPack, SguVolume
 
     heroPath := StrReplace(A_ScriptDir . "\assets\fluent_hero.jpg", "\", "/")
     crestPath := StrReplace(A_ScriptDir . "\assets\fluent_crest.jpg", "\", "/")
@@ -11441,6 +11444,7 @@ BuildFluentInitialJson() {
     j .= """chaseDeptActual"":""" . JsonEscapeStr(GetChaseDept()) . ""","
     j .= """sfxVolume"":" . (SfxVolume != "" ? SfxVolume : 80) . ","
     j .= """sguPack"":""" . JsonEscapeStr(SelectedSguPack != "" ? SelectedSguPack : "default") . ""","
+    j .= """sguVolume"":" . (SguVolume != "" ? SguVolume : 100) . ","
     j .= """sguPacks"":["
     j .= "{""id"":""default"",""name"":""По умолчанию (Оригинал Провинции)"",""desc"":""Стандартные звуки сирен GTA / Province""},"
     j .= "{""id"":""elina"",""name"":""СГУ «Элина Барс» (ДПС РФ)"",""desc"":""Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка""},"
@@ -12025,6 +12029,21 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         pId := (arg1 != "") ? arg1 : "elina"
         ApplySguPack(pId)
         RefreshFluentWebData()
+        Return
+    }
+    if (action = "set_sgu_volume") {
+        volVal := arg1 + 0
+        if (volVal < 10)
+            volVal := 100
+        SguVolume := volVal
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            EnsureIniUnicode(iniPath)
+            IniWrite, %SguVolume%, %iniPath%, Settings, SguVolume
+        }
+        if (SelectedSguPack != "" && SelectedSguPack != "default") {
+            ApplySguPack(SelectedSguPack)
+        }
+        TrayTip, 🚨 Громкость СГУ, % "Установлена громкость спецсигнала: " . SguVolume . "%", 2, 1
         Return
     }
     if (action = "save_profile_web") {
@@ -13090,7 +13109,7 @@ EnsureSguPackDownloaded(packId) {
 }
 
 ApplySguPack(packId) {
-    global SelectedSguPack
+    global SelectedSguPack, SguVolume
     if (packId = "")
         packId := "default"
 
@@ -13108,25 +13127,57 @@ ApplySguPack(packId) {
     EnsureSguPackDownloaded(packId)
     srcDir := (packId = "default") ? defaultBackupDir : (A_ScriptDir . "\assets\sfx\sgu\" . packId)
 
+    curVol := (SguVolume > 0) ? SguVolume : 100
     if (FileExist(srcDir . "\siren_1.wav") && FileExist(gameSoundsDir))
-        FileCopy, % srcDir . "\siren_1.wav", % gameSoundsDir . "\siren_1.wav", 1
+        ScaleWavVolume(srcDir . "\siren_1.wav", gameSoundsDir . "\siren_1.wav", curVol)
     if (FileExist(srcDir . "\siren_2.wav") && FileExist(gameSoundsDir))
-        FileCopy, % srcDir . "\siren_2.wav", % gameSoundsDir . "\siren_2.wav", 1
+        ScaleWavVolume(srcDir . "\siren_2.wav", gameSoundsDir . "\siren_2.wav", curVol)
 
     SelectedSguPack := packId
     for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
         EnsureIniUnicode(iniPath)
         IniWrite, %SelectedSguPack%, %iniPath%, Settings, SguPack
+        IniWrite, %SguVolume%, %iniPath%, Settings, SguVolume
     }
 
     packName := GetSguPackName(packId)
-    TrayTip, 🚨 СГУ обновлено, % "Установлен спецсигнал: " . packName . " (активен в игре)", 3, 1
+    TrayTip, 🚨 СГУ обновлено, % "Установлен спецсигнал: " . packName . " (Громкость: " . curVol . "%)", 3, 1
     PlayRadioSfx("radio_stop.wav")
     return true
 }
 
+ScaleWavVolume(srcPath, dstPath, volPct) {
+    if (volPct = 100 || volPct <= 0) {
+        FileCopy, %srcPath%, %dstPath%, 1
+        return
+    }
+    scale := volPct / 100.0
+    fIn := FileOpen(srcPath, "r")
+    if (!IsObject(fIn))
+        return
+    fOut := FileOpen(dstPath, "w")
+    if (!IsObject(fOut)) {
+        fIn.Close()
+        return
+    }
+    VarSetCapacity(hdr, 44)
+    fIn.RawRead(hdr, 44)
+    fOut.RawWrite(hdr, 44)
+    while (!fIn.AtEOF) {
+        sample := fIn.ReadShort()
+        scaled := Round(sample * scale)
+        if (scaled > 32767)
+            scaled := 32767
+        else if (scaled < -32768)
+            scaled := -32768
+        fOut.WriteShort(scaled)
+    }
+    fIn.Close()
+    fOut.Close()
+}
+
 TestSguSound(packId, soundType) {
-    global SfxVolume
+    global SfxVolume, SguVolume
     StopSguPreview()
     if (packId = "")
         packId := "elina"
@@ -13139,7 +13190,12 @@ TestSguSound(packId, soundType) {
     if (!FileExist(soundPath))
         return
 
-    vol1000 := Round((SfxVolume > 0 ? SfxVolume : 80) * 10)
+    volRatio := (SguVolume > 0 ? SguVolume : 100) / 100.0
+    vol1000 := Round((SfxVolume > 0 ? SfxVolume : 80) * 10 * volRatio)
+    if (vol1000 > 1000)
+        vol1000 := 1000
+    if (vol1000 < 0)
+        vol1000 := 0
     alias := "sgu_preview"
     DllCall("winmm\mciSendStringW", "WStr", "close " . alias, "Ptr", 0, "UInt", 0, "Ptr", 0)
     cmdOpen := "open """ . soundPath . """ type MPEGVideo alias " . alias
@@ -13217,12 +13273,29 @@ Gui, 15:Add, Button, x150 y168 w110 h36 gTestGuiSguSiren2, ▶ Сирена 2 (Y
 Gui, 15:Add, Button, x270 y168 w110 h36 gTestGuiSguHorn, 📢 Крякалка
 Gui, 15:Add, Button, x390 y168 w130 h36 gStopGuiSguSound, ⏹ Стоп звук
 
-Gui, 15:Font, S10 C2EA043 Bold, Segoe UI
-Gui, 15:Add, Button, x16 y244 w260 h42 gApplyGuiSgu, 💾 Установить в игру
-Gui, 15:Font, S10 C8B949E Norm, Segoe UI
-Gui, 15:Add, Button, x290 y244 w246 h42 gCloseGuiSgu, Закрыть
+Gui, 15:Font, S10 CE6EDF3 Bold, Segoe UI
+Gui, 15:Add, Text, x16 y238 w190 h22, 🔊 Громкость СГУ в игре:
+Gui, 15:Font, S10 CE6EDF3 Norm, Segoe UI
+volChoice := 3
+if (SguVolume <= 50)
+    volChoice := 1
+else if (SguVolume <= 75)
+    volChoice := 2
+else if (SguVolume <= 100)
+    volChoice := 3
+else if (SguVolume <= 125)
+    volChoice := 4
+else
+    volChoice := 5
+Gui, 15:Add, DropDownList, x210 y235 w326 r5 vGuiSguVol, % "50% (Тихий)|75% (Умеренный)|100% (Стандарт)|125% (Повышенный)|150% (Громкий максимум)"
+GuiControl, 15:Choose, GuiSguVol, %volChoice%
 
-Gui, 15:Show, w552 h302, Спецсигналы СГУ | АХК УГИБДД
+Gui, 15:Font, S10 C2EA043 Bold, Segoe UI
+Gui, 15:Add, Button, x16 y274 w260 h42 gApplyGuiSgu, 💾 Установить в игру
+Gui, 15:Font, S10 C8B949E Norm, Segoe UI
+Gui, 15:Add, Button, x290 y274 w246 h42 gCloseGuiSgu, Закрыть
+
+Gui, 15:Show, w552 h332, Спецсигналы СГУ | АХК УГИБДД
 Return
 
 TestGuiSguSiren1:
@@ -13250,6 +13323,18 @@ Return
 ApplyGuiSgu:
 Gui, 15:Submit, NoHide
 pId := GetPackIdFromDropdown(GuiSguChoice)
+newVol := 100
+if InStr(GuiSguVol, "50%")
+    newVol := 50
+else if InStr(GuiSguVol, "75%")
+    newVol := 75
+else if InStr(GuiSguVol, "100%")
+    newVol := 100
+else if InStr(GuiSguVol, "125%")
+    newVol := 125
+else if InStr(GuiSguVol, "150%")
+    newVol := 150
+SguVolume := newVol
 ApplySguPack(pId)
 RefreshFluentWebData()
 Gui, 15:Destroy

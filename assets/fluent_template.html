@@ -1298,6 +1298,24 @@ html, body {
                     <!-- Карточки паков СГУ -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;" id="sgu-cards-container">
                     </div>
+
+                    <!-- Регулировка громкости СГУ -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:#C9D1D9;">🔊 Громкость спецсигнала в игре:</span>
+                            <div class="filter-bar" style="margin:0; padding:2px;">
+                                <button class="filter-pill" id="sgu-vol-pill-50" onclick="setSguVolume(50)">50% (Тихий)</button>
+                                <button class="filter-pill" id="sgu-vol-pill-75" onclick="setSguVolume(75)">75%</button>
+                                <button class="filter-pill active" id="sgu-vol-pill-100" onclick="setSguVolume(100)">100% (Норма)</button>
+                                <button class="filter-pill" id="sgu-vol-pill-125" onclick="setSguVolume(125)">125%</button>
+                                <button class="filter-pill" id="sgu-vol-pill-150" onclick="setSguVolume(150)">📢 150% (Громкий)</button>
+                            </div>
+                            <span id="sgu-vol-badge" style="font-size:12px; font-weight:700; color:#F0883E; min-width:38px;">100%</span>
+                        </div>
+                        <div style="font-size:11px; color:#8B949E;">
+                            * Громкость масштабирует амплитуду сирены в игре при установке
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid-row">
@@ -2969,6 +2987,23 @@ function applySelectedSgu() {
     applySguPack(currentSelectedSgu);
 }
 
+function setSguVolumeUI(vol) {
+    vol = parseInt(vol, 10) || 100;
+    var pills = [50, 75, 100, 125, 150];
+    for (var i = 0; i < pills.length; i++) {
+        var el = document.getElementById('sgu-vol-pill-' + pills[i]);
+        if (el) el.className = (pills[i] === vol) ? 'filter-pill active' : 'filter-pill';
+    }
+    var b = document.getElementById('sgu-vol-badge');
+    if (b) b.innerText = vol + '%';
+}
+
+function setSguVolume(vol) {
+    setSguVolumeUI(vol);
+    callAhk('set_sgu_volume', vol);
+    showToast('🚨 Громкость СГУ в игре: ' + vol + '%');
+}
+
 function openProfileModal() {
     if (!APP_DATA || !APP_DATA.profile) return;
     var p = APP_DATA.profile;
@@ -3298,6 +3333,8 @@ function initDashboard() {
     updateMegaphoneCdUI(cdVal);
     var volVal = (p.sfxVolume !== undefined) ? p.sfxVolume : 80;
     updateVolumeUI(volVal);
+    var sguVol = (p.sguVolume !== undefined) ? p.sguVolume : 100;
+    setSguVolumeUI(sguVol);
 }
 
 var agentRelayWs = null;
