@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.2"
-global AppVersionCode       := 272
+global AppNumericVersion    := "2.7.3"
+global AppVersionCode       := 273
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -42,6 +42,38 @@ if (!FileExist(A_ScriptDir . "\ahkgibdd.ico")) {
 }
 if (!FileExist(A_ScriptDir . "\assets"))
     FileCreateDir, %A_ScriptDir%\assets
+if (!FileExist(A_ScriptDir . "\assets\sfx"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx
+if (!FileExist(A_ScriptDir . "\assets\sfx\sgu"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx\sgu
+if (!FileExist(A_ScriptDir . "\assets\sfx\sgu\default"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx\sgu\default
+if (!FileExist(A_ScriptDir . "\assets\sfx\sgu\sgu_v1"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx\sgu\sgu_v1
+if (!FileExist(A_ScriptDir . "\assets\sfx\sgu\sgu_v2"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx\sgu\sgu_v2
+if (!FileExist(A_ScriptDir . "\assets\sfx\sgu\sgu_v3"))
+    FileCreateDir, %A_ScriptDir%\assets\sfx\sgu\sgu_v3
+
+try {
+    ; Шаблоны интерфейса всегда обновляются при запуске новой версии
+    FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
+    FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
+
+    ; Встроенные звуковые паки СГУ ДПС (офлайн-доступность из коробки без ожидания скачивания)
+    FileInstall, assets\sfx\sgu\sgu_v1\siren_1.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v1\siren_1.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v1\siren_2.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v1\siren_2.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v1\horn.wav,    %A_ScriptDir%\assets\sfx\sgu\sgu_v1\horn.wav, 1
+
+    FileInstall, assets\sfx\sgu\sgu_v2\siren_1.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v2\siren_1.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v2\siren_2.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v2\siren_2.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v2\horn.wav,    %A_ScriptDir%\assets\sfx\sgu\sgu_v2\horn.wav, 1
+
+    FileInstall, assets\sfx\sgu\sgu_v3\siren_1.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v3\siren_1.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v3\siren_2.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v3\siren_2.wav, 1
+    FileInstall, assets\sfx\sgu\sgu_v3\horn.wav,    %A_ScriptDir%\assets\sfx\sgu\sgu_v3\horn.wav, 1
+}
+
 if (!FileExist(A_ScriptDir . "\assets\fluent_hero.jpg")) {
     try {
         FileInstall, assets\fluent_hero.jpg, %A_ScriptDir%\assets\fluent_hero.jpg, 1
@@ -55,16 +87,6 @@ if (!FileExist(A_ScriptDir . "\assets\fluent_crest.jpg")) {
 if (!FileExist(A_ScriptDir . "\assets\fluent_patrol_card.jpg")) {
     try {
         FileInstall, assets\fluent_patrol_card.jpg, %A_ScriptDir%\assets\fluent_patrol_card.jpg, 1
-    }
-}
-if (!FileExist(A_ScriptDir . "\assets\fluent_template.html")) {
-    try {
-        FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
-    }
-}
-if (!FileExist(A_ScriptDir . "\assets\mobile_tablet.html")) {
-    try {
-        FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
     }
 }
 if (!FileExist(A_ScriptDir . "\assets\radio_start.wav")) {
@@ -317,11 +339,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.2") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.3") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.2") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.3") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -11118,8 +11140,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.2"
-global AppVersionCode       := 272
+global AppNumericVersion    := "2.7.3"
+global AppVersionCode       := 273
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11131,8 +11153,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.2"
-        AppVersionCode       := 272
+        AppNumericVersion    := "2.7.3"
+        AppVersionCode       := 273
     }
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11160,8 +11182,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion  := "2.7.2"
-        AppVersionCode     := 272
+        AppNumericVersion  := "2.7.3"
+        AppVersionCode     := 273
     }
 
     if (!IsSilent)
@@ -13097,12 +13119,13 @@ EnsureSguPackDownloaded(packId) {
         FileCreateDir, %packDir%
 
     files := ["siren_1.wav", "siren_2.wav", "horn.wav"]
-    baseUrl := "http://152.234.229.245:3000/sfx/sgu/" . packId . "/"
+    baseUrl := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . packId . "/"
+    mirrorUrl := "http://152.234.229.245:3000/sfx/sgu/" . packId . "/"
     for idx, fn in files {
         localPath := packDir . "\" . fn
         if (!FileExist(localPath)) {
             url := baseUrl . fn
-            UrlDownloadToFile, %url%, %localPath%
+            DownloadBinaryFile(url, mirrorUrl . fn, localPath)
         }
     }
     return true
