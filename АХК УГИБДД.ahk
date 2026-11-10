@@ -11447,12 +11447,9 @@ BuildFluentInitialJson() {
     j .= """sguVolume"":" . (SguVolume != "" ? SguVolume : 100) . ","
     j .= """sguPacks"":["
     j .= "{""id"":""default"",""name"":""По умолчанию (Оригинал Провинции)"",""desc"":""Стандартные звуки сирен GTA / Province""},"
-    j .= "{""id"":""custom_v1"",""name"":""СГУ «Полиция РФ v1» (Архив)"" ,""desc"":""Реальная сирена и резкий Airhorn из игрового архива v1 + Yelp""},"
-    j .= "{""id"":""custom_v2"",""name"":""СГУ «Полиция РФ v2» (Архив)"" ,""desc"":""Реальная сирена и Yelp из игрового архива v2 + крякалка""},"
-    j .= "{""id"":""elina"",""name"":""СГУ «Элина Барс» (ДПС РФ)"",""desc"":""Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка""},"
-    j .= "{""id"":""ermak"",""name"":""СГУ «Ермак / Премьер» (МВД)"",""desc"":""Глубокий басовитый спецсигнал МВД с низким VIP-гудком""},"
-    j .= "{""id"":""federal"",""name"":""СГУ «Federal Signal Touchmaster»"",""desc"":""Агрессивная американская сирена и пневмогудок""},"
-    j .= "{""id"":""smerch"",""name"":""СГУ «Смерч» (Спецбат Odincovsky)"",""desc"":""Скоростной пронзительный спецпак для погонь""}"
+    j .= "{""id"":""sgu_v1"",""name"":""СГУ «Спецсигнал ДПС v1»"",""desc"":""Реалистичный протяжный Wail и резкая крякалка Airhorn""},"
+    j .= "{""id"":""sgu_v2"",""name"":""СГУ «Спецсигнал ДПС v2»"",""desc"":""Полноразмерный чистый спецсигнал МВД (Wail + Yelp)""},"
+    j .= "{""id"":""sgu_v3"",""name"":""СГУ «Спецсигнал ДПС v3»"",""desc"":""Патрульная сирена ДПС с коротким пробивным Airhorn""}"
     j .= "],"
     j .= """vers"":""" . JsonEscapeStr(Vers) . ""","
     j .= """winVer"":""" . JsonEscapeStr(WinVerDescription) . ""","
@@ -13255,20 +13252,14 @@ Gui, 15:Font, S10 CE6EDF3 Bold, Segoe UI
 Gui, 15:Add, Text, x16 y78 w180 h22, Выбор спецсигнала:
 Gui, 15:Font, S10 CE6EDF3 Norm, Segoe UI
 sguChoice := 1
-if (SelectedSguPack = "custom_v1")
+if (SelectedSguPack = "sgu_v1")
     sguChoice := 2
-else if (SelectedSguPack = "custom_v2")
+else if (SelectedSguPack = "sgu_v2")
     sguChoice := 3
-else if (SelectedSguPack = "elina")
+else if (SelectedSguPack = "sgu_v3")
     sguChoice := 4
-else if (SelectedSguPack = "ermak")
-    sguChoice := 5
-else if (SelectedSguPack = "federal")
-    sguChoice := 6
-else if (SelectedSguPack = "smerch")
-    sguChoice := 7
 
-Gui, 15:Add, DropDownList, x16 y102 w520 r7 vGuiSguChoice, По умолчанию (Оригинал Провинции)|СГУ «Полиция РФ v1» (Архив)|СГУ «Полиция РФ v2» (Архив)|СГУ «Элина Барс» (ДПС РФ)|СГУ «Ермак / Премьер» (МВД РФ)|СГУ «Federal Signal Touchmaster»|СГУ «Смерч» (Спецбат Odincovsky)
+Gui, 15:Add, DropDownList, x16 y102 w520 r4 vGuiSguChoice, По умолчанию (Оригинал Провинции)|СГУ «Спецсигнал ДПС v1»|СГУ «Спецсигнал ДПС v2»|СГУ «Спецсигнал ДПС v3»
 GuiControl, 15:Choose, GuiSguChoice, %sguChoice%
 
 Gui, 15:Font, S10 C79C0FF Bold, Segoe UI
@@ -13353,16 +13344,10 @@ Return
 
 GetPackIdFromDropdown(val) {
     if InStr(val, "v1")
-        return "custom_v1"
+        return "sgu_v1"
     if InStr(val, "v2")
-        return "custom_v2"
-    if InStr(val, "Элина")
-        return "elina"
-    if InStr(val, "Ермак")
-        return "ermak"
-    if InStr(val, "Federal")
-        return "federal"
-    if InStr(val, "Смерч")
-        return "smerch"
+        return "sgu_v2"
+    if InStr(val, "v3")
+        return "sgu_v3"
     return "default"
 }

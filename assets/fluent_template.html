@@ -2925,12 +2925,9 @@ function renderSguPacks() {
 
     var packs = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sguPacks) ? APP_DATA.profile.sguPacks : [
         { id: 'default', name: 'По умолчанию (Оригинал Провинции)', desc: 'Стандартные звуки сирен GTA / Province' },
-        { id: 'custom_v1', name: 'СГУ «Полиция РФ v1» (Архив)', desc: 'Реальная сирена и резкий Airhorn из игрового архива v1 + Yelp' },
-        { id: 'custom_v2', name: 'СГУ «Полиция РФ v2» (Архив)', desc: 'Реальная сирена и Yelp из игрового архива v2 + крякалка' },
-        { id: 'elina', name: 'СГУ «Элина Барс» (ДПС РФ)', desc: 'Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка' },
-        { id: 'ermak', name: 'СГУ «Ермак / Премьер» (МВД)', desc: 'Глубокий басовитый спецсигнал МВД с низким VIP-гудком' },
-        { id: 'federal', name: 'СГУ «Federal Signal Touchmaster»', desc: 'Агрессивная американская сирена и пневмогудок' },
-        { id: 'smerch', name: 'СГУ «Смерч» (Спецбат Odincovsky)', desc: 'Скоростной пронзительный спецпак для погонь' }
+        { id: 'sgu_v1', name: 'СГУ «Спецсигнал ДПС v1»', desc: 'Реалистичный протяжный Wail и резкая крякалка Airhorn' },
+        { id: 'sgu_v2', name: 'СГУ «Спецсигнал ДПС v2»', desc: 'Полноразмерный чистый спецсигнал МВД (Wail + Yelp)' },
+        { id: 'sgu_v3', name: 'СГУ «Спецсигнал ДПС v3»', desc: 'Патрульная сирена ДПС с коротким пробивным Airhorn' }
     ];
 
     var html = [];
