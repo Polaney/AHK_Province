@@ -362,6 +362,7 @@ RefreshTray()
     Menu, Tray, Rename, HideShowMenu, Свернуть
     Menu, Tray, Default, Свернуть
     Menu, Tray, Add
+    Menu, Tray, Add, 🚨 Спецсигналы СГУ, OpenSguManager
     Menu, Tray, Add, ⚖️ Калькулятор КоАП / УК, OpenCalc
     Menu, Tray, Add, ⌨️ Настройка клавиш, SwitchToHotkeysTab
     Menu, Tray, Add, ⏱️ Показать / скрыть HUD, ToggleHud
@@ -1294,6 +1295,8 @@ else
 
 Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
 Gui, 1:Add, Button, x605 y6 w122 h24 gSwitchToFluentUI, ✨ Fluent Glass UI
+Gui, 1:Font, S8 CF0883E Bold, Segoe UI
+Gui, 1:Add, Button, x732 y6 w140 h24 gOpenSguManager, 🚨 Спецсигналы СГУ
 Gui, 1:Show, Hide h678 w1145, % TextArray[Var]
 InitAndShowFluentGlassUI()
 Return
@@ -11319,6 +11322,7 @@ PerformDownloadAndUpdate() {
     } else {
         FileCopy, %tempFile%, %currentPath%, 1
         FileDelete, %tempFile%
+        EnsureAssetsUpToDate()
         TrayTip, AHK УГИБДД, Биндер успешно обновлён до v%PendingUpdateVer%!, 3, 1
         Sleep, 500
         Reload
@@ -11514,9 +11518,51 @@ BuildFluentInitialJson() {
     return j
 }
 
+EnsureAssetsUpToDate() {
+    tplPath := A_ScriptDir . "\assets\fluent_template.html"
+    needTpl := false
+    if (!FileExist(tplPath))
+        needTpl := true
+    else {
+        FileRead, chkHtml, *P65001 %tplPath%
+        if (!InStr(chkHtml, "sgu-cards-container"))
+            needTpl := true
+    }
+
+    if (needTpl) {
+        u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/fluent_template.html"
+        u2 := "http://152.234.229.245:3000/assets/fluent_template.html"
+        DownloadBinaryFile(u1, u2, tplPath)
+    }
+
+    mobPath := A_ScriptDir . "\assets\mobile_tablet.html"
+    if (!FileExist(mobPath) || FileOpen(mobPath, "r").Length < 50000) {
+        u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/mobile_tablet.html"
+        u2 := "http://152.234.229.245:3000/assets/mobile_tablet.html"
+        DownloadBinaryFile(u1, u2, mobPath)
+    }
+
+    sguDirs := ["sgu_v1", "sgu_v2", "sgu_v3"]
+    sguFiles := ["siren_1.wav", "siren_2.wav", "horn.wav"]
+    for _, d in sguDirs {
+        dirPath := A_ScriptDir . "\assets\sfx\sgu\" . d
+        if (!FileExist(dirPath))
+            FileCreateDir, %dirPath%
+        for __, fn in sguFiles {
+            targetWav := dirPath . "\" . fn
+            if (!FileExist(targetWav) || FileOpen(targetWav, "r").Length < 500) {
+                u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . d . "/" . fn
+                u2 := "http://152.234.229.245:3000/sfx/sgu/" . d . "/" . fn
+                DownloadBinaryFile(u1, u2, targetWav)
+            }
+        }
+    }
+}
+
 InitAndShowFluentGlassUI() {
     global FluentWB, FluentGuiHwnd, FluentUiMode
     SetBrowserEmulationIE11()
+    EnsureAssetsUpToDate()
 
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
     if (!FileExist(tplPath)) {
@@ -11530,7 +11576,12 @@ InitAndShowFluentGlassUI() {
     htmlFinal := StrReplace(htmlTpl, "/*__AHK_INITIAL_DATA__*/ {}", jsonPayload)
 
     runtimeHtml := A_Temp . "\gibdd_fluent_runtime.html"
+    FileDelete, %runtimeHtml%
     fileObj := FileOpen(runtimeHtml, "w", "UTF-8")
+    if (!IsObject(fileObj)) {
+        runtimeHtml := A_Temp . "\gibdd_fluent_runtime_" . A_TickCount . ".html"
+        fileObj := FileOpen(runtimeHtml, "w", "UTF-8")
+    }
     if IsObject(fileObj) {
         fileObj.Write(htmlFinal)
         fileObj.Close()
@@ -11555,7 +11606,7 @@ InitAndShowFluentGlassUI() {
     Gui, 8:Margin, 0, 0
     Gui, 8:Add, ActiveX, x0 y0 w%winW% h%winH% vFluentWB, Shell.Explorer
     FluentWB.Silent := true
-    navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/")
+    navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/") . "?v=273_" . A_TickCount
     FluentWB.Navigate(navUrl)
 
     ; Перехват сообщений ввода с клавиатуры для ActiveX WebBrowser (Backspace, Delete, ввод текста в поиск)
