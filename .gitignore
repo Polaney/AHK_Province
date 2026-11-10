@@ -2,24 +2,33 @@
 backups/
 backup_*.ahk
 *.bak
-*.bak.*
+*.bak*
 *.tmp
 *.7z
 scratch/
-test_*.ahk
+test_*
 
-# User runtime data & local logs
+# Source folders & large video demonstrations
+СГУ v*/
+Сирена v*/
+*.mp4
+ПДД.txt
+ЯЕбу*
+tools/
+
+# User runtime data & local profiles
 *.log
+*.ini
 gibdd.egl
-gibdd_journal.ini
 updater_res.txt
-gibdd_profile.ini
-gibdd_custom_binds.ini
 
 # Internal workspace metadata
 .agents/
 AGENTS.md
-.github
+.github/
 ФзОП.txt
 КоАП.txt
 УК.txt
+Р¤Р·РћРџ.txt
+РљРѕРђРџ.txt
+РЈРљ.txt
