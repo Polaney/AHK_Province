@@ -13,7 +13,7 @@ SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
 global AppNumericVersion    := "2.7.0"
 global AppVersionCode       := 270
-global MegaphoneCooldownConfig := 15
+global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
 
@@ -342,6 +342,10 @@ RefreshTray()
     Menu, Tray, Add, ⌨️ Настройка клавиш, SwitchToHotkeysTab
     Menu, Tray, Add, ⏱️ Показать / скрыть HUD, ToggleHud
     Menu, Tray, Add, 🎯 Переместить HUD (Drag&Drop), ToggleHudEditMode
+    Menu, HudSubMenu, Add, 📏 Компактный (Маленький), SetHudSizeCompact
+    Menu, HudSubMenu, Add, 📏 Стандартный (Обычный), SetHudSizeNormal
+    Menu, HudSubMenu, Add, 📏 Крупный (Большой), SetHudSizeLarge
+    Menu, Tray, Add, 📏 Размер HUD, :HudSubMenu
     Menu, Tray, Add
     Menu, Tray, Add, VKowner
     Menu, Tray, Rename, VKowner, 💬 Создатель: @polaneychick (ВК)
@@ -405,6 +409,10 @@ SendChat(TextBind, SleepBind)
     SetLocaleRu()
     SetCapsOff()
     TextBind := Encoded(TextBind)
+    if (MvdNativeSend(TextBind)) {
+        SmartSleep(SleepBind)
+        Return
+    }
     Send {F8}^A{Delete}%TextBind%{Enter}{F8}
     SmartSleep(SleepBind)
 }
@@ -507,6 +515,7 @@ InitTimersAndLogReader()
 InitAutoUpdater()
 TabletRelay_Init()
 InitClientHeartbeat()
+InitNativeInputBridge()
 
 ; -------------------------------------------------------------------------------------------------
 ; ГЛАВНОЕ ОКНО (GUI 1) — ТЁМНАЯ ТЕМА МВД / УГИБДД + ПОИСК + НАСТРОЙКА КЛАВИШ
@@ -554,7 +563,8 @@ Gui, 1:Add, Button, x8 yp+24 w192 h22 gOpenFzopGuide, 📘 Статьи ФЗоП
 Gui, 1:Add, Button, x8 yp+24 w192 h22 gOpenKoapGuide, 📕 Статьи КоАП (/коап)
 Gui, 1:Add, Button, x8 yp+24 w192 h22 gOpenUkGuide, 📙 Статьи УК РП (/ук)
 Gui, 1:Add, Button, x8 yp+24 w192 h22 gToggleHud, ⏱️ HUD таймеров (Alt+H)
-Gui, 1:Add, Button, x8 yp+27 w192 h25 gToggleHudEditMode, 🎯 Двигать HUD (Alt+Shift+H)
+Gui, 1:Add, Button, x8 yp+25 w94 h24 gToggleHudEditMode, 🎯 Двигать HUD
+Gui, 1:Add, Button, x106 yp w94 h24 gCycleHudSize, 📏 Размер HUD
 Gui, 1:Add, Button, x8 yp+27 w192 h25 gManualCheckUpdates, 🚀 Проверить обновления
 Gui, 1:Add, Button, x8 yp+27 w192 h25 gReload, 🔄 Перезапуск (F11)
 Gui, 1:Add, Button, x8 yp+27 w192 h25 gGuiClose, ❌ Свернуть в трей
@@ -1402,7 +1412,7 @@ ExecuteSmartMegaphoneStep() {
         SmartSleep(600)
         Send, {F8} me отпустил%ok1% кнопку и повесил%ok1% тангенту обратно на торпеду{Enter}{F8}
         PlayRadioSfx("warn_green.wav")
-        cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
+        cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 8
         TrayTip, % "🚔 [" . dept . "] Мегафон 1/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
         LogJournalAction("Погоня", "Мегафон №1", "Требование об остановке ТС (1/" . maxSt . ")", 0)
         TriggerSmartScreenshot("Мегафон 1/" . maxSt)
@@ -1454,7 +1464,7 @@ ExecuteSmartMegaphoneStep() {
             TriggerSmartScreenshot("Мегафон " . nextStage . "/" . maxSt)
         } else {
             PlayRadioSfx("warn_yellow.wav")
-            cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
+            cdDisp := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 8
             TrayTip, % "🚔 [" . dept . "] Мегафон " . nextStage . "/" . maxSt . " отправлен", % "До следующего мегафона: " . cdDisp . " сек.", 3, 1
             LogJournalAction("Погоня", "Мегафон №" . nextStage, "Требование об остановке (" . nextStage . "/" . maxSt . ")", 0)
             TriggerSmartScreenshot("Мегафон " . nextStage . "/" . maxSt)
@@ -2638,9 +2648,9 @@ LoadUserConfig() {
     IniRead, RadioSfxEnabled, %IniPath%, User, RadioSfx, 1
     IniRead, ChaseTargetText, %IniPath%, User, ChaseTargetText, ТС нарушителя
 
-    IniRead, MegaphoneCooldownConfig, %IniPath%, Settings, MegaphoneCooldown, 15
+    IniRead, MegaphoneCooldownConfig, %IniPath%, Settings, MegaphoneCooldown, 8
     if (MegaphoneCooldownConfig = "ERROR" || MegaphoneCooldownConfig = "" || MegaphoneCooldownConfig < 1)
-        MegaphoneCooldownConfig := 15
+        MegaphoneCooldownConfig := 8
 
     IniRead, ChaseDeptMode, %IniPath%, Settings, ChaseDeptMode, AUTO
     if (ChaseDeptMode = "ERROR" || ChaseDeptMode = "")
@@ -2659,6 +2669,17 @@ LoadUserConfig() {
         OnlyInGameMode := 0
     if (RadioSfxEnabled = "ERROR" || RadioSfxEnabled = "")
         RadioSfxEnabled := 1
+
+    global HudSize, HudPosX, HudPosY
+    IniRead, savedSize, %IniPath%, Settings, HudSize, normal
+    if (savedSize != "ERROR" && savedSize != "")
+        HudSize := savedSize
+    IniRead, savedX, %IniPath%, Settings, HudPosX, ERROR
+    if (savedX != "ERROR" && savedX != "")
+        HudPosX := savedX + 0
+    IniRead, savedY, %IniPath%, Settings, HudPosY, ERROR
+    if (savedY != "ERROR" && savedY != "")
+        HudPosY := savedY + 0
 }
 
 ; =================================================================================================
@@ -3390,6 +3411,7 @@ global HudVisible       := 0
 global HudEditMode      := 0
 global HudPosX          := 0
 global HudPosY          := 0
+global HudSize          := "normal"
 global DutyTotalSec     := 900
 global ShiftStartTick   := 0
 
@@ -3984,6 +4006,8 @@ InitTimersAndLogReader() {
 
     ; Регистрация перемещения мыши для редактора HUD (Drag & Drop)
     OnMessage(0x0201, "WM_LBUTTONDOWN_HudDrag")
+    OnMessage(0x0232, "WM_EXITSIZEMOVE_HudSave")
+    OnMessage(0x0202, "WM_LBUTTONUP_HudDrag")
 
     CreateHudGui()
     SetTimer, UpdateHudTick, 1000
@@ -3991,9 +4015,9 @@ InitTimersAndLogReader() {
 }
 
 CreateHudGui() {
-    global HudHwnd, HudPosX, HudPosY, HudEditMode
+    global HudHwnd, HudPosX, HudPosY, HudEditMode, HudSize
     global HudTitle, HudDutyTxt, HudDutyBar, HudChaseTxt, HudChaseBar, HudStatsTxt, HudLogTxt
-    global Teg, Prop2
+    global Teg, Prop2, MegaphoneCooldownConfig
 
     iniPath := A_Temp . "\gibdd.egl"
     if (!FileExist(iniPath))
@@ -4009,33 +4033,53 @@ CreateHudGui() {
     else
         HudPosY := savedY + 0
 
+    IniRead, savedSize, %iniPath%, Settings, HudSize, normal
+    if (savedSize = "ERROR" || savedSize = "")
+        HudSize := "normal"
+    else
+        HudSize := savedSize
+
+    if (HudSize = "compact") {
+        hudW := 300, hudH := 96, fTitle := "S8", fTxt := "S7", pBarH := 5
+        y1 := 5, y2 := 20, y3 := 34, y4 := 41, y5 := 55, y6 := 62, y7 := 76
+    } else if (HudSize = "large") {
+        hudW := 460, hudH := 142, fTitle := "S10", fTxt := "S9", pBarH := 8
+        y1 := 7, y2 := 28, y3 := 48, y4 := 59, y5 := 79, y6 := 90, y7 := 111
+    } else {
+        HudSize := "normal"
+        hudW := 380, hudH := 118, fTitle := "S9", fTxt := "S8", pBarH := 6
+        y1 := 6, y2 := 24, y3 := 41, y4 := 50, y5 := 67, y6 := 76, y7 := 93
+    }
+    ctrlW := hudW - 20
+    cdMax := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 8
+
     Gui, 6:Destroy
     Gui, 6:+AlwaysOnTop -Caption +ToolWindow +LastFound +HwndHudHwnd +E0x20
     Gui, 6:Color, 0E131F
     WinSet, Transparent, 225
 
     ; 1. Шапка HUD и позывной
-    Gui, 6:Font, S9 C58A6FF Bold, Consolas
+    Gui, 6:Font, %fTitle% C58A6FF Bold, Consolas
     callsignDisp := (Teg != "" ? Teg : "ДПС") . "-" . (Prop2 != "" ? Prop2 : "01")
-    Gui, 6:Add, Text, x10 y6 w360 h16 vHudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | Alt+Shift+H: Двигать"
+    Gui, 6:Add, Text, x10 y%y1% w%ctrlW% h16 vHudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | ПКМ: Меню"
 
     ; 2. Шкала погони и мегафонов (Pursuit Tactical Bar)
-    Gui, 6:Font, S8 CFFB84D Bold, Consolas
-    Gui, 6:Add, Text, x10 y24 w360 h15 vHudChaseTxt, 🚨 Погоня: нет | Мегафон готов (^Space)
-    Gui, 6:Add, Progress, x10 y41 w360 h6 Background161D2E c3FB950 Range0-15 vHudChaseBar, 15
+    Gui, 6:Font, %fTxt% CFFB84D Bold, Consolas
+    Gui, 6:Add, Text, x10 y%y2% w%ctrlW% h15 vHudChaseTxt, 🚨 Погоня: нет | Мегафон готов (^Space)
+    Gui, 6:Add, Progress, x10 y%y3% w%ctrlW% h%pBarH% Background161D2E c3FB950 Range0-%cdMax% vHudChaseBar, %cdMax%
 
     ; 3. Прогресс-бар дежурства / поста (Duty Progress HUD)
-    Gui, 6:Font, S8 CE6EDF3 Bold, Consolas
-    Gui, 6:Add, Text, x10 y50 w360 h15 vHudDutyTxt, ⏱ Дежурство: не активно (/п1 | /пост1)
-    Gui, 6:Add, Progress, x10 y67 w360 h6 Background161D2E c58A6FF Range0-100 vHudDutyBar, 0
+    Gui, 6:Font, %fTxt% CE6EDF3 Bold, Consolas
+    Gui, 6:Add, Text, x10 y%y4% w%ctrlW% h15 vHudDutyTxt, ⏱ Дежурство: не активно (/п1 | /пост1)
+    Gui, 6:Add, Progress, x10 y%y5% w%ctrlW% h%pBarH% Background161D2E c58A6FF Range0-100 vHudDutyBar, 0
 
     ; 4. Смена и баллы нормы на форум (Shift & Forum Points OSD)
-    Gui, 6:Font, S8 C7EE787 Bold, Consolas
-    Gui, 6:Add, Text, x10 y76 w360 h15 vHudStatsTxt, ⭐ Смена: 00:00 | Штр: 0 | КПЗ: 0 | Лиш: 0 | Баллы: 0 / 20
+    Gui, 6:Font, %fTxt% C7EE787 Bold, Consolas
+    Gui, 6:Add, Text, x10 y%y6% w%ctrlW% h15 vHudStatsTxt, ⭐ Смена: 00:00 | Штр: 0 | КПЗ: 0 | Лиш: 0 | Баллы: 0 / 20
 
     ; 5. Оперлог и захват цели
-    Gui, 6:Font, S8 C79C0FF Norm, Consolas
-    Gui, 6:Add, Text, x10 y93 w360 h15 vHudLogTxt, 📡 ID: [—] | TRY: [—] | Рация: ОК
+    Gui, 6:Font, %fTxt% C79C0FF Norm, Consolas
+    Gui, 6:Add, Text, x10 y%y7% w%ctrlW% h15 vHudLogTxt, 📡 ID: [—] | TRY: [—] | Рация: ОК
 }
 
 ToggleHud:
@@ -4048,13 +4092,20 @@ if (HudVisible) {
 Return
 
 EnsureHudShown() {
-    global HudVisible, HudPosX, HudPosY, HudHwnd
+    global HudVisible, HudPosX, HudPosY, HudHwnd, HudSize
     HudVisible := 1
-    if (HudPosX = "" || HudPosX <= 0)
-        HudPosX := A_ScreenWidth - 395
-    if (HudPosY = "" || HudPosY <= 0)
+    if (HudSize = "compact")
+        hudW := 300, hudH := 96
+    else if (HudSize = "large")
+        hudW := 460, hudH := 142
+    else
+        hudW := 380, hudH := 118
+
+    if (HudPosX = "" || HudPosX <= 0 || HudPosX > A_ScreenWidth - 50)
+        HudPosX := A_ScreenWidth - hudW - 15
+    if (HudPosY = "" || HudPosY <= 0 || HudPosY > A_ScreenHeight - 50)
         HudPosY := 25
-    Gui, 6:Show, x%HudPosX% y%HudPosY% w380 h118 NoActivate, UGIBDD_HUD_OVERLAY
+    Gui, 6:Show, x%HudPosX% y%HudPosY% w%hudW% h%hudH% NoActivate, UGIBDD_HUD_OVERLAY
     Gosub, UpdateHudTick
 }
 
@@ -4066,25 +4117,17 @@ if (HudEditMode) {
     Gui, 6:-E0x20
     Gui, 6:Color, 182642
     WinSet, Transparent, 245, ahk_id %HudHwnd%
-    GuiControl, 6:, HudTitle, 🎯 [РЕДАКТОР] Зажмите ЛКМ и перетащите HUD
+    GuiControl, 6:, HudTitle, 🎯 [РЕДАКТОР] Перетащите HUD (ПКМ: размер)
     PlaySafeBeep(850, 120)
-    TrayTip, 🎯 Режим перемещения HUD, Зажмите ЛКМ на панели HUD и перетащите её мышкой.`nПовторите Alt+Shift+H для сохранения., 4, 1
+    TrayTip, 🎯 Режим перемещения HUD, Зажмите ЛКМ в любой точке HUD и перетащите её.`nПозиция сохраняется АВТОМАТИЧЕСКИ!`nПКМ по HUD — быстрое меню размеров., 4, 1
 } else {
     ; Сохраняем координаты и возвращаем сквозной клик (+E0x20)
+    SaveHudPos()
     Gui, 6:+E0x20
     Gui, 6:Color, 0E131F
     WinSet, Transparent, 225, ahk_id %HudHwnd%
-    WinGetPos, curX, curY,,, ahk_id %HudHwnd%
-    if (curX != "" && curY != "") {
-        HudPosX := curX
-        HudPosY := curY
-        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
-            IniWrite, %HudPosX%, %iniPath%, Settings, HudPosX
-            IniWrite, %HudPosY%, %iniPath%, Settings, HudPosY
-        }
-    }
     callsignDisp := (Teg != "" ? Teg : "ДПС") . "-" . (Prop2 != "" ? Prop2 : "01")
-    GuiControl, 6:, HudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | Alt+Shift+H: Двигать"
+    GuiControl, 6:, HudTitle, % "🚔 УГИБДД HUD [" . callsignDisp . "] | ПКМ: Меню"
     PlaySafeBeep(1200, 150)
     TrayTip, 📍 Положение HUD сохранено, % "Координаты: X=" . HudPosX . ", Y=" . HudPosY, 3, 1
 }
@@ -4092,10 +4135,104 @@ Return
 
 WM_LBUTTONDOWN_HudDrag(wParam, lParam, msg, hwnd) {
     global HudHwnd, HudEditMode
-    if (HudEditMode && hwnd = HudHwnd) {
-        PostMessage, 0xA1, 2,,, ahk_id %hwnd% ; WM_NCLBUTTONDOWN, HTCAPTION
+    if (HudEditMode) {
+        ctrlParent := DllCall("GetParent", "Ptr", hwnd, "Ptr")
+        if (hwnd = HudHwnd || ctrlParent = HudHwnd) {
+            PostMessage, 0xA1, 2,,, ahk_id %HudHwnd% ; WM_NCLBUTTONDOWN, HTCAPTION
+        }
     }
 }
+
+WM_EXITSIZEMOVE_HudSave(wParam, lParam, msg, hwnd) {
+    global HudHwnd
+    if (hwnd = HudHwnd) {
+        SaveHudPos()
+    }
+}
+
+WM_LBUTTONUP_HudDrag(wParam, lParam, msg, hwnd) {
+    global HudHwnd, HudEditMode
+    if (HudEditMode) {
+        ctrlParent := DllCall("GetParent", "Ptr", hwnd, "Ptr")
+        if (hwnd = HudHwnd || ctrlParent = HudHwnd) {
+            SaveHudPos()
+        }
+    }
+}
+
+SaveHudPos() {
+    global HudHwnd, HudPosX, HudPosY
+    if (!HudHwnd)
+        return
+    WinGetPos, curX, curY,,, ahk_id %HudHwnd%
+    if (curX != "" && curY != "" && curX >= 0 && curY >= 0) {
+        HudPosX := curX
+        HudPosY := curY
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            IniWrite, %HudPosX%, %iniPath%, Settings, HudPosX
+            IniWrite, %HudPosY%, %iniPath%, Settings, HudPosY
+        }
+    }
+}
+
+SetHudSize(newSize) {
+    global HudSize, HudVisible
+    HudSize := newSize
+    for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+        IniWrite, %HudSize%, %iniPath%, Settings, HudSize
+    }
+    wasVisible := HudVisible
+    CreateHudGui()
+    if (wasVisible)
+        EnsureHudShown()
+    sizeName := (newSize = "compact") ? "Компактный" : (newSize = "large") ? "Крупный" : "Стандартный"
+    PlaySafeBeep(900, 100)
+    TrayTip, 📏 Размер HUD изменён, % "Установлен размер: " . sizeName, 2, 1
+}
+
+SetHudSizeCompact:
+SetHudSize("compact")
+Return
+
+SetHudSizeNormal:
+SetHudSize("normal")
+Return
+
+SetHudSizeLarge:
+SetHudSize("large")
+Return
+
+CycleHudSize:
+global HudSize
+if (HudSize = "compact")
+    SetHudSize("normal")
+else if (HudSize = "normal")
+    SetHudSize("large")
+else
+    SetHudSize("compact")
+Return
+
+ResetHudPos:
+global HudPosX, HudPosY, HudSize
+hudW := (HudSize = "compact") ? 300 : (HudSize = "large") ? 460 : 380
+HudPosX := A_ScreenWidth - hudW - 15
+HudPosY := 25
+SaveHudPos()
+EnsureHudShown()
+PlaySafeBeep(1000, 120)
+TrayTip, 📍 Позиция HUD сброшена, HUD перемещён в правый верхний угол., 2, 1
+Return
+
+6GuiContextMenu:
+Menu, HudCtxMenu, Add, 📏 Компактный (Маленький), SetHudSizeCompact
+Menu, HudCtxMenu, Add, 📏 Стандартный (Обычный), SetHudSizeNormal
+Menu, HudCtxMenu, Add, 📏 Крупный (Большой), SetHudSizeLarge
+Menu, HudCtxMenu, Add
+Menu, HudCtxMenu, Add, 🎯 Режим перемещения (Alt+Shift+H), ToggleHudEditMode
+Menu, HudCtxMenu, Add, 🔄 Сбросить позицию (в угол), ResetHudPos
+Menu, HudCtxMenu, Add, ❌ Скрыть HUD (Alt+H), ToggleHud
+Menu, HudCtxMenu, Show
+Return
 
 StartDutyTimer(ModeName, DurationSec) {
     global DutyType, DutyRemainSec, DutyTotalSec
@@ -4117,7 +4254,7 @@ StopDutyTimer() {
 StartChaseTimer(StageNum) {
     global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec, MegaphoneCooldownConfig
     ChaseStage := StageNum
-    ChaseCooldownSec := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 15
+    ChaseCooldownSec := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 8
     if (!ChaseActive) {
         ChaseActive := 1
         ChaseTotalSec := 180
@@ -4249,17 +4386,18 @@ if (HudVisible) {
         GuiControl, 6:, HudDutyBar, 0
     }
 
+    cdMax := (MegaphoneCooldownConfig > 0) ? MegaphoneCooldownConfig : 8
     if (ChaseActive) {
         if (ChaseCooldownSec > 0) {
             GuiControl, 6:+cE74C3C, HudChaseBar
-            GuiControl, 6:, HudChaseBar, % 15 - ChaseCooldownSec
+            GuiControl, 6:, HudChaseBar, % cdMax - ChaseCooldownSec
         } else {
             GuiControl, 6:+c3FB950, HudChaseBar
-            GuiControl, 6:, HudChaseBar, 15
+            GuiControl, 6:, HudChaseBar, %cdMax%
         }
     } else {
         GuiControl, 6:+c3FB950, HudChaseBar
-        GuiControl, 6:, HudChaseBar, 15
+        GuiControl, 6:, HudChaseBar, %cdMax%
     }
 
     GuiControl, 6:, HudDutyTxt, %dutyTxt%
@@ -4272,7 +4410,7 @@ if (HudVisible) {
     LiveArrestsCount := aCount
     LiveTargetId := idDisp
 }
-SyncFluentLiveTelemetry(idDisp, DutyType, FormatMMSS(DutyRemainSec), (DutyType != "Нет" && DutyTotalSec > 0) ? dutyPct : 0, ChaseActive ? ("Пред " . ChaseStage . "/3 (" . (ChaseCooldownSec > 0 ? ChaseCooldownSec . "с" : "ГОТОВ") . ")") : "Готов (^Space)", ChaseActive ? Floor(((15 - ChaseCooldownSec) / 15) * 100) : 100, shiftFmt, forumPoints, fCount, aCount, lCount, rCount)
+SyncFluentLiveTelemetry(idDisp, DutyType, FormatMMSS(DutyRemainSec), (DutyType != "Нет" && DutyTotalSec > 0) ? dutyPct : 0, ChaseActive ? ("Пред " . ChaseStage . "/3 (" . (ChaseCooldownSec > 0 ? ChaseCooldownSec . "с" : "ГОТОВ") . ")") : "Готов (^Space)", ChaseActive ? Floor(((cdMax - ChaseCooldownSec) / cdMax) * 100) : 100, shiftFmt, forumPoints, fCount, aCount, lCount, rCount)
 Return
 
 ResolveConsoleLogPath() {
@@ -11878,6 +12016,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             UpdateGenderVariables()
             UpdateSidebarOfficerCard()
             RefreshFluentWebData()
+            SendClientHeartbeat()
             PlaySafeBeep(900, 120)
             TrayTip, ✅ Профиль сохранён, % Rank . " " . Fio1 . " (" . Teg . "-" . Prop2 . ")", 3, 1
         }
@@ -12083,8 +12222,58 @@ TabletRelay_Init() {
     }
 }
 
+; =================================================================================================
+; NATIVE C#/C++ INPUT BRIDGE (БЕЗОПАСНЫЙ ВВОД В ОБХОД АНТИЧИТА MTA)
+; =================================================================================================
+global MvdBridgeDaemonPid := 0
+
+InitNativeInputBridge() {
+    global MvdBridgeDaemonPid
+    bridgeExe := A_ScriptDir . "\tools\MvdInput.exe"
+    if (!FileExist(bridgeExe))
+        return false
+
+    ; Запуск невидимого нативного демона-кликера (взаимодействие через Named Pipe)
+    Run, "%bridgeExe%" -daemon, , Hide, MvdBridgeDaemonPid
+    return true
+}
+
+MvdNativeSend(TextCommand, isRaw := 0) {
+    bridgeExe := A_ScriptDir . "\tools\MvdInput.exe"
+    if (!FileExist(bridgeExe))
+        return false
+
+    prefix := isRaw ? "RAW:" : "F8:"
+    payload := prefix . TextCommand . "`n"
+    pipePath := "\\.\pipe\MvdInputPipe"
+
+    ; Попытка мгновенной передачи в пайп работающего C++/C# демона (< 1 мс)
+    hPipe := DllCall("CreateFile", "Str", pipePath, "UInt", 0x40000000, "UInt", 0, "Ptr", 0, "UInt", 3, "UInt", 0, "Ptr", 0, "Ptr")
+    if (hPipe != -1 && hPipe != 0) {
+        VarSetCapacity(buf, StrPut(payload, "UTF-8"), 0)
+        len := StrPut(payload, &buf, "UTF-8") - 1
+        written := 0
+        DllCall("WriteFile", "Ptr", hPipe, "Ptr", &buf, "UInt", len, "UIntP", written, "Ptr", 0)
+        DllCall("CloseHandle", "Ptr", hPipe)
+        return true
+    }
+
+    ; Фоллбэк: прямой вызов процесса в скрытом режиме
+    cmdArg := isRaw ? "-raw" : "-f8"
+    Run, "%bridgeExe%" %cmdArg% "%TextCommand%", , Hide
+    return true
+}
+
 MobileServer_Start(Port := 8088) {
     global MobileServerSock, MobileServerPort
+    ; Защита от античита MTA Province (AC #4 netc.dll):
+    ; Локальный сокет-сервер 8088 по умолчанию ОТКЛЮЧЕН, так как планшет работает через VPS Relay.
+    ; Открытие входящих TCP сокетов (bind/listen) детектируется античитом netc.dll как локальный прокси/сниффер.
+    iniPath := A_Temp . "\gibdd.egl"
+    IniRead, allowLocalSock, %iniPath%, Tablet, EnableLocalServer, 0
+    if (!allowLocalSock)
+        return false
+
     if (MobileServerSock != -1)
         return true
     MobileServerPort := Port
@@ -12367,7 +12556,7 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
     } else if (cmd = "stop_chase") {
         StopChaseMode()
         return
-    } else if (cmd = "report_chase") {
+    } else if (cmd = "report_vps" || cmd = "report_admin") {
         Gosub, Bind_ReportChase
         return
     }
@@ -12383,7 +12572,8 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
     } else if (cmd = "foot_chase") {
         Gosub, Bind_FootChase
     } else if (cmd = "wcar") {
-        Gosub, PressCount
+        targetLblWcar := "HK_Wcar(2)"
+        Gosub, %targetLblWcar%
     } else if (cmd = "greeting") {
         Gosub, Bind_Greeting
     } else if (cmd = "ask_docs") {
@@ -12720,8 +12910,8 @@ return
 ; КЛИЕНТСКИЙ ТЕЛЕМЕТРИЧЕСКИЙ ПУЛЬС В КОМАНДНЫЙ ЦЕНТР (ADMIN DASHBOARD)
 ; =================================================================================================
 InitClientHeartbeat() {
-    SetTimer, SendClientHeartbeatTick, -2500
-    SetTimer, SendClientHeartbeatTick, 60000
+    SetTimer, SendClientHeartbeatTick, -1500
+    SetTimer, SendClientHeartbeatTick, 25000
 }
 
 SendClientHeartbeatTick:
@@ -12736,7 +12926,7 @@ GetClientHwid() {
 }
 
 SendClientHeartbeat() {
-    global TabletRelayHost, Fio1, Rank, Teg, Prop2, Gibdd, Vers
+    global TabletRelayHost, TabletRelayPin, Fio1, Rank, Teg, Prop2, Gibdd, Vers
     global LiveShiftDuration, LiveFinesCount, LiveArrestsCount, LiveForumPoints, LastBroadcastMessageId
 
     if (TabletRelayHost = "")
@@ -12747,11 +12937,13 @@ SendClientHeartbeat() {
     finesVal := (LiveFinesCount + 0)
     arrVal := (LiveArrestsCount + 0)
     ptsVal := (LiveForumPoints + 0)
+    pinVal := (TabletRelayPin != "" && TabletRelayPin != "ERROR") ? TabletRelayPin : ((Teg != "" && Teg != "ERROR") ? Teg : "51")
 
     url := TabletRelayHost . "/api/client/heartbeat"
 
     payload := "{"
     payload .= """hwid"":""" . JsonEscapeStr(hwid) . ""","
+    payload .= """pin"":""" . JsonEscapeStr(pinVal) . ""","
     payload .= """rank"":""" . JsonEscapeStr(Rank) . ""","
     payload .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
     payload .= """teg"":""" . JsonEscapeStr(Teg) . ""","

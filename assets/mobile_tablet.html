@@ -1220,11 +1220,11 @@ html, body {
     <!-- TOP POLICE HUD -->
     <header class="hud-header">
         <div class="hud-top-row">
-            <div class="hud-title-wrap">
+            <div class="hud-title-wrap" onclick="editOfficerProfilePrompt()" style="cursor:pointer;" title="Нажмите, чтобы изменить ФИО сотрудника">
                 <span class="hud-badge-icon">🚔</span>
                 <div>
                     <div class="hud-title" id="hud-unit">УГИБДД МВД • БОРТ-51</div>
-                    <div class="hud-sub" id="hud-officer">Сержант [51-000]</div>
+                    <div class="hud-sub" id="hud-officer">Сотрудник ДПС [51-01] ✏️</div>
                 </div>
             </div>
             <div class="hud-actions-right">
@@ -2039,13 +2039,14 @@ function updateTabletHud(data) {
     if (data.profile) {
         var p = data.profile;
         var tag = p.teg || currentPin;
-        MY_OFFICER_PROFILE.fio = p.fio || '';
+        var cachedFio = localStorage.getItem('my_tablet_fio') || '';
+        MY_OFFICER_PROFILE.fio = (p.fio && p.fio !== 'Сотрудник ДПС') ? p.fio : (cachedFio || p.fio || 'Сотрудник ДПС');
         MY_OFFICER_PROFILE.rank = p.rank || 'Инспектор';
         MY_OFFICER_PROFILE.teg = tag;
         MY_OFFICER_PROFILE.prop2 = p.prop2 || '01';
         MY_OFFICER_PROFILE.gibdd = p.gibdd || 'Приволжск';
         document.getElementById('hud-unit').innerText = (p.gibdd || 'УГИБДД') + ' • БОРТ-' + tag;
-        document.getElementById('hud-officer').innerText = (p.rank || 'Инспектор') + ' ' + (p.fio || '') + ' [' + tag + '-' + (p.prop2 || '000') + ']';
+        document.getElementById('hud-officer').innerText = (MY_OFFICER_PROFILE.rank || 'Инспектор') + ' ' + (MY_OFFICER_PROFILE.fio || '') + ' [' + tag + '-' + (p.prop2 || '01') + '] ✏️';
         updateMapMyStatusDisplay();
     }
 
@@ -2061,6 +2062,23 @@ function updateTabletHud(data) {
             currentTargetId = l.targetId;
             document.getElementById('target-id-val').value = l.targetId;
         }
+    }
+}
+
+function editOfficerProfilePrompt() {
+    var cur = (MY_OFFICER_PROFILE.fio && MY_OFFICER_PROFILE.fio !== 'Сотрудник ДПС') ? MY_OFFICER_PROFILE.fio : '';
+    var newFio = prompt('Введите ваше ФИО для планшета:', cur);
+    if (newFio !== null && newFio.trim() !== '') {
+        MY_OFFICER_PROFILE.fio = newFio.trim();
+        localStorage.setItem('my_tablet_fio', newFio.trim());
+        var tag = MY_OFFICER_PROFILE.teg || currentPin;
+        var prop = MY_OFFICER_PROFILE.prop2 || '01';
+        document.getElementById('hud-officer').innerText = (MY_OFFICER_PROFILE.rank || 'Инспектор') + ' ' + newFio.trim() + ' [' + tag + '-' + prop + '] ✏️';
+        fetch('/api/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: currentPin, fio: newFio.trim(), teg: tag, prop2: prop })
+        }).catch(function(){});
     }
 }
 
