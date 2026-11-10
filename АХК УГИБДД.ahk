@@ -16,6 +16,7 @@ global AppVersionCode       := 271
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
+global SelectedSguPack   := "default"
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -708,7 +709,7 @@ Gui, 1:Add, Text, x697 yp+17 h18 w120, /копия
 Gui, 1:Add, Text, x697 yp+17 h18 w120, /камера
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x830 y44 w298 h168, [ СГУ и Умная Погоня (15с) ]
+Gui, 1:Add, GroupBox, x830 y44 w298 h188, [ СГУ и Умная Погоня (15с) ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
 Gui, 1:Add, Text, x838 y62 h18 w160, 🚨 Умный мегафон (1-3)
 Gui, 1:Add, Text, x838 yp+18 h18 w160, 🛑 Сброс погони
@@ -718,6 +719,7 @@ Gui, 1:Add, Text, x838 yp+18 h18 w160, Пред 2 (Жёлтый)
 Gui, 1:Add, Text, x838 yp+18 h18 w160, Пред 3 (Огонь!)
 Gui, 1:Add, Text, x838 yp+18 h18 w160, Уступите дорогу
 Gui, 1:Add, Text, x838 yp+18 h18 w160, Пешая погоня
+Gui, 1:Add, Text, x838 yp+18 h18 w160, 📢 Крякалка (Airhorn)
 Gui, 1:Font, S10 CFFB84D Bold, Consolas
 Gui, 1:Add, Text, x1002 y62 h18 w120 vDisp_HK_SmartMegaphone gQuickClickKey, % GetKeyDisp("HK_SmartMegaphone")
 Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_ChaseStop gQuickClickKey, % GetKeyDisp("HK_ChaseStop")
@@ -727,9 +729,12 @@ Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_Megaphone2 gQuickClickKey, % Get
 Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_Megaphone3 gQuickClickKey, % GetKeyDisp("HK_Megaphone3")
 Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_MegaphoneWay gQuickClickKey, % GetKeyDisp("HK_MegaphoneWay")
 Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_FootChase gQuickClickKey, % GetKeyDisp("HK_FootChase")
+Gui, 1:Add, Text, x1002 yp+18 h18 w120 vDisp_HK_SguHorn gQuickClickKey, % GetKeyDisp("HK_SguHorn")
+Gui, 1:Font, S8 C2EA043 Bold, Segoe UI
+Gui, 1:Add, Button, x838 y204 w282 h24 gOpenSguManager, 🚨 Кастомные звуки СГУ (/сгу)
 
 Gui, 1:Font, S10 C58A6FF Bold, Consolas
-Gui, 1:Add, GroupBox, x830 y215 w298 h102, [ Окно автомобиля ]
+Gui, 1:Add, GroupBox, x830 y232 w298 h98, [ Окно автомобиля ]
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
 Gui, 1:Add, Text, x838 y233 h20 w160, Окно разбито
 Gui, 1:Add, Text, x838 yp+19 h20 w160, Окно цело
@@ -2242,6 +2247,7 @@ InitHotkeysManager() {
     AddHkDef("HK_SmartMegaphone", "Умный мегафон погони (1->2->3->Огонь)", "СГУ и Погоня", "^Space", "ExecuteSmartMegaphoneStep", 0, "Disp_HK_SmartMegaphone", "")
     AddHkDef("HK_ChaseStop",      "Сбросить статус погони / мегафонов",   "СГУ и Погоня", "!Space", "StopChaseModeLabel",          0, "Disp_HK_ChaseStop", "")
     AddHkDef("HK_ReportChase",    "Жалоба: ВПС при погоне (/report)",     "СГУ и Погоня", "!p",     "Bind_ReportChase",           0, "Disp_HK_ReportChase", "")
+    AddHkDef("HK_SguHorn",        "🚨 Крякалка СГУ (Airhorn)",            "СГУ и Погоня", "XButton1", "Bind_SguHorn",               0, "Disp_HK_SguHorn", "")
 
     IniPath := A_Temp . "\gibdd.egl"
     for idx, hk in HotkeyDefs {
@@ -2690,6 +2696,12 @@ LoadUserConfig() {
     if (SfxVolume = "ERROR" || SfxVolume = "" || SfxVolume < 0)
         SfxVolume := 80
     SetAppSoundVolume(SfxVolume)
+
+    global SelectedSguPack
+    IniRead, savedSgu, %IniPath%, Settings, SguPack, default
+    SelectedSguPack := (savedSgu != "ERROR" && savedSgu != "") ? savedSgu : "default"
+    if (SelectedSguPack != "default" && SelectedSguPack != "")
+        SetTimer, SilentApplySguOnStart, -1800
 
     if (Prop1 = "ERROR" || Prop1 = "")
         Prop1 := "1"
@@ -11400,7 +11412,7 @@ GetBestLocalIP() {
 BuildFluentInitialJson() {
     global Fio1, Rank, Otdel, Znak, Teg, Prop2, Frak, Gibdd, Gender, CheckMB, Vers, WinVerDescription, ActiveSendEngine
     global OnlyInGameMode, AutoScreenMode, HotkeyDefs, ArticlesDB, JournalEntries
-    global TabletRelayHost, TabletRelayPin, TabletRelayOnline
+    global TabletRelayHost, TabletRelayPin, TabletRelayOnline, SelectedSguPack
 
     heroPath := StrReplace(A_ScriptDir . "\assets\fluent_hero.jpg", "\", "/")
     crestPath := StrReplace(A_ScriptDir . "\assets\fluent_crest.jpg", "\", "/")
@@ -11428,6 +11440,14 @@ BuildFluentInitialJson() {
     j .= """chaseDeptMode"":""" . JsonEscapeStr(ChaseDeptMode) . ""","
     j .= """chaseDeptActual"":""" . JsonEscapeStr(GetChaseDept()) . ""","
     j .= """sfxVolume"":" . (SfxVolume != "" ? SfxVolume : 80) . ","
+    j .= """sguPack"":""" . JsonEscapeStr(SelectedSguPack != "" ? SelectedSguPack : "default") . ""","
+    j .= """sguPacks"":["
+    j .= "{""id"":""default"",""name"":""По умолчанию (Оригинал Провинции)"",""desc"":""Стандартные звуки сирен GTA / Province""},"
+    j .= "{""id"":""elina"",""name"":""СГУ «Элина Барс» (ДПС РФ)"",""desc"":""Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка""},"
+    j .= "{""id"":""ermak"",""name"":""СГУ «Ермак / Премьер» (МВД)"",""desc"":""Глубокий басовитый спецсигнал МВД с низким VIP-гудком""},"
+    j .= "{""id"":""federal"",""name"":""СГУ «Federal Signal Touchmaster»"",""desc"":""Агрессивная американская сирена и пневмогудок""},"
+    j .= "{""id"":""smerch"",""name"":""СГУ «Смерч» (Спецбат Odincovsky)"",""desc"":""Скоростной пронзительный спецпак для погонь""}"
+    j .= "],"
     j .= """vers"":""" . JsonEscapeStr(Vers) . ""","
     j .= """winVer"":""" . JsonEscapeStr(WinVerDescription) . ""","
     j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
@@ -11989,6 +12009,22 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         PlayRadioSfx("warn_green.wav")
         Sleep, 200
         PlayRadioSfx("radio_stop.wav")
+        Return
+    }
+    if (action = "test_sgu_sound") {
+        pId := (arg1 != "") ? arg1 : "elina"
+        sType := (arg2 != "") ? arg2 : "siren_1"
+        TestSguSound(pId, sType)
+        Return
+    }
+    if (action = "stop_sgu_sound") {
+        StopSguPreview()
+        Return
+    }
+    if (action = "apply_sgu_pack") {
+        pId := (arg1 != "") ? arg1 : "elina"
+        ApplySguPack(pId)
+        RefreshFluentWebData()
         Return
     }
     if (action = "save_profile_web") {
@@ -13004,4 +13040,234 @@ SendClientHeartbeat() {
     } catch e {
         ; Игнорируем сетевые сбои в оффлайне
     }
+}
+
+; =================================================================================================
+; МЕНЕДЖЕР КАСТОМНЫХ ЗВУКОВ СГУ И СИРЕН (MTA PROVINCE)
+; =================================================================================================
+Bind_SguHorn:
+TestSguSound(SelectedSguPack, "horn")
+Return
+
+GetProvinceSoundsDir() {
+    global ProvLogPath
+    candidates := []
+    if (ProvLogPath != "" && ProvLogPath != "AUTO" && ProvLogPath != "ERROR") {
+        root := RegExReplace(ProvLogPath, "i)\\MTA\\logs.*$", "")
+        candidates.Push(root . "\mods\deathmatch\resources\province_components\sounds")
+    }
+    candidates.Push("C:\Province Games\mods\deathmatch\resources\province_components\sounds")
+    candidates.Push("D:\Province Games\mods\deathmatch\resources\province_components\sounds")
+    candidates.Push("E:\Province Games\mods\deathmatch\resources\province_components\sounds")
+    candidates.Push("F:\Province Games\mods\deathmatch\resources\province_components\sounds")
+    candidates.Push("C:\Games\Province\mods\deathmatch\resources\province_components\sounds")
+    candidates.Push("D:\Games\Province\mods\deathmatch\resources\province_components\sounds")
+
+    for idx, cand in candidates {
+        if (FileExist(cand))
+            return cand
+    }
+    return "C:\Province Games\mods\deathmatch\resources\province_components\sounds"
+}
+
+EnsureSguPackDownloaded(packId) {
+    if (packId = "" || packId = "default")
+        return true
+    packDir := A_ScriptDir . "\assets\sfx\sgu\" . packId
+    if (!FileExist(packDir))
+        FileCreateDir, %packDir%
+
+    files := ["siren_1.wav", "siren_2.wav", "horn.wav"]
+    baseUrl := "http://152.234.229.245:3000/sfx/sgu/" . packId . "/"
+    for idx, fn in files {
+        localPath := packDir . "\" . fn
+        if (!FileExist(localPath)) {
+            url := baseUrl . fn
+            UrlDownloadToFile, %url%, %localPath%
+        }
+    }
+    return true
+}
+
+ApplySguPack(packId) {
+    global SelectedSguPack
+    if (packId = "")
+        packId := "default"
+
+    gameSoundsDir := GetProvinceSoundsDir()
+    defaultBackupDir := A_ScriptDir . "\assets\sfx\sgu\default"
+    if (!FileExist(defaultBackupDir))
+        FileCreateDir, %defaultBackupDir%
+
+    ; Резервная копия оригиналов Провинции, если ещё не сохранены
+    if (FileExist(gameSoundsDir . "\siren_1.wav") && !FileExist(defaultBackupDir . "\siren_1.wav"))
+        FileCopy, % gameSoundsDir . "\siren_1.wav", % defaultBackupDir . "\siren_1.wav", 1
+    if (FileExist(gameSoundsDir . "\siren_2.wav") && !FileExist(defaultBackupDir . "\siren_2.wav"))
+        FileCopy, % gameSoundsDir . "\siren_2.wav", % defaultBackupDir . "\siren_2.wav", 1
+
+    EnsureSguPackDownloaded(packId)
+    srcDir := (packId = "default") ? defaultBackupDir : (A_ScriptDir . "\assets\sfx\sgu\" . packId)
+
+    if (FileExist(srcDir . "\siren_1.wav") && FileExist(gameSoundsDir))
+        FileCopy, % srcDir . "\siren_1.wav", % gameSoundsDir . "\siren_1.wav", 1
+    if (FileExist(srcDir . "\siren_2.wav") && FileExist(gameSoundsDir))
+        FileCopy, % srcDir . "\siren_2.wav", % gameSoundsDir . "\siren_2.wav", 1
+
+    SelectedSguPack := packId
+    for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+        EnsureIniUnicode(iniPath)
+        IniWrite, %SelectedSguPack%, %iniPath%, Settings, SguPack
+    }
+
+    packName := GetSguPackName(packId)
+    TrayTip, 🚨 СГУ обновлено, % "Установлен спецсигнал: " . packName . " (активен в игре)", 3, 1
+    PlayRadioSfx("radio_stop.wav")
+    return true
+}
+
+TestSguSound(packId, soundType) {
+    global SfxVolume
+    StopSguPreview()
+    if (packId = "")
+        packId := "elina"
+    if (soundType = "")
+        soundType := "siren_1"
+
+    EnsureSguPackDownloaded(packId)
+    srcDir := (packId = "default") ? (A_ScriptDir . "\assets\sfx\sgu\default") : (A_ScriptDir . "\assets\sfx\sgu\" . packId)
+    soundPath := srcDir . "\" . soundType . ".wav"
+    if (!FileExist(soundPath))
+        return
+
+    vol1000 := Round((SfxVolume > 0 ? SfxVolume : 80) * 10)
+    alias := "sgu_preview"
+    DllCall("winmm\mciSendStringW", "WStr", "close " . alias, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    cmdOpen := "open """ . soundPath . """ type MPEGVideo alias " . alias
+    res := DllCall("winmm\mciSendStringW", "WStr", cmdOpen, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    if (res = 0) {
+        cmdVol := "setaudio " . alias . " volume to " . vol1000
+        DllCall("winmm\mciSendStringW", "WStr", cmdVol, "Ptr", 0, "UInt", 0, "Ptr", 0)
+        cmdPlay := "play " . alias . " from 0"
+        DllCall("winmm\mciSendStringW", "WStr", cmdPlay, "Ptr", 0, "UInt", 0, "Ptr", 0)
+    } else {
+        SoundPlay, %soundPath%
+    }
+}
+
+StopSguPreview() {
+    DllCall("winmm\mciSendStringW", "WStr", "stop sgu_preview", "Ptr", 0, "UInt", 0, "Ptr", 0)
+    DllCall("winmm\mciSendStringW", "WStr", "close sgu_preview", "Ptr", 0, "UInt", 0, "Ptr", 0)
+}
+
+GetSguPackName(packId) {
+    if (packId = "elina")
+        return "СГУ «Элина Барс» (ДПС РФ)"
+    if (packId = "ermak")
+        return "СГУ «Ермак / Премьер» (МВД)"
+    if (packId = "federal")
+        return "СГУ «Federal Signal Touchmaster»"
+    if (packId = "smerch")
+        return "СГУ «Смерч» (Спецбат Odincovsky)"
+    return "По умолчанию (Оригинал Провинции)"
+}
+
+SilentApplySguOnStart:
+global SelectedSguPack
+if (SelectedSguPack != "" && SelectedSguPack != "default") {
+    ApplySguPack(SelectedSguPack)
+}
+Return
+
+:?:/сгу::
+:?:/sgu::
+AbortBindFlag := 0
+Gosub, OpenSguManager
+Return
+
+OpenSguManager:
+Gui, 15:Destroy
+Gui, 15:+AlwaysOnTop
+Gui, 15:Color, 121622, 1B2234
+Gui, 15:Font, S13 C58A6FF Bold, Segoe UI
+Gui, 15:Add, Text, x16 y12 w520 h28, 🚨 Менеджер кастомных СГУ и сирен (MTA Province)
+Gui, 15:Font, S9 C8B949E Norm, Segoe UI
+Gui, 15:Add, Text, x16 y40 w520 h32, Выберите спецсигнал для патрульной машины. Звук заменяется в ресурсах Провинции и звучит при включении СГУ в игре (H / радиальное меню).
+
+Gui, 15:Font, S10 CE6EDF3 Bold, Segoe UI
+Gui, 15:Add, Text, x16 y78 w180 h22, Выбор спецсигнала:
+Gui, 15:Font, S10 CE6EDF3 Norm, Segoe UI
+sguChoice := 1
+if (SelectedSguPack = "elina")
+    sguChoice := 2
+else if (SelectedSguPack = "ermak")
+    sguChoice := 3
+else if (SelectedSguPack = "federal")
+    sguChoice := 4
+else if (SelectedSguPack = "smerch")
+    sguChoice := 5
+
+Gui, 15:Add, DropDownList, x16 y102 w520 r5 vGuiSguChoice, По умолчанию (Оригинал Провинции)|СГУ «Элина Барс» (ДПС РФ)|СГУ «Ермак / Премьер» (МВД РФ)|СГУ «Federal Signal Touchmaster»|СГУ «Смерч» (Спецбат Odincovsky)
+GuiControl, 15:Choose, GuiSguChoice, %sguChoice%
+
+Gui, 15:Font, S10 C79C0FF Bold, Segoe UI
+Gui, 15:Add, GroupBox, x16 y138 w520 h90, [ Прослушивание звуков (Тест) ]
+Gui, 15:Font, S9 CE6EDF3 Bold, Segoe UI
+Gui, 15:Add, Button, x30 y168 w110 h36 gTestGuiSguSiren1, ▶ Сирена 1 (Wail)
+Gui, 15:Add, Button, x150 y168 w110 h36 gTestGuiSguSiren2, ▶ Сирена 2 (Yelp)
+Gui, 15:Add, Button, x270 y168 w110 h36 gTestGuiSguHorn, 📢 Крякалка
+Gui, 15:Add, Button, x390 y168 w130 h36 gStopGuiSguSound, ⏹ Стоп звук
+
+Gui, 15:Font, S10 C2EA043 Bold, Segoe UI
+Gui, 15:Add, Button, x16 y244 w260 h42 gApplyGuiSgu, 💾 Установить в игру
+Gui, 15:Font, S10 C8B949E Norm, Segoe UI
+Gui, 15:Add, Button, x290 y244 w246 h42 gCloseGuiSgu, Закрыть
+
+Gui, 15:Show, w552 h302, Спецсигналы СГУ | АХК УГИБДД
+Return
+
+TestGuiSguSiren1:
+Gui, 15:Submit, NoHide
+pId := GetPackIdFromDropdown(GuiSguChoice)
+TestSguSound(pId, "siren_1")
+Return
+
+TestGuiSguSiren2:
+Gui, 15:Submit, NoHide
+pId := GetPackIdFromDropdown(GuiSguChoice)
+TestSguSound(pId, "siren_2")
+Return
+
+TestGuiSguHorn:
+Gui, 15:Submit, NoHide
+pId := GetPackIdFromDropdown(GuiSguChoice)
+TestSguSound(pId, "horn")
+Return
+
+StopGuiSguSound:
+StopSguPreview()
+Return
+
+ApplyGuiSgu:
+Gui, 15:Submit, NoHide
+pId := GetPackIdFromDropdown(GuiSguChoice)
+ApplySguPack(pId)
+RefreshFluentWebData()
+Gui, 15:Destroy
+Return
+
+CloseGuiSgu:
+StopSguPreview()
+Gui, 15:Destroy
+Return
+
+GetPackIdFromDropdown(val) {
+    if InStr(val, "Элина")
+        return "elina"
+    if InStr(val, "Ермак")
+        return "ermak"
+    if InStr(val, "Federal")
+        return "federal"
+    if InStr(val, "Смерч")
+        return "smerch"
+    return "default"
 }

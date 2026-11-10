@@ -1277,6 +1277,29 @@ html, body {
                     </div>
                 </div>
 
+                <!-- БЛОК ВЫБОРА КАСТОМНОГО СГУ И СПЕЦСИГНАЛОВ -->
+                <div class="glass-card" style="margin-bottom:14px; padding:16px 18px; border-left:4px solid #F0883E; background:rgba(21,18,36,0.75);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:700; color:#F0883E; display:flex; align-items:center; gap:8px;">
+                                <span>🚨 КАСТОМНЫЕ ЗВУКИ СГУ И КРЯКАЛКИ (MTA PROVINCE)</span>
+                                <span id="sgu-active-badge" style="font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(35,134,54,0.25); color:#3FB950; border:1px solid rgba(56,139,253,0.3);">В ИГРЕ: По умолчанию</span>
+                            </div>
+                            <div style="font-size:11px; color:#8B949E; margin-top:3px;">
+                                Выберите пак спецсигнала. Звук заменяется в файлах Провинции и звучит при включении сирены/СГУ в патрульной машине в игре!
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button class="btn-fluent" style="padding:6px 12px; font-size:12px; background:#238636; border-color:#2EA043;" onclick="applySelectedSgu()">💾 Установить в игру</button>
+                            <button class="btn-fluent" style="padding:6px 12px; font-size:12px; background:rgba(248,81,73,0.15); border-color:#F85149; color:#F85149;" onclick="callAhk('stop_sgu_sound')">⏹ Стоп звук</button>
+                        </div>
+                    </div>
+
+                    <!-- Карточки паков СГУ -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;" id="sgu-cards-container">
+                    </div>
+                </div>
+
                 <div class="grid-row">
                     <div class="col-4">
                         <div class="glass-card">
@@ -2869,6 +2892,81 @@ function switchTab(num) {
     if (num === 8) {
         renderJournalTable();
     }
+    if (num === 2) {
+        renderSguPacks();
+    }
+}
+
+var currentSelectedSgu = 'default';
+
+function renderSguPacks() {
+    var container = document.getElementById('sgu-cards-container');
+    if (!container) return;
+    var activePack = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sguPack) ? APP_DATA.profile.sguPack : 'default';
+    if (!currentSelectedSgu || currentSelectedSgu === '') currentSelectedSgu = activePack;
+
+    var packs = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sguPacks) ? APP_DATA.profile.sguPacks : [
+        { id: 'default', name: 'По умолчанию (Оригинал Провинции)', desc: 'Стандартные звуки сирен GTA / Province' },
+        { id: 'elina', name: 'СГУ «Элина Барс» (ДПС РФ)', desc: 'Классический спецсигнал ДПС: чистый Wail, Yelp и резкая крякалка' },
+        { id: 'ermak', name: 'СГУ «Ермак / Премьер» (МВД)', desc: 'Глубокий басовитый спецсигнал МВД с низким VIP-гудком' },
+        { id: 'federal', name: 'СГУ «Federal Signal Touchmaster»', desc: 'Агрессивная американская сирена и пневмогудок' },
+        { id: 'smerch', name: 'СГУ «Смерч» (Спецбат Odincovsky)', desc: 'Скоростной пронзительный спецпак для погонь' }
+    ];
+
+    var html = [];
+    for (var i = 0; i < packs.length; i++) {
+        var p = packs[i];
+        var isSelected = (p.id === currentSelectedSgu);
+        var isInstalled = (p.id === activePack);
+        var borderStyle = isSelected ? 'border:2px solid #58A6FF; background:rgba(56,139,253,0.14);' : 'border:1px solid rgba(255,255,255,0.08); background:rgba(13,17,23,0.5);';
+        var badgeHtml = isInstalled ? '<span style="font-size:10px; color:#3FB950; font-weight:700; background:rgba(35,134,54,0.25); padding:2px 6px; border-radius:10px; border:1px solid rgba(63,185,80,0.3);">✓ В ИГРЕ</span>' : '';
+
+        html.push('<div class="sgu-pack-card" style="padding:10px 12px; border-radius:8px; cursor:pointer; ' + borderStyle + '" onclick="selectSguPack(\'' + p.id + '\')">');
+        html.push('  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">');
+        html.push('    <div style="font-size:12px; font-weight:700; color:#E6EDF3;">' + p.name + '</div>');
+        html.push('    <div>' + badgeHtml + '</div>');
+        html.push('  </div>');
+        html.push('  <div style="font-size:10.5px; color:#8B949E; margin-bottom:8px; min-height:28px;">' + p.desc + '</div>');
+        html.push('  <div style="display:flex; gap:6px; flex-wrap:wrap;" onclick="stopProp(event)">');
+        html.push('    <button class="btn-fluent" style="padding:3px 8px; font-size:10.5px;" onclick="testSguSound(\'' + p.id + '\', \'siren_1\')">▶ Сирена 1</button>');
+        html.push('    <button class="btn-fluent" style="padding:3px 8px; font-size:10.5px;" onclick="testSguSound(\'' + p.id + '\', \'siren_2\')">▶ Сирена 2</button>');
+        if (p.id !== 'default') {
+            html.push('    <button class="btn-fluent" style="padding:3px 8px; font-size:10.5px;" onclick="testSguSound(\'' + p.id + '\', \'horn\')">📢 Кряк</button>');
+        }
+        html.push('    <button class="btn-fluent" style="padding:3px 8px; font-size:10.5px; background:rgba(46,160,67,0.25); border-color:#2EA043;" onclick="applySguPack(\'' + p.id + '\')">Применить</button>');
+        html.push('  </div>');
+        html.push('</div>');
+    }
+    container.innerHTML = html.join('');
+
+    var activeBadge = document.getElementById('sgu-active-badge');
+    if (activeBadge) {
+        var actName = 'По умолчанию';
+        for (var j = 0; j < packs.length; j++) {
+            if (packs[j].id === activePack) { actName = packs[j].name; break; }
+        }
+        activeBadge.innerText = 'В ИГРЕ: ' + actName;
+    }
+}
+
+function selectSguPack(packId) {
+    currentSelectedSgu = packId;
+    renderSguPacks();
+}
+
+function testSguSound(packId, soundType) {
+    callAhk('test_sgu_sound', packId, soundType);
+    showToast('🔊 Тест звука: ' + soundType + ' (' + packId + ')');
+}
+
+function applySguPack(packId) {
+    currentSelectedSgu = packId;
+    callAhk('apply_sgu_pack', packId);
+    showToast('🚨 Установка звуков СГУ (' + packId + ') в игру...');
+}
+
+function applySelectedSgu() {
+    applySguPack(currentSelectedSgu);
 }
 
 function openProfileModal() {
@@ -3191,6 +3289,7 @@ function initDashboard() {
     renderLawsTable();
     renderHotkeysTable();
     renderJournalTable();
+    renderSguPacks();
     initAgentRelayWs();
 
     var deptMode = p.chaseDeptMode || 'AUTO';
