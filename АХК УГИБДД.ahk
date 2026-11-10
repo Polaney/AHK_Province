@@ -56,11 +56,17 @@ if (!FileExist(A_ScriptDir . "\assets\sfx\sgu\sgu_v3"))
     FileCreateDir, %A_ScriptDir%\assets\sfx\sgu\sgu_v3
 
 try {
+    ; Очистка временных файлов предпрослушивания с предыдущих сессий
+    FileDelete, %A_Temp%\sgu_prev_*.wav
+
     ; Шаблоны интерфейса всегда обновляются при запуске новой версии
     FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
     FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
 
-    ; Встроенные звуковые паки СГУ ДПС (офлайн-доступность из коробки без ожидания скачивания)
+    ; Встроенные звуковые паки СГУ ДПС и оригинал Провинции (офлайн-доступность из коробки без ожидания скачивания)
+    FileInstall, assets\sfx\sgu\default\siren_1.wav, %A_ScriptDir%\assets\sfx\sgu\default\siren_1.wav, 1
+    FileInstall, assets\sfx\sgu\default\siren_2.wav, %A_ScriptDir%\assets\sfx\sgu\default\siren_2.wav, 1
+
     FileInstall, assets\sfx\sgu\sgu_v1\siren_1.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v1\siren_1.wav, 1
     FileInstall, assets\sfx\sgu\sgu_v1\siren_2.wav, %A_ScriptDir%\assets\sfx\sgu\sgu_v1\siren_2.wav, 1
     FileInstall, assets\sfx\sgu\sgu_v1\horn.wav,    %A_ScriptDir%\assets\sfx\sgu\sgu_v1\horn.wav, 1
@@ -11542,13 +11548,15 @@ EnsureAssetsUpToDate() {
         DownloadBinaryFile(u1, u2, mobPath)
     }
 
-    sguDirs := ["sgu_v1", "sgu_v2", "sgu_v3"]
+    sguDirs := ["default", "sgu_v1", "sgu_v2", "sgu_v3"]
     sguFiles := ["siren_1.wav", "siren_2.wav", "horn.wav"]
     for _, d in sguDirs {
         dirPath := A_ScriptDir . "\assets\sfx\sgu\" . d
         if (!FileExist(dirPath))
             FileCreateDir, %dirPath%
         for __, fn in sguFiles {
+            if (d = "default" && fn = "horn.wav")
+                continue
             targetWav := dirPath . "\" . fn
             if (!FileExist(targetWav) || FileOpen(targetWav, "r").Length < 500) {
                 u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . d . "/" . fn
@@ -13188,18 +13196,9 @@ ApplySguPack(packId) {
         packId := "default"
 
     gameSoundsDir := GetProvinceSoundsDir()
-    defaultBackupDir := A_ScriptDir . "\assets\sfx\sgu\default"
-    if (!FileExist(defaultBackupDir))
-        FileCreateDir, %defaultBackupDir%
-
-    ; Резервная копия оригиналов Провинции, если ещё не сохранены
-    if (FileExist(gameSoundsDir . "\siren_1.wav") && !FileExist(defaultBackupDir . "\siren_1.wav"))
-        FileCopy, % gameSoundsDir . "\siren_1.wav", % defaultBackupDir . "\siren_1.wav", 1
-    if (FileExist(gameSoundsDir . "\siren_2.wav") && !FileExist(defaultBackupDir . "\siren_2.wav"))
-        FileCopy, % gameSoundsDir . "\siren_2.wav", % defaultBackupDir . "\siren_2.wav", 1
+    srcDir := A_ScriptDir . "\assets\sfx\sgu\" . packId
 
     EnsureSguPackDownloaded(packId)
-    srcDir := (packId = "default") ? defaultBackupDir : (A_ScriptDir . "\assets\sfx\sgu\" . packId)
 
     curVol := (SguVolume > 0) ? SguVolume : 100
     if (FileExist(srcDir . "\siren_1.wav") && FileExist(gameSoundsDir))
@@ -13273,12 +13272,12 @@ TestSguSound(packId, soundType) {
     global SfxVolume, SguVolume
     StopSguPreview()
     if (packId = "")
-        packId := "sgu_v1"
+        packId := "default"
     if (soundType = "")
         soundType := "siren_1"
 
     EnsureSguPackDownloaded(packId)
-    srcDir := (packId = "default") ? (A_ScriptDir . "\assets\sfx\sgu\default") : (A_ScriptDir . "\assets\sfx\sgu\" . packId)
+    srcDir := A_ScriptDir . "\assets\sfx\sgu\" . packId
     soundPath := srcDir . "\" . soundType . ".wav"
     if (!FileExist(soundPath))
         return
@@ -13287,11 +13286,7 @@ TestSguSound(packId, soundType) {
     playFile := soundPath
     if (curVol != 100) {
         prevPath := A_Temp . "\sgu_prev_" . packId . "_" . soundType . "_" . curVol . ".wav"
-        FileGetSize, srcSz, %soundPath%
-        FileGetSize, prevSz, %prevPath%
-        if (!FileExist(prevPath) || prevSz != srcSz) {
-            ScaleWavVolume(soundPath, prevPath, curVol)
-        }
+        ScaleWavVolume(soundPath, prevPath, curVol)
         if (FileExist(prevPath))
             playFile := prevPath
     }
