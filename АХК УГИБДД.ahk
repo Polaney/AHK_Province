@@ -2608,10 +2608,26 @@ EnsureDefaultConfig() {
     }
 }
 
+EnsureIniUnicode(iniPath) {
+    if (!FileExist(iniPath)) {
+        f := FileOpen(iniPath, "w", "UTF-16")
+        if IsObject(f) {
+            f.WriteLine("[User]")
+            f.Close()
+        }
+    }
+}
+
 LoadUserConfig() {
     global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Znak, CheckMB, Post, ProvLogPath, OnlyInGameMode, RadioSfxEnabled
     global MegaphoneCooldownConfig, ChaseDeptMode, SfxVolume, ChaseTargetText, AutoScreenMode
     IniPath := A_Temp . "\gibdd.egl"
+    if (!FileExist(IniPath)) {
+        if (FileExist(A_ScriptDir . "\gibdd_profile.ini"))
+            FileCopy, % A_ScriptDir . "\gibdd_profile.ini", %IniPath%, 1
+        else
+            EnsureIniUnicode(IniPath)
+    }
     IniRead, Fio1, %IniPath%, User, Fio1, Имя Фамилия
     if (Fio1 = "Имя Фамилия" || Fio1 = "Имя Фамилия Отчество" || Fio1 = "")
         IniRead, Fio1, %IniPath%, Save, FIO1, Имя Фамилия
@@ -2647,6 +2663,20 @@ LoadUserConfig() {
     IniRead, AutoScreenMode, %IniPath%, User, AutoScreenMode, 1
     IniRead, RadioSfxEnabled, %IniPath%, User, RadioSfx, 1
     IniRead, ChaseTargetText, %IniPath%, User, ChaseTargetText, ТС нарушителя
+
+    ; Автоисправление при повреждении кодировки (кракозябры mojibake)
+    if (InStr(Fio1, "пїЅ") || InStr(Fio1, "ïS") || Fio1 = "ERROR" || Fio1 = "")
+        Fio1 := "Поланейчик Данил Сергеевич"
+    if (InStr(Rank, "пїЅ") || InStr(Rank, "ïS") || Rank = "ERROR" || Rank = "")
+        Rank := "Сержант"
+    if (InStr(Otdel, "пїЅ") || InStr(Otdel, "ïS") || Otdel = "ERROR" || Otdel = "")
+        Otdel := "Инспектор ОР"
+    if (InStr(Frak, "пїЅ") || InStr(Frak, "ïS") || Frak = "ERROR" || Frak = "")
+        Frak := "Невский"
+    if (InStr(Gibdd, "пїЅ") || InStr(Gibdd, "ïS") || Gibdd = "ERROR" || Gibdd = "")
+        Gibdd := "УГИБДД-Н"
+    if (InStr(Gender, "пїЅ") || InStr(Gender, "ïS") || Gender = "ERROR" || Gender = "")
+        Gender := "Я мужык"
 
     IniRead, MegaphoneCooldownConfig, %IniPath%, Settings, MegaphoneCooldown, 8
     if (MegaphoneCooldownConfig = "ERROR" || MegaphoneCooldownConfig = "" || MegaphoneCooldownConfig < 1)
@@ -2795,6 +2825,7 @@ Gui, 2:Submit, NoHide
 if (Prop1 = "" || Prop1 = "ERROR")
     Prop1 := "1"
 for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+    EnsureIniUnicode(targetIni)
     IniWrite, %Fio1%, %targetIni%, User, Fio1
     IniWrite, %Prop1%, %targetIni%, User, Prop1
     IniWrite, %Prop2%, %targetIni%, User, Prop2
@@ -11976,6 +12007,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             CheckMB := (rawMb = "МР" || rawMb = "1") ? "МР" : "ОР/СР"
 
             for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+                EnsureIniUnicode(iniPath)
                 IniWrite, %Fio1%, %iniPath%, Save, FIO1
                 IniWrite, %Frak%, %iniPath%, Save, FRAK
                 IniWrite, %Gibdd%, %iniPath%, Save, GIBDD
