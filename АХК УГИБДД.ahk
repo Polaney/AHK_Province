@@ -11306,15 +11306,16 @@ PerformDownloadAndUpdate() {
 DownloadBinaryFile(Url1, Url2, OutPath) {
     FileDelete, %OutPath%
 
-    ; Попытка 1: Скачивание через WinHttp (наиболее надежно)
+    ; Попытка 1: Скачивание через WinHttp (наиболее надежно, поддержка SSL/TLS и редиректов GitHub)
     for idx, targetUrl in [Url1, Url2] {
         if (targetUrl = "")
             continue
         try {
             whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-            whr.SetTimeouts(5000, 5000, 30000, 30000)
+            whr.SetTimeouts(5000, 5000, 45000, 45000)
             whr.Open("GET", targetUrl, false)
             whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
+            whr.Option(6) := true ; Автоматический переход по редиректам (GitHub Raw -> Fastly CDN)
             whr.Send()
             if (whr.Status = 200) {
                 ado := ComObjCreate("ADODB.Stream")
@@ -13179,7 +13180,7 @@ TestSguSound(packId, soundType) {
     global SfxVolume, SguVolume
     StopSguPreview()
     if (packId = "")
-        packId := "elina"
+        packId := "sgu_v1"
     if (soundType = "")
         soundType := "siren_1"
 
@@ -13189,23 +13190,26 @@ TestSguSound(packId, soundType) {
     if (!FileExist(soundPath))
         return
 
-    volRatio := (SguVolume > 0 ? SguVolume : 100) / 100.0
-    vol1000 := Round((SfxVolume > 0 ? SfxVolume : 80) * 10 * volRatio)
-    if (vol1000 > 1000)
-        vol1000 := 1000
-    if (vol1000 < 0)
-        vol1000 := 0
+    curVol := (SguVolume > 0) ? SguVolume : 100
+    playFile := soundPath
+    if (curVol != 100) {
+        prevPath := A_Temp . "\sgu_prev_" . packId . "_" . soundType . "_" . curVol . ".wav"
+        if (!FileExist(prevPath)) {
+            ScaleWavVolume(soundPath, prevPath, curVol)
+        }
+        if (FileExist(prevPath))
+            playFile := prevPath
+    }
+
     alias := "sgu_preview"
     DllCall("winmm\mciSendStringW", "WStr", "close " . alias, "Ptr", 0, "UInt", 0, "Ptr", 0)
-    cmdOpen := "open """ . soundPath . """ type MPEGVideo alias " . alias
+    cmdOpen := "open """ . playFile . """ type MPEGVideo alias " . alias
     res := DllCall("winmm\mciSendStringW", "WStr", cmdOpen, "Ptr", 0, "UInt", 0, "Ptr", 0)
     if (res = 0) {
-        cmdVol := "setaudio " . alias . " volume to " . vol1000
-        DllCall("winmm\mciSendStringW", "WStr", cmdVol, "Ptr", 0, "UInt", 0, "Ptr", 0)
         cmdPlay := "play " . alias . " from 0"
         DllCall("winmm\mciSendStringW", "WStr", cmdPlay, "Ptr", 0, "UInt", 0, "Ptr", 0)
     } else {
-        SoundPlay, %soundPath%
+        SoundPlay, %playFile%
     }
 }
 
@@ -13215,14 +13219,12 @@ StopSguPreview() {
 }
 
 GetSguPackName(packId) {
-    if (packId = "elina")
-        return "СГУ «Элина Барс» (ДПС РФ)"
-    if (packId = "ermak")
-        return "СГУ «Ермак / Премьер» (МВД)"
-    if (packId = "federal")
-        return "СГУ «Federal Signal Touchmaster»"
-    if (packId = "smerch")
-        return "СГУ «Смерч» (Спецбат Odincovsky)"
+    if (packId = "sgu_v1")
+        return "СГУ «Спецсигнал ДПС v1»"
+    if (packId = "sgu_v2")
+        return "СГУ «Спецсигнал ДПС v2»"
+    if (packId = "sgu_v3")
+        return "СГУ «Спецсигнал ДПС v3»"
     return "По умолчанию (Оригинал Провинции)"
 }
 
@@ -13284,7 +13286,7 @@ else if (SguVolume <= 125)
     volChoice := 4
 else
     volChoice := 5
-Gui, 15:Add, DropDownList, x210 y235 w326 r5 vGuiSguVol, % "50% (Тихий)|75% (Умеренный)|100% (Стандарт)|125% (Повышенный)|150% (Громкий максимум)"
+Gui, 15:Add, DropDownList, x210 y235 w326 r5 vGuiSguVol gOnGuiSguVolChange, % "50% (Тихий)|75% (Умеренный)|100% (Стандарт)|125% (Повышенный)|150% (Громкий максимум)"
 GuiControl, 15:Choose, GuiSguVol, %volChoice%
 
 Gui, 15:Font, S10 C2EA043 Bold, Segoe UI
@@ -13295,20 +13297,44 @@ Gui, 15:Add, Button, x290 y274 w246 h42 gCloseGuiSgu, Закрыть
 Gui, 15:Show, w552 h332, Спецсигналы СГУ | АХК УГИБДД
 Return
 
+UpdateSguVolumeFromDropdown() {
+    global GuiSguVol, SguVolume
+    newVol := 100
+    if InStr(GuiSguVol, "50%")
+        newVol := 50
+    else if InStr(GuiSguVol, "75%")
+        newVol := 75
+    else if InStr(GuiSguVol, "100%")
+        newVol := 100
+    else if InStr(GuiSguVol, "125%")
+        newVol := 125
+    else if InStr(GuiSguVol, "150%")
+        newVol := 150
+    SguVolume := newVol
+}
+
+OnGuiSguVolChange:
+Gui, 15:Submit, NoHide
+UpdateSguVolumeFromDropdown()
+Return
+
 TestGuiSguSiren1:
 Gui, 15:Submit, NoHide
+UpdateSguVolumeFromDropdown()
 pId := GetPackIdFromDropdown(GuiSguChoice)
 TestSguSound(pId, "siren_1")
 Return
 
 TestGuiSguSiren2:
 Gui, 15:Submit, NoHide
+UpdateSguVolumeFromDropdown()
 pId := GetPackIdFromDropdown(GuiSguChoice)
 TestSguSound(pId, "siren_2")
 Return
 
 TestGuiSguHorn:
 Gui, 15:Submit, NoHide
+UpdateSguVolumeFromDropdown()
 pId := GetPackIdFromDropdown(GuiSguChoice)
 TestSguSound(pId, "horn")
 Return
@@ -13319,19 +13345,8 @@ Return
 
 ApplyGuiSgu:
 Gui, 15:Submit, NoHide
+UpdateSguVolumeFromDropdown()
 pId := GetPackIdFromDropdown(GuiSguChoice)
-newVol := 100
-if InStr(GuiSguVol, "50%")
-    newVol := 50
-else if InStr(GuiSguVol, "75%")
-    newVol := 75
-else if InStr(GuiSguVol, "100%")
-    newVol := 100
-else if InStr(GuiSguVol, "125%")
-    newVol := 125
-else if InStr(GuiSguVol, "150%")
-    newVol := 150
-SguVolume := newVol
 ApplySguPack(pId)
 RefreshFluentWebData()
 Gui, 15:Destroy

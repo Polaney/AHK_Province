@@ -1,11 +1,11 @@
 {
-    "version_code":  271,
-    "version":  "2.7.1",
-    "release_date":  "2026-11-10",
-    "ahk_url":  "http://152.234.229.245:3000/download/ahk",
-    "download_url":  "http://152.234.229.245:3000/download/exe",
-    "download_mirror":  "http://152.234.229.245:3000/download/exe",
-    "ahk_mirror":  "http://152.234.229.245:3000/download/ahk",
-    "title":  "Обновление v2.7.1: Кастомные СГУ и звуки, регулятор громкости, умный мегафон (КД 8с)",
-    "changelog":  "- Добавлен менеджер спецсигналов СГУ (Элина, Ермак, Federal Signal, Смерч) с предпрослушиванием и установкой в игру\n- Добавлена регулировка громкости СГУ (50%–150%) прямо в настройках АХК\n- Исправлена синхронизация и защита кодировки профиля (UTF-16 Unicode)\n- Уменьшен кулдаун мегафона до 8 секунд и исправлены команды таум1/таум6"
+  "version_code": 271,
+  "version": "2.7.1",
+  "release_date": "2026-11-10",
+  "title": "Обновление v2.7.1: Кастомные СГУ МВД/ДПС, регулятор громкости и защита профиля",
+  "changelog": "- Добавлен менеджер кастомных звуков СГУ (3 реалистичных пака ДПС) с предпрослушиванием и установкой в игру\n- Добавлена регулировка громкости сирен и крякалки (50%–150%)\n- Полная защита кодировки профиля (UTF-16 Unicode)\n- Умный мегафон (КД 8 секунд) и фикс команд таум1/таум6",
+  "download_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
+  "download_mirror": "https://github.com/Polaney/AHK_Province/raw/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
+  "ahk_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk",
+  "ahk_mirror": "https://github.com/Polaney/AHK_Province/raw/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
 }
