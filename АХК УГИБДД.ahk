@@ -11,12 +11,14 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.3"
-global AppVersionCode       := 273
+global AppNumericVersion    := "2.7.4"
+global AppVersionCode       := 274
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
 global SelectedSguPack   := "default"
+global SelectedSirenPack := "default"
+global SelectedHornPack  := "default"
 global SguVolume         := 100
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
@@ -345,11 +347,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.3") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.4") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.3") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.4") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -379,7 +381,8 @@ RefreshTray()
     Menu, Tray, Add, 📏 Размер HUD, :HudSubMenu
     Menu, Tray, Add
     Menu, Tray, Add, VKowner
-    Menu, Tray, Rename, VKowner, 💬 Создатель: @polaneychick (ВК)
+    Menu, Tray, Rename, VKowner, ⚡ Разработчик: @polaneychick (ВК)
+Menu, Tray, Add, 👑 Изначальный автор: Maxim_Hiddleston (ВК), VKauthor
     Menu, Tray, Add, VKmemo
     Menu, Tray, Rename, VKmemo, Памятка
     Menu, Tray, Add
@@ -393,6 +396,10 @@ RefreshTray()
 
 VKowner:
 Run, https://vk.ru/polaneychick
+Return
+
+VKauthor:
+Run, https://vk.ru/maks_vis.hnya
 Return
 
 VKmemo:
@@ -602,7 +609,8 @@ Gui, 1:Add, Button, x8 yp+27 w192 h25 gGuiClose, ❌ Свернуть в тре�
 Gui, 1:Font, S8 C8B949E Norm, Segoe UI
 Gui, 1:Add, Text, x10 y640 w188 h16, % "Версия v" . Vers
 Gui, 1:Font, S8 C58A6FF Bold, Segoe UI
-Gui, 1:Add, Text, x10 y656 w188 h18 gOpenVkCreator, 💬 Создатель: @polaneychick
+Gui, 1:Add, Text, x10 y654 w188 h16 gOpenVkCreator, ⚡ Модернизация: @polaneychick
+Gui, 1:Add, Text, x10 y670 w188 h16 gOpenVkAuthor, 👑 Автор: Maxim_Hiddleston
 
 ; =================================================================================================
 ; ШАПКА ОСНОВНОЙ РАБОЧЕЙ ОБЛАСТИ
@@ -2202,8 +2210,10 @@ Return
 
 
 ToggleOnlyInGameMode:
-Gui, 1:Submit, NoHide
-OnlyInGameMode := OnlyInGameChk ? 1 : 0
+if (A_Gui = 1) {
+    Gui, 1:Submit, NoHide
+    OnlyInGameMode := OnlyInGameChk ? 1 : 0
+}
 for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
     IniWrite, %OnlyInGameMode%, %targetIni%, User, OnlyInGameMode
 }
@@ -2646,6 +2656,31 @@ EnsureDefaultConfig() {
     }
 }
 
+
+; =================================================================================================
+; УНИВЕРСАЛЬНЫЙ ОПРЕДЕЛИТЕЛЬ ГОРОДА И ПОДРАЗДЕЛЕНИЯ (Адаптация под все города Провинции)
+; =================================================================================================
+GetCityInfo(ByRef outOkr, ByRef outPostPrefix, ByRef outPark, ByRef outGibddTag) {
+    global Frak, Gibdd
+    cityCheck := Trim(Frak) . " " . Trim(Gibdd)
+    if (InStr(cityCheck, "Мирн") || InStr(cityCheck, "-М") || InStr(cityCheck, "УГИБДД-М") || InStr(cityCheck, "мирк")) {
+        outOkr := "УГИБДД по городу Мирный и Мирнинской области Республики Провинция"
+        outPostPrefix := "М"
+        outPark := "М"
+        outGibddTag := "УГИБДД-М"
+    } else if (InStr(cityCheck, "Приволж") || InStr(cityCheck, "-П") || InStr(cityCheck, "УГИБДД-П") || InStr(cityCheck, "прив")) {
+        outOkr := "УГИБДД по городу Приволжск и Приволжской области Республики Провинция"
+        outPostPrefix := "П"
+        outPark := "П"
+        outGibddTag := "УГИБДД-П"
+    } else {
+        outOkr := "УГИБДД по городу Невский и Невской области Республики Провинция"
+        outPostPrefix := "Н"
+        outPark := "Н"
+        outGibddTag := "УГИБДД-Н"
+    }
+}
+
 EnsureIniUnicode(iniPath) {
     if (!FileExist(iniPath)) {
         f := FileOpen(iniPath, "w", "UTF-16")
@@ -2679,18 +2714,28 @@ LoadUserConfig() {
     IniRead, Otdel, %IniPath%, User, Otdel, Инспектор ОР
     if (Otdel = "Инспектор ОР" || Otdel = "")
         IniRead, Otdel, %IniPath%, Save, OTDEL, Инспектор ОР
-    IniRead, Frak, %IniPath%, User, Frak, Невский
-    if (Frak = "Невский" || Frak = "")
-        IniRead, Frak, %IniPath%, Save, FRAK, Невский
+    IniRead, Frak, %IniPath%, User, Frak, %A_Space%
+    Frak := Trim(Frak)
+    if (Frak = "" || Frak = "ERROR") {
+        IniRead, Frak, %IniPath%, Save, FRAK, %A_Space%
+        Frak := Trim(Frak)
+        if (Frak = "" || Frak = "ERROR")
+            Frak := "Невский"
+    }
     IniRead, Gender, %IniPath%, User, Gender, Я мужык
     if (Gender = "Я мужык" || Gender = "")
         IniRead, Gender, %IniPath%, Save, GENDER, Я мужык
     IniRead, Teg, %IniPath%, User, Teg, 52
     if (Teg = "52" || Teg = "61" || Teg = "")
         IniRead, Teg, %IniPath%, Save, TEG, 52
-    IniRead, Gibdd, %IniPath%, User, Gibdd, УГИБДД-Н
-    if (Gibdd = "УГИБДД-Н" || Gibdd = "")
-        IniRead, Gibdd, %IniPath%, Save, GIBDD, УГИБДД-Н
+    IniRead, Gibdd, %IniPath%, User, Gibdd, %A_Space%
+    Gibdd := Trim(Gibdd)
+    if (Gibdd = "" || Gibdd = "ERROR") {
+        IniRead, Gibdd, %IniPath%, Save, GIBDD, %A_Space%
+        Gibdd := Trim(Gibdd)
+        if (Gibdd = "" || Gibdd = "ERROR")
+            Gibdd := "УГИБДД-Н"
+    }
     IniRead, Znak, %IniPath%, User, Znak, 77-000000
     if (Znak = "77-000000" || Znak = "")
         IniRead, Znak, %IniPath%, Save, ZNAK, 77-000000
@@ -2943,7 +2988,7 @@ Gui, 3:Add, Text, x225 y472 w270 h24, Связь с создателем: vk.ru/
 
 Gui, 3:Font, S9 C8B949E Norm, Segoe UI
 Gui, 3:Add, Text, x15 y512 w200 h18, v%Vers%
-Gui, 3:Show, w510 h540, Полезные ссылки | АХК УГИБДД
+Gui, 3:Show, w510 h580, Полезные ссылки | АХК УГИБДД
 Return
 
 ButtonURLVkGroup:
@@ -2985,6 +3030,10 @@ OpenVkCreator:
 Run, https://vk.ru/polaneychick
 Return
 
+OpenVkAuthor:
+Run, https://vk.ru/maks_vis.hnya
+Return
+
 ButtonURLMoyak:
 Gui, 4:Destroy
 Gui, 4:Color, 121622, 1B2234
@@ -3013,6 +3062,11 @@ Return
 ; =================================================================================================
 ; ПУНКТ 2: ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР И СПРАВОЧНИК КоАП / УКРП / ПДД / ФЗоП (GUI 5, Alt+F1, /штраф)
 ; =================================================================================================
+; =================================================================================================
+; ИЗОЛЯЦИЯ ХОТСТРИНГОВ И БИНДОВ (Срабатывают только в окне игры, если включен режим OnlyInGameMode)
+; =================================================================================================
+#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup") || WinActive("ahk_exe gta_sa.exe") || WinActive("ahk_exe proxy_sa.exe") || WinActive("ahk_exe Multi Theft Auto.exe"))
+
 :?:/штраф::
 :?:/калькулятор::
 Gosub, OpenCalc
@@ -5003,15 +5057,7 @@ Bind_Greeting:
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
     LoadUserConfig()
-    ; Определяем название по городу
-    if (Frak = "Невский")
-        Okr := "УГИБДД по городу Невский и Невской области Республики Провинция"
-    else if (Frak = "Мирный")
-        Okr := "УГИБДД по городу Мирный и Мирнинской области Республики Провинция"
-    else if (Frak = "Приволжск")
-        Okr := "УГИБДД по городу Приволжск и Приволжской области Республики Провинция"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
+    GetCityInfo(Okr, Posst, Park, GibddTag)
     ; Отправляем приветственное сообщение
 SmartSleep(500)
 Send, {F8}animarmy 3{ENTER}{F8}
@@ -6908,6 +6954,12 @@ SmartSleep(500)
 Send, /do Бардачок закрыт.{Enter}
 }
 Return
+:?:/доктаум::
+AbortBindFlag := 0
+SendMessage, 0x50,, 0x4190419,, A
+MsgBox, 64, Документы на тауметр (Сертификат), 📋 Взаимодействие с документами на тауметр:`n`n/доктаум1 — Достать документы и сертификат (бардачок/сумка)`n/доктаум2 — Предъявить отметку о поверке гражданину`n/доктаум3 — Положить бумаги обратно в папку`n/доктаум4 — Убрать папку обратно в бардачок/сумку`n`n💡 Совет: при проверке тонировки сначала используйте /таум(1-6), а при запросе документов — /доктаум(1-4).
+Return
+
 :?:/доктаум1::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
@@ -6915,42 +6967,42 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
 if (CheckMB = "МР") {
-Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника. {Enter}{F6}
-SmartSleep(500)
-Send, /me открыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр {Enter}{F6}
-SmartSleep(500)
-Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
-}
-else {
-Send, /do Бардачок открыт. {Enter}{F6}
-SmartSleep(500)
-Send, /do Папка с документами на тауметр лежит в бардачке патрульного автомобиля. {Enter}{F6}
-SmartSleep(500)
-Send, /me достал%ok1% из бардачка папку с документами на тауметр {Enter}{F6}
-SmartSleep(500)
-Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании. {Enter}
+    Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника.{Enter}{F6}
+    SmartSleep(500)
+    Send, /me открыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр{Enter}{F6}
+    SmartSleep(500)
+    Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании.{Enter}
+} else {
+    Send, /do Бардачок патрульного автомобиля закрыт.{Enter}{F6}
+    SmartSleep(500)
+    Send, /me открыл%ok1% бардачок и достал%ok1% папку с документами на тауметр{Enter}{F6}
+    SmartSleep(500)
+    Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании.{Enter}
 }
 Return
+
 :?:/доктаум2::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 Send, {F6}
 SmartSleep(250)
-Send, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги {Enter}{F6}
+Send, /me раскрыл%ok1% папку и достал%ok1% нужные бумаги{Enter}{F6}
 SmartSleep(500)
-Send, /do На документах указана отметка о поверке, прибор исправен, годен до 31.12.2026. {Enter}{F6}
+Send, /do На документах указана отметка о поверке: прибор исправен, годен до 31.12.2026.{Enter}{F6}
 SmartSleep(500)
-Send, /me показал%ok1% документы гражданину для ознакомления {Enter}
+Send, /me показал%ok1% документы гражданину для ознакомления{Enter}
 Return
+
 :?:/доктаум3::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 Send, {F6}
 SmartSleep(250)
-Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее {Enter}{F6}
+Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее{Enter}{F6}
 SmartSleep(500)
-Send, /do Папка закрыта. {Enter}{F6}
+Send, /do Папка закрыта.{Enter}
 Return
+
 :?:/доктаум4::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
@@ -6958,10 +7010,13 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
 if (CheckMB = "МР") {
-Send, /me положил%ok1% папку обратно в сумку {Enter}{F6}
-}
-else {
-Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля {Enter}{F6}
+    Send, /me положил%ok1% папку обратно в сумку, затем закрыл%ok1% её{Enter}{F6}
+    SmartSleep(500)
+    Send, /do Сумка закрыта.{Enter}
+} else {
+    Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля, затем закрыл%ok1% его{Enter}{F6}
+    SmartSleep(500)
+    Send, /do Бардачок закрыт.{Enter}
 }
 Return
 :?:/докалко1::
@@ -8649,17 +8704,8 @@ Return
 :?:/помощьсобес::
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
-IniRead, Gibdd, %A_Temp%\gibdd.egl, User, Gibdd
-IniRead, Frak, %A_Temp%\gibdd.egl, User, Frak
-    ; Определяем название по городу
-    if (Frak = "Невский")
-        Park := "Н"
-    else if (Frak = "Мирный")
-        Park := "М"
-    else if (Frak = "Приволжск")
-        Park := "П"
-    else
-        Badge := "Данные" ; Значение по умолчанию, если город не совпадает с известными
+LoadUserConfig()
+GetCityInfo(Okr, Posst, Park, GibddTag) ; Значение по умолчанию, если город не совпадает с известными
     ; Отправляем приветственное сообщение
 SmartSleep(250)
 Send, {F6}
@@ -11149,8 +11195,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.3"
-global AppVersionCode       := 273
+global AppNumericVersion    := "2.7.4"
+global AppVersionCode       := 274
 global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11162,8 +11208,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.3"
-        AppVersionCode       := 273
+        AppNumericVersion    := "2.7.4"
+        AppVersionCode       := 274
     }
     UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11191,8 +11237,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion  := "2.7.3"
-        AppVersionCode     := 273
+        AppNumericVersion  := "2.7.4"
+        AppVersionCode     := 274
     }
 
     if (!IsSilent)
@@ -11477,6 +11523,8 @@ BuildFluentInitialJson() {
     j .= """chaseDeptActual"":""" . JsonEscapeStr(GetChaseDept()) . ""","
     j .= """sfxVolume"":" . (SfxVolume != "" ? SfxVolume : 80) . ","
     j .= """sguPack"":""" . JsonEscapeStr(SelectedSguPack != "" ? SelectedSguPack : "default") . ""","
+    j .= """sirenPack"":""" . JsonEscapeStr(SelectedSirenPack != "" ? SelectedSirenPack : "default") . ""","
+    j .= """hornPack"":""" . JsonEscapeStr(SelectedHornPack != "" ? SelectedHornPack : "default") . ""","
     j .= """sguVolume"":" . (SguVolume != "" ? SguVolume : 100) . ","
     j .= """sguPacks"":["
     j .= "{""id"":""default"",""name"":""По умолчанию (Оригинал Провинции)"",""desc"":""Стандартные звуки сирен GTA / Province""},"
@@ -11614,7 +11662,7 @@ InitAndShowFluentGlassUI() {
     Gui, 8:Margin, 0, 0
     Gui, 8:Add, ActiveX, x0 y0 w%winW% h%winH% vFluentWB, Shell.Explorer
     FluentWB.Silent := true
-    navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/") . "?v=273_" . A_TickCount
+    navUrl := "file:///" . StrReplace(runtimeHtml, "\", "/") . "?v=274_" . A_TickCount
     FluentWB.Navigate(navUrl)
 
     ; Перехват сообщений ввода с клавиатуры для ActiveX WebBrowser (Backspace, Delete, ввод текста в поиск)
@@ -12104,6 +12152,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
     }
     if (action = "stop_sgu_sound") {
         StopSguPreview()
+        Return
+    }
+        if (action = "apply_custom_sgu") {
+        sPack := (arg1 != "") ? arg1 : "default"
+        hPack := (arg2 != "") ? arg2 : "default"
+        ApplyCustomSgu(sPack, hPack)
+        RefreshFluentWebData()
         Return
     }
     if (action = "apply_sgu_pack") {
@@ -13190,7 +13245,56 @@ EnsureSguPackDownloaded(packId) {
     return true
 }
 
+
+; =================================================================================================
+; РАЗДЕЛЬНОЕ УПРАВЛЕНИЕ СПЕЦСИГНАЛАМИ (Сирена + Крякалка)
+; =================================================================================================
+ApplyCustomSgu(sirenPackId, hornPackId) {
+    global SelectedSguPack, SelectedSirenPack, SelectedHornPack, SguVolume
+    if (sirenPackId = "")
+        sirenPackId := "default"
+    if (hornPackId = "")
+        hornPackId := "default"
+
+    gameSoundsDir := GetProvinceSoundsDir()
+    sirenSrc := A_ScriptDir . "\assets\sfx\sgu\" . sirenPackId . "\siren_1.wav"
+    hornSrc := A_ScriptDir . "\assets\sfx\sgu\" . hornPackId . "\siren_2.wav"
+    if (!FileExist(hornSrc))
+        hornSrc := A_ScriptDir . "\assets\sfx\sgu\" . hornPackId . "\horn.wav"
+
+    EnsureSguPackDownloaded(sirenPackId)
+    EnsureSguPackDownloaded(hornPackId)
+
+    curVol := (SguVolume > 0) ? SguVolume : 100
+    if (FileExist(sirenSrc) && FileExist(gameSoundsDir))
+        ScaleWavVolume(sirenSrc, gameSoundsDir . "\siren_1.wav", curVol)
+    if (FileExist(hornSrc) && FileExist(gameSoundsDir))
+        ScaleWavVolume(hornSrc, gameSoundsDir . "\siren_2.wav", curVol)
+
+    SelectedSirenPack := sirenPackId
+    SelectedHornPack := hornPackId
+    SelectedSguPack := (sirenPackId = hornPackId) ? sirenPackId : "custom"
+
+    for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+        EnsureIniUnicode(iniPath)
+        IniWrite, %SelectedSguPack%, %iniPath%, Settings, SguPack
+        IniWrite, %SelectedSirenPack%, %iniPath%, Settings, SirenPack
+        IniWrite, %SelectedHornPack%, %iniPath%, Settings, HornPack
+        IniWrite, %SguVolume%, %iniPath%, Settings, SguVolume
+    }
+
+    sirenName := GetSguPackName(sirenPackId)
+    hornName := GetSguPackName(hornPackId)
+    TrayTip, 🚨 СГУ обновлено, % "Сирена: " . sirenName . "`nКрякалка: " . hornName . " (" . curVol . "%)", 3, 1
+    PlayRadioSfx("radio_stop.wav")
+    return true
+}
+
 ApplySguPack(packId) {
+    return ApplyCustomSgu(packId, packId)
+}
+
+Legacy_ApplySguPack(packId) {
     global SelectedSguPack, SguVolume
     if (packId = "")
         packId := "default"

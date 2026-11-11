@@ -1,4 +1,4 @@
-<!-- saved from url=(0016)http://localhost -->
+﻿<!-- saved from url=(0016)http://localhost -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1065,7 +1065,10 @@ html, body {
                     <button class="sf-btn" onclick="openLinksModal()">🔗 Ссылки МВД</button>
                     <button class="sf-btn" onclick="callAhk('reload_app')">🔄 Перезапуск</button>
                 </div>
-                <button class="sf-btn creator-btn" onclick="openWebUrl('https://vk.ru/polaneychick', 'ВК Создателя')">💬 Создатель: @polaneychick (ВК)</button>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
+                    <button class="sf-btn creator-btn" onclick="openWebUrl('https://vk.ru/polaneychick', 'ВК Разработчика')" style="background:rgba(88,166,255,0.12); border-color:rgba(88,166,255,0.3); color:#58A6FF; font-size:11px; padding:6px 8px;">⚡ Разработчик: @polaneychick</button>
+                    <button class="sf-btn creator-btn" onclick="openWebUrl('https://vk.ru/maks_vis.hnya', 'ВК Автора')" style="background:rgba(210,153,34,0.12); border-color:rgba(210,153,34,0.3); color:#E3B341; font-size:11px; padding:6px 8px;">👑 Автор АХК: Maxim_Hiddleston</button>
+                </div>
             </div>
         </div>
 
@@ -1286,15 +1289,56 @@ html, body {
                                 <span id="sgu-active-badge" style="font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(35,134,54,0.25); color:#3FB950; border:1px solid rgba(56,139,253,0.3);">В ИГРЕ: По умолчанию</span>
                             </div>
                             <div style="font-size:11px; color:#8B949E; margin-top:3px;">
-                                Выберите пак спецсигнала. Звук заменяется в файлах Провинции и звучит при включении сирены/СГУ в патрульной машине в игре!
+                                Выберите готовый комплект или настройте сирену и крякалку по отдельности в Конструкторе ниже!
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <button class="btn-fluent" style="padding:6px 12px; font-size:12px; background:#238636; border-color:#2EA043;" onclick="applySelectedSgu()">💾 Установить в игру</button>
+                            <button class="btn-fluent" style="padding:6px 12px; font-size:12px; background:#238636; border-color:#2EA043;" onclick="applyCustomSguCombined()">💾 Установить комбинацию</button>
                             <button class="btn-fluent" style="padding:6px 12px; font-size:12px; background:rgba(248,81,73,0.15); border-color:#F85149; color:#F85149;" onclick="callAhk('stop_sgu_sound')">⏹ Стоп звук</button>
                         </div>
                     </div>
 
+                    <!-- КОНСТРУКТОР РАЗДЕЛЬНОГО СГУ -->
+                    <div style="background:rgba(22,27,34,0.7); border:1px solid rgba(88,166,255,0.25); border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                            <div style="font-size:12.5px; font-weight:700; color:#58A6FF; display:flex; align-items:center; gap:6px;">
+                                <span>🎛️</span> Конструктор спецсигнала (Раздельный выбор Сирены и Крякалки)
+                            </div>
+                            <div style="font-size:11px; color:#8B949E;">
+                                Выбирайте звук сирены и звук крякалки независимо
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <!-- Выбор сирены -->
+                            <div style="background:rgba(13,17,23,0.6); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+                                <div style="font-size:11.5px; font-weight:700; color:#E6EDF3; margin-bottom:6px;">🚨 Основная сирена (siren_1.wav / H):</div>
+                                <select id="sgu-sel-siren" class="fluent-select" style="width:100%; margin-bottom:8px;">
+                                    <option value="default">Дефолт Province (Оригинал)</option>
+                                    <option value="sgu_v1">Элина «Смерч» (v1 - Wail)</option>
+                                    <option value="sgu_v2">Премьер ГИБДД (v2 - Чистый спецсигнал)</option>
+                                    <option value="sgu_v3">Элект «Барс» (v3 - Пробивной звук)</option>
+                                </select>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-fluent" style="padding:3px 8px; font-size:11px;" onclick="testSelectedSguPart('siren')">▶ Слушать сирену</button>
+                                </div>
+                            </div>
+                            <!-- Выбор крякалки -->
+                            <div style="background:rgba(13,17,23,0.6); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+                                <div style="font-size:11.5px; font-weight:700; color:#E6EDF3; margin-bottom:6px;">📢 Крякалка / Строб (siren_2.wav / horn):</div>
+                                <select id="sgu-sel-horn" class="fluent-select" style="width:100%; margin-bottom:8px;">
+                                    <option value="default">Дефолт Province (Оригинал)</option>
+                                    <option value="sgu_v1">Airhorn «Смерч» (v1 - Резкий гудок)</option>
+                                    <option value="sgu_v2">Премьер ГИБДД (v2 - Yelp кряк)</option>
+                                    <option value="sgu_v3">Элект «Барс» (v3 - Короткий пробивной)</option>
+                                </select>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-fluent" style="padding:3px 8px; font-size:11px;" onclick="testSelectedSguPart('horn')">▶ Слушать крякалку</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="font-size:11.5px; font-weight:700; color:#C9D1D9; margin-bottom:8px;">⚡ Или выберите готовый пак целиком:</div>
                     <!-- Карточки паков СГУ -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;" id="sgu-cards-container">
                     </div>
@@ -1375,6 +1419,7 @@ html, body {
                             <div class="bind-row"><span class="bind-name">Розыск авто (1) / База (2)</span><span class="bind-key" id="hk-HK_Wcar" onclick="remapKey('HK_Wcar')">Ctrl+F8</span></div>
                             <div class="bind-row"><span class="bind-name">Пробить владельца авто</span><span class="bind-key cmd" onclick="copyCmd('/фкар')">/фкар</span></div>
                             <div class="bind-row"><span class="bind-name">Тауметр (замер тонировки)</span><span class="bind-key cmd" onclick="copyCmd('/таум1')">/таум(1-6)</span></div>
+                            <div class="bind-row"><span class="bind-name">Сертификат тауметра (документы)</span><span class="bind-key cmd" onclick="copyCmd('/доктаум1')">/доктаум(1-4)</span></div>
                             <div class="bind-row"><span class="bind-name">Видеорегистратор (показ)</span><span class="bind-key cmd" onclick="copyCmd('/рег1')">/рег(1-4)</span></div>
                             <div class="bind-row"><span class="bind-name">Алкотестер (проверка)</span><span class="bind-key cmd" onclick="copyCmd('/алко1')">/алко(1-5)</span></div>
                         </div>
@@ -1915,7 +1960,8 @@ html, body {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid rgba(56,139,253,0.25);">
             <div style="display:flex; align-items:center;">
                 <button class="btn-glass" onclick="callAhk('open_moyak_memo')">🚨 Режимы маячков (1–6)</button>
-                <button class="btn-glass" onclick="openWebUrl('https://vk.ru/polaneychick', 'ВК Создателя')">💬 Создатель: @polaneychick (ВК)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.ru/polaneychick', 'ВК Разработчика')">⚡ Разработчик & Модернизация: @polaneychick (ВК)</button>
+                <button class="btn-glass" onclick="openWebUrl('https://vk.ru/maks_vis.hnya', 'ВК Автора')" style="border-color:rgba(210,153,34,0.4); color:#E3B341;">👑 Изначальный автор: Maxim_Hiddleston (ВК)</button>
             </div>
             <button class="btn-glass" style="margin-right:0;" onclick="closeLinksModal()">Закрыть</button>
         </div>
@@ -2921,6 +2967,14 @@ function renderSguPacks() {
     var container = document.getElementById('sgu-cards-container');
     if (!container) return;
     var activePack = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sguPack) ? APP_DATA.profile.sguPack : 'default';
+    var activeSiren = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sirenPack) ? APP_DATA.profile.sirenPack : (activePack !== 'custom' ? activePack : 'default');
+    var activeHorn = (APP_DATA && APP_DATA.profile && APP_DATA.profile.hornPack) ? APP_DATA.profile.hornPack : (activePack !== 'custom' ? activePack : 'default');
+
+    var sSel = document.getElementById('sgu-sel-siren');
+    if (sSel && activeSiren) sSel.value = activeSiren;
+    var hSel = document.getElementById('sgu-sel-horn');
+    if (hSel && activeHorn) hSel.value = activeHorn;
+
     if (!currentSelectedSgu || currentSelectedSgu === '') currentSelectedSgu = activePack;
 
     var packs = (APP_DATA && APP_DATA.profile && APP_DATA.profile.sguPacks) ? APP_DATA.profile.sguPacks : [
@@ -2982,8 +3036,31 @@ function applySguPack(packId) {
     showToast('🚨 Установка звуков СГУ (' + packId + ') в игру...');
 }
 
+function testSelectedSguPart(part) {
+    if (part === 'siren') {
+        var el = document.getElementById('sgu-sel-siren');
+        var p = el ? el.value : 'default';
+        callAhk('test_sgu_sound', p, 'siren_1');
+        showToast('🔊 Тест сирены: ' + p);
+    } else {
+        var el = document.getElementById('sgu-sel-horn');
+        var p = el ? el.value : 'default';
+        callAhk('test_sgu_sound', p, 'siren_2');
+        showToast('🔊 Тест крякалки: ' + p);
+    }
+}
+
+function applyCustomSguCombined() {
+    var sEl = document.getElementById('sgu-sel-siren');
+    var hEl = document.getElementById('sgu-sel-horn');
+    var sPack = sEl ? sEl.value : 'default';
+    var hPack = hEl ? hEl.value : 'default';
+    callAhk('apply_custom_sgu', sPack, hPack);
+    showToast('🚨 Устанавливаю в игру: Сирена (' + sPack + ') + Крякалка (' + hPack + ')');
+}
+
 function applySelectedSgu() {
-    applySguPack(currentSelectedSgu);
+    applyCustomSguCombined();
 }
 
 function setSguVolumeUI(vol) {
