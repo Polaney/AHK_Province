@@ -11239,7 +11239,7 @@ Return
 ; =================================================================================================
 global AppNumericVersion    := "2.7.4"
 global AppVersionCode       := 274
-global UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
+global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
 global PendingUpdateUrl     := ""
@@ -11253,7 +11253,7 @@ InitAutoUpdater() {
         AppNumericVersion    := "2.7.4"
         AppVersionCode       := 274
     }
-    UpdatePrimaryUrl     := "http://152.234.229.245:3000/api/version"
+    UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
     UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
     PendingUpdateUrl     := ""
@@ -11277,7 +11277,7 @@ CheckForUpdates(IsSilent := 1) {
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
 
     if (UpdatePrimaryUrl = "")
-        UpdatePrimaryUrl   := "http://152.234.229.245:3000/api/version"
+        UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
         AppNumericVersion  := "2.7.4"
         AppVersionCode     := 274
@@ -11336,11 +11336,11 @@ CheckForUpdates(IsSilent := 1) {
     newChangelog := StrReplace(StrReplace(mLog1, "\n", "`n"), "\""", """")
 
     if (A_IsCompiled) {
-        PendingUpdateUrl := mDown1 ? mDown1 : "http://152.234.229.245:3000/download/exe"
-        PendingUpdateMirror := mDownMirror1 ? mDownMirror1 : "http://152.234.229.245:3000/download/exe"
+        PendingUpdateUrl := mDown1 ? mDown1 : "https://mvd-province.ru/download/exe"
+        PendingUpdateMirror := mDownMirror1 ? mDownMirror1 : "https://mvd-province.ru/download/exe"
     } else {
-        PendingUpdateUrl := mAhk1 ? mAhk1 : "http://152.234.229.245:3000/download/ahk"
-        PendingUpdateMirror := mAhkMirror1 ? mAhkMirror1 : "http://152.234.229.245:3000/download/ahk"
+        PendingUpdateUrl := mAhk1 ? mAhk1 : "https://mvd-province.ru/download/ahk"
+        PendingUpdateMirror := mAhkMirror1 ? mAhkMirror1 : "https://mvd-province.ru/download/ahk"
     }
 
     PendingUpdateVer := newVer
@@ -11403,10 +11403,10 @@ PerformDownloadAndUpdate() {
     if (PendingUpdateMirror != "" && PendingUpdateMirror != PendingUpdateUrl)
         urlList.Push(PendingUpdateMirror)
     if (A_IsCompiled) {
-        urlList.Push("http://152.234.229.245:3000/download/exe")
+        urlList.Push("https://mvd-province.ru/download/exe")
         urlList.Push("https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe")
     } else {
-        urlList.Push("http://152.234.229.245:3000/download/ahk")
+        urlList.Push("https://mvd-province.ru/download/ahk")
         urlList.Push("https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk")
     }
 
@@ -11723,14 +11723,14 @@ EnsureAssetsUpToDate() {
 
     if (needTpl) {
         ; Быстрый VPS первым (0.05 сек), GitHub только запасным
-        u1 := "http://152.234.229.245:3000/assets/fluent_template.html"
+        u1 := "https://mvd-province.ru/assets/fluent_template.html"
         u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/fluent_template.html"
         DownloadBinaryFile(u1, u2, tplPath)
     }
 
     mobPath := A_ScriptDir . "\assets\mobile_tablet.html"
     if (!FileExist(mobPath) || FileOpen(mobPath, "r").Length < 50000) {
-        u1 := "http://152.234.229.245:3000/assets/mobile_tablet.html"
+        u1 := "https://mvd-province.ru/assets/mobile_tablet.html"
         u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/mobile_tablet.html"
         DownloadBinaryFile(u1, u2, mobPath)
     }
@@ -11746,7 +11746,7 @@ EnsureAssetsUpToDate() {
                 continue
             targetWav := dirPath . "\" . fn
             if (!FileExist(targetWav) || FileOpen(targetWav, "r").Length < 500) {
-                u1 := "http://152.234.229.245:3000/sfx/sgu/" . d . "/" . fn
+                u1 := "https://mvd-province.ru/sfx/sgu/" . d . "/" . fn
                 u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . d . "/" . fn
                 DownloadBinaryFile(u1, u2, targetWav)
             }
@@ -11776,7 +11776,7 @@ InitAndShowFluentGlassUI() {
         }
     }
     if (!FileExist(tplPath)) {
-        DownloadSingleBinaryFile("http://152.234.229.245:3000/assets/fluent_template.html", tplPath)
+        DownloadSingleBinaryFile("https://mvd-province.ru/assets/fluent_template.html", tplPath)
     }
 
     if (!FileExist(tplPath)) {
@@ -12574,14 +12574,14 @@ global LiveFinesCount := 0
 global LiveArrestsCount := 0
 global LiveTargetId := "—"
 
-global TabletRelayHost := "http://152.234.229.245:3000"
+global TabletRelayHost := "https://mvd-province.ru"
 global TabletRelayPin := "51"
 global TabletRelayOnline := 0
 
 TabletRelay_Init() {
     global TabletRelayHost, TabletRelayPin, Teg
     iniPath := A_Temp . "\gibdd.egl"
-    IniRead, savedHost, %iniPath%, Tablet, RelayHost, http://152.234.229.245:3000
+    IniRead, savedHost, %iniPath%, Tablet, RelayHost, https://mvd-province.ru
     if (savedHost != "" && savedHost != "ERROR")
         TabletRelayHost := savedHost
     IniRead, savedPin, %iniPath%, Tablet, Pin, ERROR
@@ -13321,7 +13321,7 @@ SendClientHeartbeat() {
     global LiveShiftDuration, LiveFinesCount, LiveArrestsCount, LiveForumPoints, LastBroadcastMessageId
 
     if (TabletRelayHost = "")
-        TabletRelayHost := "http://152.234.229.245:3000"
+        TabletRelayHost := "https://mvd-province.ru"
 
     hwid := GetClientHwid()
     dutyStr := (LiveShiftDuration != "") ? LiveShiftDuration : "00:00"
@@ -13416,7 +13416,7 @@ EnsureSguPackDownloaded(packId) {
 
     files := ["siren_1.wav", "siren_2.wav", "horn.wav"]
     baseUrl := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . packId . "/"
-    mirrorUrl := "http://152.234.229.245:3000/sfx/sgu/" . packId . "/"
+    mirrorUrl := "https://mvd-province.ru/sfx/sgu/" . packId . "/"
     for idx, fn in files {
         localPath := packDir . "\" . fn
         if (!FileExist(localPath)) {

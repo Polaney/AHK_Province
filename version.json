@@ -1,11 +1,11 @@
 {
-  "version_code": 273,
-  "version": "2.7.3",
-  "release_date": "2026-11-10",
-  "title": "Обновление v2.7.3: Встроенные паки СГУ ДПС, авто-распаковка Web UI и HTTPS",
-  "changelog": "- Звуки СГУ (v1, v2, v3) встроены прямо в .exe бинарник (работают сразу без интернета)\n- Автоматическое обновление веб-интерфейса Fluent Glass при обновлении биндера\n- Исправлена регулировка громкости сирен и крякалки в реальном времени (50%–150%)\n- Безопасное скачивание обновлений по защищённому протоколу HTTPS\n- Полная защита кодировки профиля (UTF-16 Unicode)",
-  "download_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
-  "download_mirror": "https://github.com/Polaney/AHK_Province/raw/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
-  "ahk_url": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk",
-  "ahk_mirror": "https://github.com/Polaney/AHK_Province/raw/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
+  "version_code": 274,
+  "version": "2.7.4",
+  "release_date": "2026-11-11",
+  "title": "Обновление v2.7.4: Домен mvd-province.ru, SSL, адаптация городов, фикс биндов в игре и СГУ",
+  "changelog": "- 🌐 Запущен официальный домен https://mvd-province.ru с защищённым SSL (HTTPS/WSS)\\n- 🏙️ Адаптация под все города: Приволжск, Мирный, Невский — приветствие и доклады работают без сброса на дефолт\\n- 🛡️ Исправлен режим «Только в игре (MTA / GTA SA)»: бинды больше не срабатывают в браузере или Discord\\n- 📋 Исправлены команды /доктаум1-4: устранён баг с открытым чатом, добавлена подсказка /доктаум и кнопка в интерфейсе\\n- 🎛️ Конструктор СГУ: независимый выбор основной сирены (Wail) и крякалки (Yelp/Horn) по отдельности\\n- 👑 Изначальный автор АХК: Maxim_Hiddleston (vk.ru/maks_vis.hnya), модернизация: Danil_Polaneychick",
+  "download_url": "https://mvd-province.ru/download/exe",
+  "download_mirror": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe",
+  "ahk_url": "https://mvd-province.ru/download/ahk",
+  "ahk_mirror": "https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk"
 }

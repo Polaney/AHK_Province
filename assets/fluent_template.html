@@ -2383,12 +2383,12 @@ html, body {
         </div>
 
         <div style="background:rgba(10,16,30,0.85); border:1px solid rgba(56,139,253,0.3); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
-            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">http://152.234.229.245:3000/?pin=7788</span>
+            <span id="tablet-url-txt" style="font-family:Consolas,monospace; font-size:13px; color:#79C0FF; font-weight:bold;">https://mvd-province.ru/?pin=7788</span>
             <button class="btn-fluent" onclick="copyTabletUrl()" style="padding:4px 12px; font-size:11px;">📋 Скопировать</button>
         </div>
 
         <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
-            <div style="background:rgba(46,160,67,0.18); border:1px solid rgba(46,160,67,0.45); color:#7EE787; font-weight:700; font-size:11.5px; padding:4px 12px; border-radius:12px;" id="tablet-server-status">☁️ Облачный релей VPS (152.234.229.245)</div>
+            <div style="background:rgba(46,160,67,0.18); border:1px solid rgba(46,160,67,0.45); color:#7EE787; font-weight:700; font-size:11.5px; padding:4px 12px; border-radius:12px;" id="tablet-server-status">🌐 Облачный сервер (mvd-province.ru)</div>
             <button class="btn-glass" onclick="callAhk('open_web_url', document.getElementById('tablet-url-txt').innerText)" style="padding:4px 10px; font-size:11px;">🌐 Открыть в браузере</button>
         </div>
 
@@ -2438,7 +2438,7 @@ function closeLinksModal() {
 }
 
 function openTabletModal() {
-    var relayUrl = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayUrl) ? APP_DATA.profile.relayUrl : 'http://152.234.229.245:3000';
+    var relayUrl = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayUrl) ? APP_DATA.profile.relayUrl : 'https://mvd-province.ru';
     var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
     var pin = p.tabletPin || p.teg || '51';
     var url = relayUrl + '/?pin=' + pin;
@@ -2452,7 +2452,7 @@ function openTabletModal() {
     var statusEl = document.getElementById('tablet-server-status');
     if (statusEl) {
         var isOnline = (APP_DATA && APP_DATA.profile && APP_DATA.profile.relayOnline);
-        statusEl.innerHTML = isOnline ? '🟢 Облачный релей активен (152.234.229.245)' : '☁️ Облачный релей VPS (152.234.229.245)';
+        statusEl.innerHTML = isOnline ? '🟢 Облачный сервер активен (mvd-province.ru)' : '🌐 Облачный сервер (mvd-province.ru)';
     }
 
     var qr = document.getElementById('tablet-qr-img');
@@ -3426,7 +3426,7 @@ var agentRelayWs = null;
 function initAgentRelayWs() {
     var p = (APP_DATA && APP_DATA.profile) ? APP_DATA.profile : {};
     var pin = p.tabletPin || p.teg || '51';
-    var wsUrl = 'ws://152.234.229.245:3000/ws?role=agent&pin=' + encodeURIComponent(pin);
+    var wsUrl = 'wss://mvd-province.ru/ws?role=agent&pin=' + encodeURIComponent(pin);
 
     try {
         if (agentRelayWs) {
