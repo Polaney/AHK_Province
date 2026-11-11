@@ -2663,12 +2663,12 @@ EnsureDefaultConfig() {
 GetCityInfo(ByRef outOkr, ByRef outPostPrefix, ByRef outPark, ByRef outGibddTag) {
     global Frak, Gibdd
     cityCheck := Trim(Frak) . " " . Trim(Gibdd)
-    if (InStr(cityCheck, "Мирн") || InStr(cityCheck, "-М") || InStr(cityCheck, "УГИБДД-М") || InStr(cityCheck, "мирк")) {
+    if (InStr(cityCheck, "Мирн") || InStr(cityCheck, "мирн") || InStr(cityCheck, "мирк") || InStr(cityCheck, "Мирк") || InStr(cityCheck, "-М") || InStr(cityCheck, "-м") || InStr(cityCheck, "УГИБДД-М")) {
         outOkr := "УГИБДД по городу Мирный и Мирнинской области Республики Провинция"
         outPostPrefix := "М"
         outPark := "М"
         outGibddTag := "УГИБДД-М"
-    } else if (InStr(cityCheck, "Приволж") || InStr(cityCheck, "-П") || InStr(cityCheck, "УГИБДД-П") || InStr(cityCheck, "прив")) {
+    } else if (InStr(cityCheck, "Приволж") || InStr(cityCheck, "приволж") || InStr(cityCheck, "прив") || InStr(cityCheck, "Прив") || InStr(cityCheck, "-П") || InStr(cityCheck, "-п") || InStr(cityCheck, "УГИБДД-П")) {
         outOkr := "УГИБДД по городу Приволжск и Приволжской области Республики Провинция"
         outPostPrefix := "П"
         outPark := "П"
@@ -11354,22 +11354,63 @@ PerformDownloadAndUpdate() {
     ext := A_IsCompiled ? ".exe" : ".ahk"
     tempFile := A_Temp . "\ahk_update_" . A_TickCount . ext
 
-    ; Скачивание через отказоустойчивую функцию
-    success := DownloadBinaryFile(PendingUpdateUrl, PendingUpdateMirror, tempFile)
+    ; Список URL с приоритетом: VPS релей (быстро, 2 сек) -> GitHub Raw
+    urlList := []
+    if (PendingUpdateUrl != "")
+        urlList.Push(PendingUpdateUrl)
+    if (PendingUpdateMirror != "" && PendingUpdateMirror != PendingUpdateUrl)
+        urlList.Push(PendingUpdateMirror)
+    if (A_IsCompiled) {
+        urlList.Push("http://152.234.229.245:3000/download/exe")
+        urlList.Push("https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.exe")
+    } else {
+        urlList.Push("http://152.234.229.245:3000/download/ahk")
+        urlList.Push("https://raw.githubusercontent.com/Polaney/AHK_Province/main/%D0%90%D0%A5%D0%9A%20%D0%A3%D0%93%D0%98%D0%91%D0%94%D0%94.ahk")
+    }
+
+    success := false
+    for idx, u in urlList {
+        GuiControl, 7:, UpdateStatusTxt, % "⏳ Скачивание (" . idx . "/" . urlList.MaxIndex() . ")... Пожалуйста, подождите"
+        if (DownloadSingleBinaryFile(u, tempFile)) {
+            success := true
+            break
+        }
+    }
 
     if (!success) {
         FileDelete, %tempFile%
-        MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте подключение к сети или скачайте архив вручную.
+        GuiControl, 7:Enable, BtnUpdateNow
+        GuiControl, 7:, UpdateStatusTxt, ❌ Ошибка скачивания. Проверьте интернет или скачайте вручную.
+        MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте подключение к сети или скачайте архив вручную: vk.ru/polaneychick
         Return
     }
 
     currentPath := A_ScriptFullPath
 
     if (A_IsCompiled) {
-        GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Перезапуск...
-        Sleep, 400
-        psCmd := "powershell.exe -WindowStyle Hidden -Command ""$src = '" . tempFile . "'; $dst = '" . currentPath . "'; for (`$i=0; `$i -lt 30; `$i++) { try { Move-Item -LiteralPath `$src -Destination `$dst -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 500 } }; Start-Process -FilePath `$dst"""
-        Run, %psCmd%,, Hide
+        GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Замена файла и перезапуск...
+        Sleep, 300
+
+        cmdScript := A_Temp . "\ahk_replace_" . A_TickCount . ".cmd"
+        cmdContent := "@echo off`r`n"
+        cmdContent .= "timeout /t 1 /nobreak >nul`r`n"
+        cmdContent .= ":retry`r`n"
+        cmdContent .= "move /y """ . tempFile . """ """ . currentPath . """ >nul 2>&1`r`n"
+        cmdContent .= "if exist """ . tempFile . """ (`r`n"
+        cmdContent .= "    timeout /t 1 /nobreak >nul`r`n"
+        cmdContent .= "    goto retry`r`n"
+        cmdContent .= ")`r`n"
+        cmdContent .= "start """" """ . currentPath . """`r`n"
+        cmdContent .= "del ""%~f0""`r`n"
+
+        FileDelete, %cmdScript%
+        fCmd := FileOpen(cmdScript, "w", "CP866")
+        if IsObject(fCmd) {
+            fCmd.Write(cmdContent)
+            fCmd.Close()
+        }
+
+        Run, %cmdScript%,, Hide
         ExitApp
     } else {
         FileCopy, %tempFile%, %currentPath%, 1
@@ -11381,55 +11422,57 @@ PerformDownloadAndUpdate() {
     }
 }
 
-DownloadBinaryFile(Url1, Url2, OutPath) {
+DownloadSingleBinaryFile(targetUrl, OutPath) {
+    if (targetUrl = "")
+        return false
+
     FileDelete, %OutPath%
 
-    ; Попытка 1: Скачивание через WinHttp (наиболее надежно, поддержка SSL/TLS и редиректов GitHub)
-    for idx, targetUrl in [Url1, Url2] {
-        if (targetUrl = "")
-            continue
-        try {
-            whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-            whr.SetTimeouts(5000, 5000, 45000, 45000)
-            whr.Open("GET", targetUrl, false)
-            whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AHK-GIBDD-Updater")
-            whr.Option(6) := true ; Автоматический переход по редиректам (GitHub Raw -> Fastly CDN)
-            whr.Send()
-            if (whr.Status = 200) {
-                ado := ComObjCreate("ADODB.Stream")
-                ado.Type := 1 ; Binary
-                ado.Open()
-                ado.Write(whr.ResponseBody)
-                ado.SaveToFile(OutPath, 2) ; Overwrite
-                ado.Close()
+    ; Попытка 1: curl.exe (самый быстрый, встроен в Win10/Win11, без зависаний, 2-3 сек)
+    curlCmd := "curl.exe -fSL --connect-timeout 4 --max-time 30 """ . targetUrl . """ -o """ . OutPath . """"
+    RunWait, %curlCmd%,, Hide
+    FileGetSize, sz, %OutPath%
+    if (sz > 50000)
+        return true
 
-                FileGetSize, sz, %OutPath%
-                if (sz > 5000)
-                    return true
-            }
+    ; Попытка 2: PowerShell WebClient с явным TLS 1.2 и таймаутом
+    FileDelete, %OutPath%
+    psCmd := "powershell.exe -WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object Net.WebClient; $wc.Headers.Add('User-Agent','Mozilla/5.0'); try { $wc.DownloadFile('" . targetUrl . "', '" . OutPath . "') } catch {}"""
+    RunWait, %psCmd%,, Hide
+    FileGetSize, sz, %OutPath%
+    if (sz > 50000)
+        return true
+
+    ; Попытка 3: WinHttp
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(3000, 4000, 15000, 20000)
+        whr.Open("GET", targetUrl, false)
+        whr.SetRequestHeader("User-Agent", "Mozilla/5.0 AHK-Updater")
+        whr.Option(6) := true
+        whr.Send()
+        if (whr.Status = 200) {
+            ado := ComObjCreate("ADODB.Stream")
+            ado.Type := 1
+            ado.Open()
+            ado.Write(whr.ResponseBody)
+            ado.SaveToFile(OutPath, 2)
+            ado.Close()
+            FileGetSize, sz, %OutPath%
+            if (sz > 50000)
+                return true
         }
+    } catch {
     }
 
-    ; Попытка 2: UrlDownloadToFile
-    for idx, targetUrl in [Url1, Url2] {
-        if (targetUrl = "")
-            continue
-        UrlDownloadToFile, %targetUrl%, %OutPath%
-        FileGetSize, sz, %OutPath%
-        if (sz > 5000)
-            return true
-    }
+    return false
+}
 
-    ; Попытка 3: PowerShell WebClient (штатный fallback Windows)
-    activeUrl := Url1 ? Url1 : Url2
-    if (activeUrl != "") {
-        psCmd := "powershell -WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object Net.WebClient).DownloadFile('" . activeUrl . "', '" . OutPath . "')"""
-        RunWait, %psCmd%,, Hide
-        FileGetSize, sz, %OutPath%
-        if (sz > 5000)
-            return true
-    }
-
+DownloadBinaryFile(Url1, Url2, OutPath) {
+    if (DownloadSingleBinaryFile(Url1, OutPath))
+        return true
+    if (Url2 != "" && DownloadSingleBinaryFile(Url2, OutPath))
+        return true
     return false
 }
 
