@@ -26,9 +26,11 @@ GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
 GroupAdd, ProvinceGameGroup, ahk_exe gta_sa.exe
 GroupAdd, ProvinceGameGroup, ahk_exe proxy_sa.exe
 GroupAdd, ProvinceGameGroup, ahk_class Grand theft auto San Andreas
+GroupAdd, ProvinceGameGroup, ahk_class Grand Theft Auto San Andreas
 GroupAdd, ProvinceGameGroup, ahk_exe MTA.exe
 GroupAdd, ProvinceGameGroup, ahk_class GTA:SA:MP
 GroupAdd, ProvinceGameGroup, MTA: Province
+GroupAdd, ProvinceGameGroup, MTA: San Andreas
 GroupAdd, ProvinceGameGroup, GTA:SA
 
 ; Автораспаковка ресурсов при первом запуске (Standalone EXE режим)
@@ -788,7 +790,7 @@ Gui, 1:Font, S10 C58A6FF Bold, Consolas
 Gui, 1:Add, GroupBox, x830 y323 w298 h120, [ Приборы: Тауметр / Рег / Алко ]
 Gui, 1:Font, S10 C79C0FF Bold, Consolas
 Gui, 1:Add, Text, x838 y341 h20 w160 g44, * Тауметр (инфо)
-Gui, 1:Add, Text, x838 yp+19 h20 w160 g44, * Доки тауметр
+Gui, 1:Add, Text, x838 yp+19 h20 w160 gDokTaumInfo, * Доки тауметр
 Gui, 1:Add, Text, x838 yp+19 h20 w160 g45, * Видеорегистратор
 Gui, 1:Font, S10 CE6EDF3 Bold, Consolas
 Gui, 1:Add, Text, x838 yp+19 h20 w160, Алкотестер
@@ -1438,7 +1440,7 @@ GetMaxChaseStages() {
 
 ExecuteSmartMegaphoneStep() {
     global ChaseActive, ChaseStage, ChaseCooldownSec, ChaseTotalSec, ok1, ok2, OnlyInGameMode, MegaphoneCooldownConfig
-    if (OnlyInGameMode && !WinActive("ahk_exe gta_sa.exe") && !WinActive("ahk_class Grand Theft Auto San Andreas") && !WinActive("ahk_exe Multi Theft Auto.exe"))
+    if (OnlyInGameMode && !IsGameActive())
         Return
 
     dept := GetChaseDept()
@@ -1892,7 +1894,7 @@ FormatCustomBindLine(rawLine) {
 
 ExecuteCustomBind(BindIdx) {
     global CustomBindsDB, AbortBindFlag, OnlyInGameMode
-    if (OnlyInGameMode && !WinActive("ahk_exe gta_sa.exe") && !WinActive("ahk_class Grand Theft Auto San Andreas") && !WinActive("ahk_exe Multi Theft Auto.exe"))
+    if (OnlyInGameMode && !IsGameActive())
         Return
 
     b := CustomBindsDB[BindIdx]
@@ -2301,6 +2303,19 @@ InitHotkeysManager() {
     }
 }
 
+IsGameActive() {
+    return (WinActive("ahk_group ProvinceGameGroup")
+        || WinActive("ahk_exe proxy_sa.exe")
+        || WinActive("ahk_exe gta_sa.exe")
+        || WinActive("ahk_exe Multi Theft Auto.exe")
+        || WinActive("ahk_exe MTA.exe")
+        || WinActive("ahk_class Grand theft auto San Andreas")
+        || WinActive("ahk_class Grand Theft Auto San Andreas")
+        || WinActive("MTA: Province")
+        || WinActive("MTA: San Andreas")
+        || WinActive("GTA:SA:MP"))
+}
+
 IsGlobalUtilityHotkey(hkObj) {
     return (hkObj.Cat = "Система" || hkObj.Cat = "Утилиты АХК")
 }
@@ -2661,14 +2676,14 @@ EnsureDefaultConfig() {
 ; УНИВЕРСАЛЬНЫЙ ОПРЕДЕЛИТЕЛЬ ГОРОДА И ПОДРАЗДЕЛЕНИЯ (Адаптация под все города Провинции)
 ; =================================================================================================
 GetCityInfo(ByRef outOkr, ByRef outPostPrefix, ByRef outPark, ByRef outGibddTag) {
-    global Frak, Gibdd
-    cityCheck := Trim(Frak) . " " . Trim(Gibdd)
-    if (InStr(cityCheck, "Мирн") || InStr(cityCheck, "мирн") || InStr(cityCheck, "мирк") || InStr(cityCheck, "Мирк") || InStr(cityCheck, "-М") || InStr(cityCheck, "-м") || InStr(cityCheck, "УГИБДД-М")) {
+    global Frak, Gibdd, Otdel
+    cityCheck := Trim(Frak) . " " . Trim(Gibdd) . " " . Trim(Otdel)
+    if (InStr(cityCheck, "Мирн") || InStr(cityCheck, "мирн") || InStr(cityCheck, "мирк") || InStr(cityCheck, "Мирк") || InStr(cityCheck, "-М") || InStr(cityCheck, "-м") || InStr(cityCheck, "УГИБДД-М") || InStr(cityCheck, "ДЧ-М") || InStr(cityCheck, "РњРёСЂ") || InStr(cityCheck, "РјРёСЂ") || InStr(cityCheck, "СЂРЅ")) {
         outOkr := "УГИБДД по городу Мирный и Мирнинской области Республики Провинция"
         outPostPrefix := "М"
         outPark := "М"
         outGibddTag := "УГИБДД-М"
-    } else if (InStr(cityCheck, "Приволж") || InStr(cityCheck, "приволж") || InStr(cityCheck, "прив") || InStr(cityCheck, "Прив") || InStr(cityCheck, "-П") || InStr(cityCheck, "-п") || InStr(cityCheck, "УГИБДД-П")) {
+    } else if (InStr(cityCheck, "Приволж") || InStr(cityCheck, "приволж") || InStr(cityCheck, "прив") || InStr(cityCheck, "Прив") || InStr(cityCheck, "-П") || InStr(cityCheck, "-п") || InStr(cityCheck, "УГИБДД-П") || InStr(cityCheck, "ДЧ-П") || InStr(cityCheck, "РџСЂРёРІ") || InStr(cityCheck, "РїСЂРёРІ")) {
         outOkr := "УГИБДД по городу Приволжск и Приволжской области Республики Провинция"
         outPostPrefix := "П"
         outPark := "П"
@@ -2695,11 +2710,19 @@ LoadUserConfig() {
     global Fio1, Rank, Prop1, Prop2, Otdel, Frak, Gender, Teg, Gibdd, Znak, CheckMB, Post, ProvLogPath, OnlyInGameMode, RadioSfxEnabled
     global MegaphoneCooldownConfig, ChaseDeptMode, SfxVolume, ChaseTargetText, AutoScreenMode
     IniPath := A_Temp . "\gibdd.egl"
-    if (!FileExist(IniPath)) {
-        if (FileExist(A_ScriptDir . "\gibdd_profile.ini"))
-            FileCopy, % A_ScriptDir . "\gibdd_profile.ini", %IniPath%, 1
-        else
-            EnsureIniUnicode(IniPath)
+    LocalIniPath := A_ScriptDir . "\gibdd_profile.ini"
+    if (FileExist(LocalIniPath)) {
+        if (!FileExist(IniPath)) {
+            FileCopy, %LocalIniPath%, %IniPath%, 1
+        } else {
+            FileGetTime, timeLocal, %LocalIniPath%, M
+            FileGetTime, timeTemp, %IniPath%, M
+            if (timeLocal > timeTemp) {
+                FileCopy, %LocalIniPath%, %IniPath%, 1
+            }
+        }
+    } else if (!FileExist(IniPath)) {
+        EnsureIniUnicode(IniPath)
     }
     IniRead, Fio1, %IniPath%, User, Fio1, Имя Фамилия
     if (Fio1 = "Имя Фамилия" || Fio1 = "Имя Фамилия Отчество" || Fio1 = "")
@@ -2754,9 +2777,22 @@ LoadUserConfig() {
         Rank := "Сержант"
     if (InStr(Otdel, "пїЅ") || InStr(Otdel, "ïS") || Otdel = "ERROR" || Otdel = "")
         Otdel := "Инспектор ОР"
-    if (InStr(Frak, "пїЅ") || InStr(Frak, "ïS") || Frak = "ERROR" || Frak = "")
+    if (InStr(Frak, "Мирн") || InStr(Frak, "мирн") || InStr(Frak, "мирк") || InStr(Frak, "Мирк") || InStr(Frak, "РњРёСЂ") || InStr(Frak, "РјРёСЂ") || InStr(Frak, "-М") || InStr(Frak, "-м"))
+        Frak := "Мирный"
+    else if (InStr(Frak, "Приволж") || InStr(Frak, "приволж") || InStr(Frak, "прив") || InStr(Frak, "Прив") || InStr(Frak, "РџСЂРёРІ") || InStr(Frak, "РїСЂРёРІ") || InStr(Frak, "-П") || InStr(Frak, "-п"))
+        Frak := "Приволжск"
+    else if (InStr(Frak, "Невск") || InStr(Frak, "невск") || InStr(Frak, "РќРµРІ") || InStr(Frak, "РЅРµРІ") || InStr(Frak, "-Н") || InStr(Frak, "-н"))
         Frak := "Невский"
-    if (InStr(Gibdd, "пїЅ") || InStr(Gibdd, "ïS") || Gibdd = "ERROR" || Gibdd = "")
+    else if (InStr(Frak, "пїЅ") || InStr(Frak, "ïS") || Frak = "ERROR" || Frak = "")
+        Frak := "Невский"
+
+    if (InStr(Gibdd, "-М") || InStr(Gibdd, "-м") || InStr(Gibdd, "Мирн") || InStr(Gibdd, "мирн") || InStr(Gibdd, "мирк") || InStr(Gibdd, "Мирк") || InStr(Gibdd, "РњРёСЂ"))
+        Gibdd := "УГИБДД-М"
+    else if (InStr(Gibdd, "-П") || InStr(Gibdd, "-п") || InStr(Gibdd, "Приволж") || InStr(Gibdd, "приволж") || InStr(Gibdd, "прив") || InStr(Gibdd, "Прив") || InStr(Gibdd, "РџСЂРёРІ"))
+        Gibdd := "УГИБДД-П"
+    else if (InStr(Gibdd, "-Н") || InStr(Gibdd, "-н") || InStr(Gibdd, "Невск") || InStr(Gibdd, "невск") || InStr(Gibdd, "РќРµРІ"))
+        Gibdd := "УГИБДД-Н"
+    else if (InStr(Gibdd, "пїЅ") || InStr(Gibdd, "ïS") || Gibdd = "ERROR" || Gibdd = "")
         Gibdd := "УГИБДД-Н"
     if (InStr(Gender, "пїЅ") || InStr(Gender, "ïS") || Gender = "ERROR" || Gender = "")
         Gender := "Я мужык"
@@ -3065,7 +3101,7 @@ Return
 ; =================================================================================================
 ; ИЗОЛЯЦИЯ ХОТСТРИНГОВ И БИНДОВ (Срабатывают только в окне игры, если включен режим OnlyInGameMode)
 ; =================================================================================================
-#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup") || WinActive("ahk_exe gta_sa.exe") || WinActive("ahk_exe proxy_sa.exe") || WinActive("ahk_exe Multi Theft Auto.exe"))
+#If (OnlyInGameMode = 0 || IsGameActive())
 
 :?:/штраф::
 :?:/калькулятор::
@@ -5052,8 +5088,10 @@ if IsLabel(targetLbl1)
 Return
 
 ; Изоляция хотстрингов: срабатывают только в окне игры (если включена опция OnlyInGameMode)
-#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
+#If (OnlyInGameMode = 0 || IsGameActive())
 Bind_Greeting:
+if (OnlyInGameMode && !IsGameActive())
+    return
 AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
     LoadUserConfig()
@@ -5062,11 +5100,11 @@ SendMessage, 0x50,, 0x4190419,, A
 SmartSleep(500)
 Send, {F8}animarmy 3{ENTER}{F8}
 SmartSleep(500)
-Send, {F8} say Здравия желаю, %Otdel% %Okr%.{Enter}{F8}
+Send, {F8}say Здравия желаю, %Otdel% %Okr%.{Enter}{F8}
 SmartSleep(500)
-Send, {F8} say %Rank% полиции, %Fio1%.{Enter}{F8}
+Send, {F8}say %Rank% полиции, %Fio1%.{Enter}{F8}
 SmartSleep(500)
-Send, {F8} do На груди закреплен полицейский знак с личным номером: %Znak%.{Enter}{F8}
+Send, {F8}do На груди закреплен полицейский знак с личным номером: %Znak%.{Enter}{F8}
 SmartSleep(500)
 if (Rank = "Рядовой") {
     PogonDescription := "пустые погоны"
@@ -6967,13 +7005,13 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
 if (CheckMB = "МР") {
-    Send, /do Папка с документами на тауметр лежит в сумке на плече сотрудника.{Enter}{F6}
+    Send, /do В кофре патрульного мотоцикла лежит папка с документами на тауметр.{Enter}{F6}
     SmartSleep(500)
-    Send, /me открыл%ok1% сумку, затем достал%ok1% папку с документами на тауметр{Enter}{F6}
+    Send, /me открыл%ok1% кофр и достал%ok1% папку с документами на тауметр{Enter}{F6}
     SmartSleep(500)
     Send, /do В папке находятся официальные документы, подтверждающие исправность прибора и его законность в использовании.{Enter}
 } else {
-    Send, /do Бардачок патрульного автомобиля закрыт.{Enter}{F6}
+    Send, /do В бардачке патрульного автомобиля лежит папка с документами на тауметр.{Enter}{F6}
     SmartSleep(500)
     Send, /me открыл%ok1% бардачок и достал%ok1% папку с документами на тауметр{Enter}{F6}
     SmartSleep(500)
@@ -6998,7 +7036,7 @@ AbortBindFlag := 0
 SendMessage, 0x50,, 0x4190419,, A
 Send, {F6}
 SmartSleep(250)
-Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% ее{Enter}{F6}
+Send, /me положил%ok1% нужные бумаги обратно в папку, затем закрыл%ok1% её{Enter}{F6}
 SmartSleep(500)
 Send, /do Папка закрыта.{Enter}
 Return
@@ -7010,11 +7048,11 @@ IniRead, CheckMB, %A_Temp%\gibdd.egl, User, CheckMB
 Send, {F6}
 SmartSleep(250)
 if (CheckMB = "МР") {
-    Send, /me положил%ok1% папку обратно в сумку, затем закрыл%ok1% её{Enter}{F6}
+    Send, /me убрал%ok1% папку с документами обратно в кофр мотоцикла, затем закрыл%ok1% его{Enter}{F6}
     SmartSleep(500)
-    Send, /do Сумка закрыта.{Enter}
+    Send, /do Кофр закрыт.{Enter}
 } else {
-    Send, /me положил%ok1% папку обратно в бардачок патрульного автомобиля, затем закрыл%ok1% его{Enter}{F6}
+    Send, /me убрал%ok1% папку с документами обратно в бардачок патрульного автомобиля, затем закрыл%ok1% его{Enter}{F6}
     SmartSleep(500)
     Send, /do Бардачок закрыт.{Enter}
 }
@@ -10781,7 +10819,11 @@ return
 MsgBox, 0, Подробности, Кликабельные названия отыгровок помечены символом "*", нажмите на них, чтобы посмотреть дополнительную информацию о какой-либо команде`n`nДОПОЛНИТЕЛЬНО:`nВ АХК МОГУТ ОТОБРАЖАТЬСЯ НЕ ВСЕ ВКЛАДКИ С КОМАНДАМИ, ПРОБУЙТЕ НАЖИМАТЬ НА ВКЛАДКУ НЕСКОЛЬКО РАЗ (ПО ДВОЙНОМУ НАЖАТИЮ НА ВКЛАДКУ "ОПЕРАЦИИ" МОЖЕТ ОТКРЫТЬСЯ ВКЛАДКА "ДОКЛАДЫ" И НАОБОРОТ)
 return
 44:
-MsgBox, 0,  Тауметр, Взаимодействие с тауметром`n/таум1 - достать тауметр`n/таум2 - включить и сделать колибровку устройства`n/таум3 - попросить приподнять стекло`n/таум4 - протирание стёкл`n/таум5 - установка и измерение тонировки`n/таум5 - выключить и убрать тауметр`n`nДокументы на тауметр`n/доктаум1 - достать документы на тауметр`n/доктаум2 - показать гражданину, но не передавая их`n/доктаум3 - убрать в папку документы`n/доктаум4 - убрать документ на тауметр`n`nP.s Бывают попадаются такие граждане, которые слишком любять докапаться. И бывает спрашивают документы на подтверждение роботоспособности тауметра.
+MsgBox, 0, Тауметр, 📏 Взаимодействие с тауметром:`n`n/таум1 — Достать тауметр из бардачка / кофра`n/таум2 — Включить и сделать калибровку устройства`n/таум3 — Попросить приподнять стекло / открыть дверь`n/таум4 — Протирание стёкол чистой тряпочкой`n/таум5 — Установка датчиков и замер тонировки`n/таум6 — Выключить и убрать тауметр в бардачок / кофр`n`n📋 Документы на тауметр (Сертификат):`n/доктаум1 — Достать документы и сертификат`n/доктаум2 — Показать отметку о поверке гражданину`n/доктаум3 — Убрать бумаги обратно в папку`n/доктаум4 — Убрать папку с документами`n`n💡 Совет: при проверке тонировки сначала используйте /таум(1-6), а при запросе поверки — /доктаум(1-4).
+return
+
+DokTaumInfo:
+MsgBox, 0, Документы на тауметр, 📋 Документы и сертификат на прибор «Тауметр»:`n`n/доктаум1 — Достать документы на тауметр из бардачка / кофра`n/доктаум2 — Показать гражданину отметку о поверке (годен до 31.12.2026)`n/доктаум3 — Положить бумаги обратно в папку`n/доктаум4 — Убрать папку в бардачок / кофр`n`n💡 Совет: Если гражданин сомневается в исправности тауметра, ознакомьте его с документами по /доктаум2 без передачи в руки.
 return
 45:
 MsgBox, 0,  Видеорегистратор, /рег1 - снять видеорегистратор с крепления`n/рег2 - включить и паказать запись гражданину`n/рег3 - выключить запись`n/рег4 - повесить видеорегистратор на крепление
@@ -12951,6 +12993,26 @@ ExecuteMobilePatrolCommand(cmd, arg := "") {
     } else if (cmd = "voice_off") {
         PlayRadioSfx("radio_stop.wav")
         Gosub, Bind_VoiceOff
+    } else if (cmd = "doktaum" || cmd = "doktaum1") {
+        Gosub, :?:/доктаум1
+    } else if (cmd = "doktaum2") {
+        Gosub, :?:/доктаум2
+    } else if (cmd = "doktaum3") {
+        Gosub, :?:/доктаум3
+    } else if (cmd = "doktaum4") {
+        Gosub, :?:/доктаум4
+    } else if (cmd = "taum" || cmd = "taum1") {
+        Gosub, :?:/таум1
+    } else if (cmd = "taum2") {
+        Gosub, :?:/таум2
+    } else if (cmd = "taum3") {
+        Gosub, :?:/таум3
+    } else if (cmd = "taum4") {
+        Gosub, :?:/таум4
+    } else if (cmd = "taum5") {
+        Gosub, :?:/таум5
+    } else if (cmd = "taum6") {
+        Gosub, :?:/таум6
     } else if (cmd = "shout_hands") {
         Gosub, Bind_ShoutHands
     } else if (cmd = "report_patrol") {
@@ -13226,7 +13288,7 @@ PlayRadioSfx(soundName) {
 }
 
 ; Тестовый хоткей проверки звука рации (Ctrl + Alt + S)
-#If (OnlyInGameMode = 0 || WinActive("ahk_group ProvinceGameGroup"))
+#If (OnlyInGameMode = 0 || IsGameActive())
 ^!s::
 PlayRadioSfx("radio_start.wav")
 Sleep, 300

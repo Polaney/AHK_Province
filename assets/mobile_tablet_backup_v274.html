@@ -1,0 +1,2790 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060913">
+<title>Бортовой планшет УГИБДД МВД</title>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+html, body {
+    width: 100%;
+    height: 100%;
+    background: #060913;
+    color: #E6EDF3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    position: fixed;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
+    background: radial-gradient(circle at 50% -20%, rgba(31,111,235,0.22) 0%, rgba(6,9,19,0.98) 75%);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.85);
+    border-left: 1px solid rgba(56, 139, 253, 0.15);
+    border-right: 1px solid rgba(56, 139, 253, 0.15);
+}
+
+/* TOP POLICE STROBE LIGHTS */
+.strobe-bar {
+    display: flex;
+    height: 3px;
+    width: 100%;
+    opacity: 0.85;
+}
+.strobe-red {
+    flex: 1;
+    background: linear-gradient(90deg, #F85149, #FF7B72);
+    box-shadow: 0 0 10px #F85149;
+    animation: strobeR 1.2s infinite;
+}
+.strobe-blue {
+    flex: 1;
+    background: linear-gradient(90deg, #388BFD, #58A6FF);
+    box-shadow: 0 0 10px #388BFD;
+    animation: strobeB 1.2s infinite;
+}
+@keyframes strobeR {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; filter: brightness(1.4); }
+}
+@keyframes strobeB {
+    0%, 100% { opacity: 1; filter: brightness(1.4); }
+    50% { opacity: 0.3; }
+}
+
+/* TOP STATUS HUD */
+.hud-header {
+    background: rgba(10, 16, 32, 0.94);
+    border-bottom: 1px solid rgba(56, 139, 253, 0.28);
+    padding: 10px 14px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 50;
+}
+
+.hud-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hud-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.hud-badge-icon {
+    font-size: 22px;
+    filter: drop-shadow(0 0 8px rgba(56, 139, 253, 0.5));
+}
+
+.hud-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #58A6FF;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hud-sub {
+    font-size: 11px;
+    color: #8B949E;
+    font-weight: 600;
+    margin-top: 1px;
+}
+
+.hud-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-tool-btn {
+    background: rgba(22, 34, 62, 0.6);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: #C9D1D9;
+    border-radius: 8px;
+    padding: 4px 7px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.icon-tool-btn:active {
+    background: rgba(88, 166, 255, 0.3);
+    color: #FFF;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 14px;
+    background: rgba(46, 160, 67, 0.15);
+    border: 1px solid rgba(46, 160, 67, 0.45);
+    color: #7EE787;
+    letter-spacing: 0.3px;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3FB950;
+    box-shadow: 0 0 8px #3FB950;
+    animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* TARGET ID SELECTOR BAR */
+.hud-target-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(22, 34, 62, 0.55);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 9px;
+    padding: 4px 8px;
+    gap: 8px;
+}
+
+.target-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #79C0FF;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.target-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.target-step-btn {
+    background: rgba(31, 111, 235, 0.25);
+    border: 1px solid rgba(56, 139, 253, 0.4);
+    color: #79C0FF;
+    border-radius: 6px;
+    width: 26px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.target-step-btn:active {
+    background: #1f6feb;
+    color: #FFF;
+}
+
+.target-id-input {
+    width: 58px;
+    height: 24px;
+    background: rgba(10, 16, 30, 0.95);
+    border: 1px solid rgba(88, 166, 255, 0.5);
+    border-radius: 6px;
+    color: #FFF;
+    font-family: Consolas, monospace;
+    font-size: 13.5px;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+}
+.target-id-input:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 10px rgba(56,139,253,0.5);
+}
+
+.hud-stats-row {
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+}
+
+.kpi-card {
+    flex: 1;
+    background: rgba(22, 34, 62, 0.5);
+    border: 1px solid rgba(88, 166, 255, 0.18);
+    border-radius: 8px;
+    padding: 4px 6px;
+    text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.kpi-card-num {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #FFF;
+    font-family: Consolas, monospace;
+}
+
+.kpi-card-lbl {
+    font-size: 9px;
+    color: #8B949E;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-top: 1px;
+}
+
+/* MAIN CONTENT AREA */
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 14px;
+    padding-bottom: 95px;
+}
+.content-area.map-active-mode {
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 68px !important;
+}
+
+.tab-pane {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tab-pane.active {
+    display: flex;
+}
+
+/* BUTTONS GRID */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+}
+
+.btn-tablet {
+    background: linear-gradient(145deg, rgba(20, 32, 58, 0.85) 0%, rgba(12, 20, 38, 0.9) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    border-radius: 12px;
+    padding: 13px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-tablet:active {
+    transform: scale(0.96);
+    background: rgba(31, 111, 235, 0.35);
+    border-color: #58A6FF;
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.4);
+}
+
+.btn-tablet.danger {
+    background: linear-gradient(145deg, rgba(248, 81, 73, 0.18) 0%, rgba(130, 25, 22, 0.25) 100%);
+    border-color: rgba(248, 81, 73, 0.45);
+    color: #FF7B72;
+}
+
+.btn-tablet.danger:active {
+    background: rgba(248, 81, 73, 0.4);
+    box-shadow: 0 0 16px rgba(248, 81, 73, 0.4);
+}
+
+.btn-tablet.warning {
+    background: linear-gradient(145deg, rgba(210, 153, 34, 0.18) 0%, rgba(120, 85, 15, 0.25) 100%);
+    border-color: rgba(210, 153, 34, 0.45);
+    color: #FFD33D;
+}
+
+.btn-tablet.warning:active {
+    background: rgba(210, 153, 34, 0.4);
+    box-shadow: 0 0 16px rgba(210, 153, 34, 0.4);
+}
+
+.btn-tablet.primary {
+    background: linear-gradient(135deg, rgba(31, 111, 235, 0.45) 0%, rgba(17, 88, 199, 0.6) 100%);
+    border-color: #58A6FF;
+    box-shadow: 0 4px 16px rgba(31, 111, 235, 0.35);
+}
+
+.btn-tablet.primary:active {
+    background: linear-gradient(135deg, rgba(31, 111, 235, 0.7) 0%, rgba(17, 88, 199, 0.85) 100%);
+}
+
+.btn-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.btn-text-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.btn-main-text {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.btn-sub-text {
+    font-size: 10px;
+    color: #8B949E;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #8B949E;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ARTICLES SEARCH & FILTERS */
+.search-box {
+    width: 100%;
+    background: rgba(10, 16, 32, 0.94);
+    border: 1px solid rgba(56, 139, 253, 0.4);
+    color: #FFF;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 14px;
+    outline: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.search-box:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.45);
+}
+
+.filter-pill {
+    background: rgba(22, 34, 62, 0.75);
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    color: #8B949E;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-pill.active {
+    background: #1f6feb;
+    border-color: #58A6FF;
+    color: #FFF;
+    box-shadow: 0 0 12px rgba(31, 111, 235, 0.5);
+}
+
+.law-card {
+    background: linear-gradient(145deg, rgba(16, 26, 48, 0.8) 0%, rgba(10, 18, 36, 0.85) 100%);
+    border: 1px solid rgba(56, 139, 253, 0.25);
+    border-radius: 12px;
+    padding: 11px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+    transition: all 0.15s ease;
+}
+
+.law-card.selected {
+    border-color: #58A6FF;
+    background: rgba(31, 111, 235, 0.22);
+    box-shadow: 0 0 16px rgba(56, 139, 253, 0.35);
+}
+
+.law-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.law-code-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(210, 153, 34, 0.2);
+    border: 1px solid rgba(210, 153, 34, 0.45);
+    color: #FFD33D;
+    letter-spacing: 0.3px;
+}
+
+.law-code-badge.uk {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.45);
+    color: #FF7B72;
+}
+
+.law-code-badge.fzop {
+    background: rgba(163, 113, 247, 0.2);
+    border-color: rgba(163, 113, 247, 0.45);
+    color: #D2A8FF;
+}
+
+.law-code-badge.pdd {
+    background: rgba(56, 139, 253, 0.2);
+    border-color: rgba(56, 139, 253, 0.45);
+    color: #79C0FF;
+}
+
+.law-fine-sum {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #7EE787;
+    font-family: Consolas, monospace;
+}
+
+.law-desc {
+    font-size: 12px;
+    color: #C9D1D9;
+    line-height: 1.35;
+}
+
+.law-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    gap: 8px;
+}
+
+.law-speak-btn {
+    background: rgba(31, 111, 235, 0.2);
+    border: 1px solid rgba(88, 166, 255, 0.45);
+    color: #79C0FF;
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.law-speak-btn:active {
+    background: #1f6feb;
+    color: #FFF;
+    transform: scale(0.96);
+}
+
+.law-select-btn {
+    background: rgba(22, 34, 62, 0.7);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: #8B949E;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.law-select-btn.active {
+    background: rgba(46, 160, 67, 0.25);
+    border-color: #3FB950;
+    color: #7EE787;
+}
+
+/* FLOATING COMBO FINE BAR */
+#combo-fine-bar {
+    display: none;
+    position: fixed;
+    bottom: 74px;
+    left: 10px;
+    right: 10px;
+    background: rgba(13, 20, 38, 0.96);
+    border: 1px solid #58A6FF;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.65), 0 0 20px rgba(56,139,253,0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 90;
+    animation: slideUp 0.2s ease-out;
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.combo-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.combo-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #79C0FF;
+}
+.combo-total {
+    font-size: 14px;
+    font-weight: 900;
+    color: #7EE787;
+    font-family: Consolas, monospace;
+}
+.combo-btns {
+    display: flex;
+    gap: 8px;
+}
+.combo-action-btn {
+    flex: 1;
+    padding: 8px;
+    font-size: 11.5px;
+    font-weight: 800;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+.combo-action-btn.speak {
+    background: rgba(88, 166, 255, 0.25);
+    border: 1px solid #58A6FF;
+    color: #79C0FF;
+}
+.combo-action-btn.ticket {
+    background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    color: #FFF;
+    box-shadow: 0 0 12px rgba(46,160,67,0.4);
+}
+.combo-action-btn.clear {
+    flex: 0 0 32px;
+    background: rgba(248, 81, 73, 0.2);
+    border: 1px solid rgba(248,81,73,0.4);
+    color: #FF7B72;
+}
+
+/* BOTTOM NAVIGATION BAR */
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 680px;
+    background: rgba(10, 16, 32, 0.96);
+    border-top: 1px solid rgba(56, 139, 253, 0.3);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: #8B949E;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tab-btn.active {
+    color: #58A6FF;
+    transform: translateY(-1px);
+}
+
+.tab-btn-icon {
+    font-size: 21px;
+    transition: transform 0.15s ease;
+}
+.tab-btn.active .tab-btn-icon {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 6px rgba(88,166,255,0.6));
+}
+
+/* TOAST NOTIFICATION */
+#toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(13, 20, 38, 0.96);
+    border: 1px solid #58A6FF;
+    border-radius: 10px;
+    padding: 9px 18px;
+    color: #FFF;
+    font-size: 12.5px;
+    font-weight: 800;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 999;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 15px rgba(56,139,253,0.3);
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ========================================================
+   ТАБ 5: ТАКТИЧЕСКИЙ РАДАР И КАРТА РЕСПУБЛИКИ ПРОВИНЦИЯ
+   ======================================================== */
+#pane-5 {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+}
+#pane-5.active {
+    display: flex;
+}
+.map-hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(13, 20, 38, 0.96);
+    border-bottom: 1px solid rgba(56, 139, 253, 0.25);
+    z-index: 10;
+}
+.map-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.map-title-icon { font-size: 20px; }
+.map-title-main {
+    font-size: 13px;
+    font-weight: 900;
+    color: #58A6FF;
+    letter-spacing: 0.5px;
+}
+.map-title-sub {
+    font-size: 9px;
+    color: #8B949E;
+    font-weight: 700;
+}
+.map-hud-btn {
+    background: rgba(56, 139, 253, 0.15);
+    border: 1px solid rgba(56, 139, 253, 0.35);
+    color: #E6EDF3;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.map-city-nav {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(10, 16, 32, 0.88);
+    overflow-x: auto;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.15);
+    z-index: 10;
+}
+.map-nav-pill {
+    background: rgba(22, 27, 34, 0.75);
+    border: 1px solid rgba(56, 139, 253, 0.2);
+    color: #8B949E;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.map-nav-pill.active {
+    background: #388BFD;
+    color: #FFFFFF;
+    border-color: #58A6FF;
+    box-shadow: 0 0 10px rgba(56, 139, 253, 0.4);
+}
+#map-viewport {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: #060911;
+    touch-action: none;
+    cursor: grab;
+}
+#map-viewport:active { cursor: grabbing; }
+#map-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 3000px;
+    height: 3000px;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+#map-canvas-img {
+    width: 3000px;
+    height: 3000px;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+#map-markers-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 3000px;
+    height: 3000px;
+    pointer-events: none;
+}
+.map-marker {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    pointer-events: auto;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.15s ease;
+    z-index: 20;
+}
+.map-marker:hover, .map-marker:active {
+    transform: translate(-50%, -105%) scale(1.15);
+    z-index: 35;
+}
+.marker-badge {
+    background: rgba(13, 20, 38, 0.95);
+    border: 1px solid #388BFD;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #FFFFFF;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    margin-bottom: 2px;
+}
+.marker-badge.ten-post { border-color: #3FB950; color: #7EE787; }
+.marker-badge.ten-patrol { border-color: #58A6FF; color: #79C0FF; }
+.marker-badge.ten-chase { border-color: #F85149; color: #FFA198; background: rgba(80, 16, 20, 0.95); }
+.marker-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #1F6FEB;
+    border: 2px solid #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 0 14px rgba(31, 111, 235, 0.8);
+    position: relative;
+}
+.map-marker.chase .marker-pin {
+    background: #F85149;
+    box-shadow: 0 0 18px rgba(248, 81, 73, 1);
+    animation: pulseSiren 0.7s infinite alternate;
+}
+@keyframes pulseSiren {
+    from { transform: scale(1); filter: drop-shadow(0 0 4px #F85149); }
+    to { transform: scale(1.22); filter: drop-shadow(0 0 16px #F85149); }
+}
+.map-floating-controls {
+    position: absolute;
+    right: 12px;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 25;
+}
+.map-ctrl-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(13, 20, 38, 0.94);
+    border: 1px solid rgba(56, 139, 253, 0.45);
+    color: #E6EDF3;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: transform 0.1s ease;
+}
+.map-ctrl-btn:active { transform: scale(0.95); }
+.map-bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 16, 32, 0.95);
+    border-top: 1px solid rgba(56, 139, 253, 0.3);
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 25;
+    backdrop-filter: blur(12px);
+}
+.map-my-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #E6EDF3;
+}
+.map-action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+}
+.map-action-btn.primary { background: #238636; color: #fff; }
+.map-action-btn.danger { background: rgba(248, 81, 73, 0.2); border: 1px solid rgba(248,81,73,0.4); color: #F85149; }
+
+/* MODAL STYLES */
+.map-modal-backdrop {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 16px;
+}
+.map-modal-card {
+    background: #0D1426;
+    border: 1px solid #388BFD;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.85);
+}
+.map-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.2);
+    padding-bottom: 8px;
+}
+.map-modal-close {
+    background: none; border: none; color: #8B949E; font-size: 16px; cursor: pointer;
+}
+.map-modal-desc {
+    font-size: 11px; color: #8B949E; margin-bottom: 10px; line-height: 1.4;
+}
+.ten-codes-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.ten-code-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background: rgba(22, 27, 34, 0.85);
+    border: 1px solid rgba(56, 139, 253, 0.2);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #E6EDF3;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+.ten-code-btn .tc-code {
+    font-size: 11.5px; font-weight: 800; color: #58A6FF;
+}
+.ten-code-btn .tc-name {
+    font-size: 9.5px; color: #8B949E;
+}
+.ten-code-btn.selected {
+    background: rgba(56, 139, 253, 0.25);
+    border-color: #388BFD;
+    box-shadow: 0 0 10px rgba(56,139,253,0.3);
+}
+.map-input {
+    width: 100%;
+    background: #161B22;
+    border: 1px solid rgba(56, 139, 253, 0.3);
+    color: #E6EDF3;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+.map-modal-btn {
+    flex: 1; padding: 9px; border-radius: 6px; font-weight: 800; font-size: 11.5px; cursor: pointer; border: none;
+}
+.map-modal-btn.confirm { background: #238636; color: #fff; }
+.map-modal-btn.cancel { background: rgba(139, 148, 158, 0.2); color: #8B949E; }
+
+/* DRAWER */
+.units-drawer {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    bottom: 50px;
+    width: 270px;
+    background: rgba(13, 20, 38, 0.98);
+    border-left: 1px solid rgba(56, 139, 253, 0.3);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.6);
+}
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.2);
+}
+.drawer-close { background: none; border: none; color: #8B949E; font-size: 14px; cursor: pointer; }
+.drawer-list {
+    flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;
+}
+.drawer-unit-card {
+    background: rgba(22, 27, 34, 0.85);
+    border: 1px solid rgba(56, 139, 253, 0.2);
+    border-radius: 6px;
+    padding: 7px 9px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.drawer-unit-card:hover {
+    border-color: #388BFD;
+    background: rgba(56, 139, 253, 0.15);
+}
+
+/* ========================================================
+   RESPONSIVE ADAPTATION FOR ALL SCREENS & DEVICES
+   ======================================================== */
+
+/* TABLETS & HORIZONTAL SMARTPHONES (600px - 900px) */
+@media (min-width: 600px) {
+    #app {
+        max-width: 820px;
+        border-left: 1px solid rgba(56, 139, 253, 0.25);
+        border-right: 1px solid rgba(56, 139, 253, 0.25);
+    }
+    .tab-bar {
+        max-width: 820px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .grid-3 {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 8px;
+    }
+    .hud-title {
+        font-size: 15px;
+    }
+    .kpi-card-num {
+        font-size: 15px;
+    }
+    .btn-tablet {
+        padding: 13px 12px;
+    }
+    .btn-main-text {
+        font-size: 13px;
+    }
+}
+
+/* DESKTOP & WIDE MONITORS (> 900px) */
+@media (min-width: 900px) {
+    #app {
+        max-width: 960px;
+        border-left: 1px solid rgba(56, 139, 253, 0.35);
+        border-right: 1px solid rgba(56, 139, 253, 0.35);
+    }
+    .tab-bar {
+        max-width: 960px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+    .grid-3 {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 8px;
+    }
+    .btn-tablet {
+        font-size: 13px;
+        padding: 12px 10px;
+    }
+    .btn-main-text {
+        font-size: 12.5px;
+    }
+    .map-modal-card {
+        max-width: 520px;
+    }
+    .ten-codes-selector {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* COMPACT PHONES (iPhone SE, Small Android <= 375px) */
+@media (max-width: 375px) {
+    .hud-header {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+    .hud-title {
+        font-size: 11.5px;
+        letter-spacing: 0.2px;
+    }
+    .hud-sub {
+        font-size: 9.5px;
+    }
+    .status-indicator {
+        font-size: 9.5px;
+        padding: 2px 6px;
+    }
+    .target-label {
+        font-size: 9.5px;
+    }
+    .target-id-input {
+        width: 44px;
+        font-size: 12px;
+        height: 22px;
+    }
+    .kpi-card {
+        padding: 2px 4px;
+    }
+    .kpi-card-num {
+        font-size: 11.5px;
+    }
+    .kpi-card-lbl {
+        font-size: 8px;
+    }
+    .content-area {
+        padding: 8px 10px;
+        padding-bottom: 85px;
+    }
+    .grid-2 {
+        gap: 6px;
+    }
+    .btn-tablet {
+        padding: 9px 7px;
+        gap: 6px;
+        border-radius: 9px;
+    }
+    .btn-icon {
+        font-size: 16px;
+    }
+    .btn-main-text {
+        font-size: 11.5px;
+    }
+    .btn-sub-text {
+        font-size: 8.5px;
+    }
+    .tab-bar {
+        height: 60px;
+    }
+    .tab-btn {
+        font-size: 9px;
+    }
+    .tab-btn-icon {
+        font-size: 17px;
+    }
+}
+
+/* LANDSCAPE ORIENTATION FOR MOBILE (max-height <= 520px) */
+@media (max-height: 520px) and (orientation: landscape) {
+    .hud-header {
+        padding: 4px 10px;
+        gap: 4px;
+    }
+    .hud-stats-row {
+        display: none;
+    }
+    .content-area {
+        padding: 6px 10px;
+        padding-bottom: 60px;
+    }
+    .tab-bar {
+        height: 48px;
+        padding-bottom: 2px;
+    }
+    .tab-btn-icon {
+        font-size: 15px;
+    }
+    .tab-btn span {
+        font-size: 8.5px;
+    }
+    .grid-2 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    .btn-tablet {
+        padding: 8px 8px;
+        font-size: 11.5px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+    <!-- TOP STROBE LIGHTS -->
+    <div class="strobe-bar">
+        <div class="strobe-red"></div>
+        <div class="strobe-blue"></div>
+    </div>
+
+    <!-- TOP POLICE HUD -->
+    <header class="hud-header">
+        <div class="hud-top-row">
+            <div class="hud-title-wrap" onclick="editOfficerProfilePrompt()" style="cursor:pointer;" title="Нажмите, чтобы изменить ФИО сотрудника">
+                <span class="hud-badge-icon">🚔</span>
+                <div>
+                    <div class="hud-title" id="hud-unit">УГИБДД МВД • БОРТ-51</div>
+                    <div class="hud-sub" id="hud-officer">Сотрудник ДПС [51-01] ✏️</div>
+                </div>
+            </div>
+            <div class="hud-actions-right">
+                <button class="icon-tool-btn" id="sound-btn" onclick="toggleSound()" title="Звук">🔊</button>
+                <button class="icon-tool-btn" onclick="toggleFullscreen()" title="Полный экран">⛶</button>
+                <div class="status-indicator" id="hud-conn">
+                    <span class="status-dot"></span>
+                    <span>БОРТ ON</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TARGET ID SELECTOR BAR -->
+        <div class="hud-target-bar">
+            <div class="target-label">
+                <span>🎯 Цель ID:</span>
+            </div>
+            <div class="target-input-wrap">
+                <button class="target-step-btn" onclick="stepTargetId(-1)">-</button>
+                <input type="text" id="target-id-val" class="target-id-input" placeholder="0" maxlength="4" onchange="syncTargetId(this.value)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                <button class="target-step-btn" onclick="stepTargetId(1)">+</button>
+                <button class="icon-tool-btn" style="padding:4px 8px; font-weight:700;" onclick="triggerAction('target_info')">🔍 Пробить</button>
+            </div>
+        </div>
+
+        <!-- KPI STATS -->
+        <div class="hud-stats-row">
+            <div class="kpi-card">
+                <div class="kpi-card-num" id="kpi-duty">00:00</div>
+                <div class="kpi-card-lbl">Смена</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-num" id="kpi-fines" style="color:#7EE787;">0 шт.</div>
+                <div class="kpi-card-lbl">Штрафы</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-num" id="kpi-arrests" style="color:#FFB84D;">0 чел.</div>
+                <div class="kpi-card-lbl">Аресты</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-num" id="kpi-pts" style="color:#58A6FF;">0/20</div>
+                <div class="kpi-card-lbl">Баллы</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main class="content-area">
+        <!-- ТАБ 1: ПАТРУЛЬ & СПЕЦСИГНАЛЫ -->
+        <div class="tab-pane active" id="pane-1">
+            <div class="section-title">🚨 Мегафон и спецсигналы (СГУ)</div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button class="btn-tablet danger" style="flex:2;" onclick="triggerAction('smart_meg')">
+                    <span class="btn-icon">⚡</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Умный мегафон (следующий)</span>
+                        <span class="btn-sub-text">Авто-прогресс предов с КД</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" style="flex:1;" onclick="triggerAction('stop_chase')">
+                    <span class="btn-icon">🛑</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Сброс</span>
+                    </div>
+                </button>
+                <button class="btn-tablet warning" style="flex:1;" onclick="triggerAction('report_chase')">
+                    <span class="btn-icon">⚖️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Репорт</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-1">
+                <button class="btn-tablet warning" onclick="triggerAction('meg1')">
+                    <span class="btn-icon">📢</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Требование остановки #1</span>
+                        <span class="btn-sub-text">Прижмитесь к обочине и заглушите двигатель!</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet warning" onclick="triggerAction('meg2')">
+                    <span class="btn-icon">⚠️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Вторичное #2</span>
+                        <span class="btn-sub-text">Предупреждение об огне</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('meg3')">
+                    <span class="btn-icon">💥</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Огонь #3</span>
+                        <span class="btn-sub-text">Стрельба по колесам</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('meg_way')">
+                    <span class="btn-icon">🚨</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Уступите дорогу</span>
+                        <span class="btn-sub-text">СГУ в поток</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('foot_chase')">
+                    <span class="btn-icon">🏃</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Пешая погоня</span>
+                        <span class="btn-sub-text">Стоять! Полиция!</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:6px;">🚗 База и принудительное вскрытие</div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('wcar')">
+                    <span class="btn-icon">🔍</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Розыск авто</span>
+                        <span class="btn-sub-text">База (/wcar)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('try_door')">
+                    <span class="btn-icon">🚪</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Ручка двери</span>
+                        <span class="btn-sub-text">Дёрнуть (/try)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet" onclick="triggerAction('try_glass')">
+                    <span class="btn-icon">🔨</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Разбить стекло</span>
+                        <span class="btn-sub-text">Дубинкой (/try)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('pullout')">
+                    <span class="btn-icon">🚹</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Вытащить</span>
+                        <span class="btn-sub-text">Из салона (/try)</span>
+                    </div>
+                </button>
+            </div>
+
+            <div style="margin-top:10px;">
+                <button class="btn-tablet danger" style="width:100%; justify-content:center; padding:15px;" onclick="triggerAction('stop_bind')">
+                    <span class="btn-icon">⛔</span>
+                    <span class="btn-main-text" style="font-size:14.5px;">ЭКСТРЕННО ОСТАНОВИТЬ БИНД</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ТАБ 2: ПРОВЕРКА & ЗАДЕРЖАНИЕ -->
+        <div class="tab-pane" id="pane-2">
+            <div class="section-title">👮 Взаимодействие с гражданином</div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('greeting')">
+                    <span class="btn-icon">🤝</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Приветствие</span>
+                        <span class="btn-sub-text">Честь + причина</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('ask_docs')">
+                    <span class="btn-icon">🪪</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Попросить ВУ</span>
+                        <span class="btn-sub-text">Водительские права</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet" onclick="triggerAction('take_docs')">
+                    <span class="btn-icon">📥</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Взять доки</span>
+                        <span class="btn-sub-text">Осмотр бумаг</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('return_docs')">
+                    <span class="btn-icon">📤</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Вернуть доки</span>
+                        <span class="btn-sub-text">Отдать гражданину</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:6px;">💻 Бортовой КПК</div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('kpk_open')">
+                    <span class="btn-icon">💻</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Открыть КПК</span>
+                        <span class="btn-sub-text">Достать планшет</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('kpk_vu')">
+                    <span class="btn-icon">🔍</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Пробить ВУ</span>
+                        <span class="btn-sub-text">По базе розыска</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:6px;">🔒 Задержание & КПЗ</div>
+            <div class="grid-2">
+                <button class="btn-tablet danger" onclick="triggerAction('cuffs_open')">
+                    <span class="btn-icon">⛓️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Наручники</span>
+                        <span class="btn-sub-text">Пристегнуть</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('putpl')">
+                    <span class="btn-icon">🚓</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">В патрульку</span>
+                        <span class="btn-sub-text">Посадить (/putpl)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet" onclick="triggerAction('detain_prot')">
+                    <span class="btn-icon">📋</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Протокол</span>
+                        <span class="btn-sub-text">Задержания</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('arrest')">
+                    <span class="btn-icon">👮</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">В КПЗ (/arrest)</span>
+                        <span class="btn-sub-text">Передать конвою</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ТАБ 3: ШПАРГАЛКА КОАП, УК, ФЗоП & ПДД -->
+        <div class="tab-pane" id="pane-3">
+            <input type="text" id="law-search" class="search-box" placeholder="🔎 Поиск статьи (номер, тонировка, оружие, встречка)..." oninput="filterLaws()">
+            <div style="display:flex; gap:6px; margin-top:8px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+                <button class="filter-pill active" id="btn-filt-all" onclick="setLawFilter('ALL')">Все (244)</button>
+                <button class="filter-pill" id="btn-filt-koap" onclick="setLawFilter('КоАП')">КоАП (102)</button>
+                <button class="filter-pill" id="btn-filt-uk" onclick="setLawFilter('УКРП')">УК (58)</button>
+                <button class="filter-pill" id="btn-filt-fzop" onclick="setLawFilter('ФЗоП')">ФЗоП (25)</button>
+                <button class="filter-pill" id="btn-filt-pdd" onclick="setLawFilter('ПДД')">ПДД (59)</button>
+            </div>
+            <div id="laws-list" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                <div style="text-align:center; padding:20px; color:#8B949E;">Загрузка справочника статей...</div>
+            </div>
+        </div>
+
+        <!-- ТАБ 4: БОРТ & РАЦИЯ -->
+        <div class="tab-pane" id="pane-4">
+            <div class="section-title">🚓 Патрулирование города (/r)</div>
+            <div class="grid-2">
+                <button class="btn-tablet" onclick="triggerAction('report_start')">
+                    <span class="btn-icon">🟢</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-0 Выезд</span>
+                        <span class="btn-sub-text">Выехал в патруль (Код-3)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_end')">
+                    <span class="btn-icon">🔴</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-21 В гараж</span>
+                        <span class="btn-sub-text">Закончил патруль (Код-3)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-1" style="margin-top:6px;">
+                <button class="btn-tablet primary" onclick="triggerAction('report_patrol')">
+                    <span class="btn-icon">📻</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-0-1 Продолжаю патруль</span>
+                        <span class="btn-sub-text">Патрулирование города (Код-3)</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:10px;">🏢 Стационарные посты (/r)</div>
+            <div class="grid-3" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                <button class="btn-tablet" onclick="triggerAction('report_post_start')">
+                    <span class="btn-icon">📍</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-4 Пост</span>
+                        <span class="btn-sub-text">Заступил</span>
+                    </div>
+                </button>
+                <button class="btn-tablet primary" onclick="triggerAction('report_post_continue')">
+                    <span class="btn-icon">⏱️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-4-4</span>
+                        <span class="btn-sub-text">Продолжаю</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_post_end')">
+                    <span class="btn-icon">🏁</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-4-1</span>
+                        <span class="btn-sub-text">Сдал пост</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:10px;">📝 Оформление нарушителей и ДТП (/r)</div>
+            <div class="grid-2">
+                <button class="btn-tablet warning" onclick="triggerAction('report_1010_start')">
+                    <span class="btn-icon">💥</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-10 Оформляю ДТП</span>
+                        <span class="btn-sub-text">Начало оформления</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1010')">
+                    <span class="btn-icon">✅</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-10-1 Закончил ДТП</span>
+                        <span class="btn-sub-text">Оформление окончено</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-top:6px;">
+                <button class="btn-tablet warning" onclick="triggerAction('report_1011_start')">
+                    <span class="btn-icon">📝</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-11 Нарушитель</span>
+                        <span class="btn-sub-text">Оформляю нарушителя</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1011')">
+                    <span class="btn-icon">✅</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-11-1 Закончил</span>
+                        <span class="btn-sub-text">Оформление окончено</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:10px;">🚨 Обработка вызовов (/r)</div>
+            <div class="grid-3" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                <button class="btn-tablet" onclick="triggerAction('report_1024')">
+                    <span class="btn-icon">⚡</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-24 Выехал</span>
+                        <span class="btn-sub-text">На вызов</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1025')">
+                    <span class="btn-icon">🎯</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-25 Прибыл</span>
+                        <span class="btn-sub-text">На месте</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1026')">
+                    <span class="btn-icon">👌</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-26 Готово</span>
+                        <span class="btn-sub-text">Обработал</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-top:6px;">
+                <button class="btn-tablet" onclick="triggerAction('report_103')">
+                    <span class="btn-icon">🚔</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-3 Вызов ГУ МВД</span>
+                        <span class="btn-sub-text">Выехал на вызов</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1033')">
+                    <span class="btn-icon">📌</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-3-3 На месте МВД</span>
+                        <span class="btn-sub-text">Прибыл на вызов</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:10px;">🚔 Задержание, Конвой и Связь (/r)</div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('report_1015')">
+                    <span class="btn-icon">🚔</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-15 В отдел</span>
+                        <span class="btn-sub-text">Везу задержанного</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_1013')">
+                    <span class="btn-icon">✅</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">10-13 Принял</span>
+                        <span class="btn-sub-text">Информацию принял</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:10px;">⚠️ Коды состояний и тревоги</div>
+            <div class="grid-1">
+                <button class="btn-tablet danger" onclick="triggerAction('report_help')">
+                    <span class="btn-icon">🆘</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Код-0 Срочно помощь всех экипажей!</span>
+                        <span class="btn-sub-text">Нападение на сотрудника (Макс. приоритет)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-top:6px;">
+                <button class="btn-tablet warning" onclick="triggerAction('report_chase')">
+                    <span class="btn-icon">🚨</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Код-1 Погоня</span>
+                        <span class="btn-sub-text">Срочно подкрепление (СГУ)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('report_code2')">
+                    <span class="btn-icon">🟡</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Код-2 Экипаж</span>
+                        <span class="btn-sub-text">Нужен свободный экипаж</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="section-title" style="margin-top:8px;">🎙️ Голосовая рация и утилиты</div>
+            <div class="grid-2">
+                <button class="btn-tablet primary" onclick="triggerAction('voice_on')">
+                    <span class="btn-icon">🗣️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Рация Голос</span>
+                        <span class="btn-sub-text">В эфир (/fracvoice 1)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet" onclick="triggerAction('voice_off')">
+                    <span class="btn-icon">👂</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Слушать</span>
+                        <span class="btn-sub-text">Эфир (/fracvoice 2)</span>
+                    </div>
+                </button>
+            </div>
+            <div class="grid-2">
+                <button class="btn-tablet" onclick="triggerAction('clock')">
+                    <span class="btn-icon">⏱️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Точное время</span>
+                        <span class="btn-sub-text">Часы на руке (/time)</span>
+                    </div>
+                </button>
+                <button class="btn-tablet danger" onclick="triggerAction('shout_hands')">
+                    <span class="btn-icon">🖐️</span>
+                    <div class="btn-text-wrap">
+                        <span class="btn-main-text">Руки на капот!</span>
+                        <span class="btn-sub-text">Крикнуть нарушителю</span>
+                    </div>
+                </button>
+            </div>
+            <div style="margin-top:14px; padding:10px; border-radius:8px; background:rgba(22,27,34,0.7); border:1px solid rgba(56,139,253,0.25); text-align:center;">
+                <div style="font-size:10px; color:#8B949E; font-weight:700;">ВОПРОСЫ И ПРЕДЛОЖЕНИЯ ПО БИНДЕРУ</div>
+                <a href="https://vk.ru/polaneychick" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-top:6px; color:#58A6FF; text-decoration:none; font-size:12px; font-weight:800;">
+                    <span>💬 Создатель АХК: @polaneychick (ВК)</span>
+                </a>
+            </div>
+        </div>
+        <!-- TAB 5: ТАКТИЧЕСКИЙ РАДАР И ИНТЕРАКТИВНАЯ КАРТА РЕСПУБЛИКИ ПРОВИНЦИЯ -->
+        <div class="tab-pane" id="pane-5">
+            <!-- TOP BAR -->
+            <div class="map-hud-top">
+                <div class="map-title-wrap">
+                    <span class="map-title-icon">🛰️</span>
+                    <div>
+                        <div class="map-title-main">ТАКТИЧЕСКИЙ РАДАР УГИБДД</div>
+                        <div class="map-title-sub">РЕСПУБЛИКА ПРОВИНЦИЯ • ДИСПЕТЧЕР СМЕНЫ</div>
+                    </div>
+                </div>
+                <div class="map-top-actions">
+                    <button class="map-hud-btn" id="btn-toggle-units" onclick="toggleMapUnitsList()">🚔 Экипажи (<span id="map-units-badge">0</span>)</button>
+                </div>
+            </div>
+
+            <!-- CITY FAST NAV -->
+            <div class="map-city-nav">
+                <button class="map-nav-pill active" id="pill-city-all" onclick="jumpMapCity('all')">🌐 Вся карта</button>
+                <button class="map-nav-pill" id="pill-city-priv" onclick="jumpMapCity('privolzhsk')">🏢 Приволжск</button>
+                <button class="map-nav-pill" id="pill-city-mirny" onclick="jumpMapCity('mirny')">🌆 Мирный</button>
+                <button class="map-nav-pill" id="pill-city-nevsky" onclick="jumpMapCity('nevsky')">🏙️ Невский</button>
+            </div>
+
+            <!-- INTERACTIVE MAP VIEWPORT -->
+            <div id="map-viewport">
+                <div id="map-stage">
+                    <img id="map-canvas-img" src="/assets/province_map.jpg" onerror="if(this.src.indexOf('assets/province_map.jpg')===-1||this.src.charAt(0)==='/')this.src='assets/province_map.jpg'" alt="Карта Республики Провинция" draggable="false">
+                    <!-- Dynamic Markers Layer -->
+                    <div id="map-markers-layer"></div>
+                </div>
+            </div>
+
+            <!-- MAP CONTROLS FLOATING -->
+            <div class="map-floating-controls">
+                <button class="map-ctrl-btn" onclick="mapZoomIn()" title="Приблизить">➕</button>
+                <button class="map-ctrl-btn" onclick="mapZoomOut()" title="Отдалить">➖</button>
+                <button class="map-ctrl-btn" onclick="mapCenterOnMe()" title="Моя позиция">🎯</button>
+                <button class="map-ctrl-btn" onclick="mapResetView()" title="Сброс вида">🔄</button>
+            </div>
+
+            <!-- BOTTOM STATUS / QUICK ACTION BAR -->
+            <div class="map-bottom-bar">
+                <div class="map-my-status" id="map-my-status-txt">
+                    <span class="status-pulse-dot"></span>
+                    <span>Экипаж: <b><span id="map-my-callsign">52-01</span></b> | <span id="map-my-code">10-0 В патруле</span></span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="map-action-btn primary" onclick="openSetLocationModal()">📍 Отметиться</button>
+                    <button class="map-action-btn danger" onclick="removeMyLocation()">Снять метку</button>
+                </div>
+            </div>
+
+            <!-- POPUP: SET LOCATION & TEN-CODE MODAL -->
+            <div id="map-pin-modal" class="map-modal-backdrop" style="display:none;">
+                <div class="map-modal-card">
+                    <div class="map-modal-header">
+                        <span style="font-size:18px;">📍</span>
+                        <div style="font-weight:800; font-size:14px; color:#58A6FF;">УСТАНОВИТЬ МЕТКУ ЭКИПАЖА</div>
+                        <button class="map-modal-close" onclick="closeSetLocationModal()">✕</button>
+                    </div>
+                    <div class="map-modal-desc">
+                        Координаты точки: <b id="modal-point-coords">50%, 50%</b>.<br>Выберите официальный тен-код дежурства:
+                    </div>
+
+                    <div class="ten-codes-selector">
+                        <button class="ten-code-btn selected" data-code="10-4" onclick="selectModalTenCode('10-4')">
+                            <span class="tc-code">10-4</span>
+                            <span class="tc-name">Заступил на стац. пост</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-4-4" onclick="selectModalTenCode('10-4-4')">
+                            <span class="tc-code">10-4-4</span>
+                            <span class="tc-name">Продолжаю на посту</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-0" onclick="selectModalTenCode('10-0')">
+                            <span class="tc-code">10-0</span>
+                            <span class="tc-name">Выехал в патруль</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-0-1" onclick="selectModalTenCode('10-0-1')">
+                            <span class="tc-code">10-0-1</span>
+                            <span class="tc-name">Продолжаю патруль</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-10" onclick="selectModalTenCode('10-10')">
+                            <span class="tc-code">10-10</span>
+                            <span class="tc-name">Оформляю ДТП</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-11" onclick="selectModalTenCode('10-11')">
+                            <span class="tc-code">10-11</span>
+                            <span class="tc-name">Оформляю нарушителя</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-15" onclick="selectModalTenCode('10-15')">
+                            <span class="tc-code">10-15</span>
+                            <span class="tc-name">Везу в отдел</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-24" onclick="selectModalTenCode('10-24')">
+                            <span class="tc-code">10-24</span>
+                            <span class="tc-name">Выехал на вызов</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-25" onclick="selectModalTenCode('10-25')">
+                            <span class="tc-code">10-25</span>
+                            <span class="tc-name">Прибыл на вызов</span>
+                        </button>
+                        <button class="ten-code-btn" data-code="10-21" onclick="selectModalTenCode('10-21')">
+                            <span class="tc-code">10-21</span>
+                            <span class="tc-name">В гараж (сдача)</span>
+                        </button>
+                    </div>
+
+                    <!-- Extra inputs depending on code -->
+                    <div id="modal-post-field" style="margin-top:10px;">
+                        <label style="font-size:11px; color:#8B949E; display:block; margin-bottom:4px;">Номер или название поста (напр. 1, 2, Вокзал):</label>
+                        <input type="text" id="modal-post-input" class="map-input" placeholder="Номер поста..." value="1">
+                    </div>
+
+                    <div style="margin-top:8px;">
+                        <label style="font-size:11px; color:#8B949E; display:block; margin-bottom:4px;">Заметка / сектор (необязательно):</label>
+                        <input type="text" id="modal-note-input" class="map-input" placeholder="Напр. Мост, парковка, проспект...">
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; margin-top:14px; gap:8px;">
+                        <button class="map-modal-btn confirm" onclick="submitOfficerLocation()">✅ Подтвердить метку</button>
+                        <button class="map-modal-btn cancel" onclick="closeSetLocationModal()">Отмена</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE-IN UNITS DRAWER -->
+            <div id="map-units-drawer" class="units-drawer" style="display:none;">
+                <div class="drawer-header">
+                    <span style="font-weight:800; color:#58A6FF; font-size:13px;">🚔 ЭКИПАЖИ НА СМЕНЕ</span>
+                    <button class="drawer-close" onclick="toggleMapUnitsList()">✕</button>
+                </div>
+                <div class="drawer-list" id="map-units-list-body">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FLOATING COMBO FINE BAR (APPEARS WHEN ARTICLES SELECTED) -->
+    <div id="combo-fine-bar">
+        <div class="combo-top">
+            <span class="combo-title" id="combo-title-txt">🧾 ВЫБРАНО: 0 СТ.</span>
+            <span class="combo-total" id="combo-sum-txt">0 ₽</span>
+        </div>
+        <div class="combo-btns">
+            <button class="combo-action-btn speak" onclick="speakComboArticles()">📢 Зачитать выбранные</button>
+            <button class="combo-action-btn ticket" onclick="issueComboTicket()">💳 Оформить (/ticket)</button>
+            <button class="combo-action-btn clear" onclick="clearSelectedArticles()" title="Сбросить">✕</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM TAB BAR -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" id="tab-nav-1" onclick="switchMobileTab(1)">
+            <span class="tab-btn-icon">🚨</span>
+            <span>Патруль</span>
+        </button>
+        <button class="tab-btn" id="tab-nav-2" onclick="switchMobileTab(2)">
+            <span class="tab-btn-icon">👮</span>
+            <span>Проверка</span>
+        </button>
+        <button class="tab-btn" id="tab-nav-3" onclick="switchMobileTab(3)">
+            <span class="tab-btn-icon">📕</span>
+            <span>Статьи</span>
+        </button>
+        <button class="tab-btn" id="tab-nav-4" onclick="switchMobileTab(4)">
+            <span class="tab-btn-icon">📻</span>
+            <span>Рация</span>
+        </button>
+        <button class="tab-btn" id="tab-nav-5" onclick="switchMobileTab(5)">
+            <span class="tab-btn-icon">🗺️</span>
+            <span>Карта</span>
+        </button>
+    </nav>
+</div>
+
+<div id="toast">⚡ Сигнал отправлен</div>
+
+<script>
+var EMBEDDED_ARTICLES = [{"code":"КоАП","num":"1.1","cmd":"/коап1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Задачами законодательства об административных правонарушениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, охрана здоровья граждан, санитарно-эпидемиологического благополучия населения, защита общественной нравственности, охрана окружающей среды, установленного порядка осуществления государственной власти, общественного порядка и общественной безопасности, собственности, защита законных экономических интересов физических и юридических лиц, общества и государства от административных правонарушений, а также предупреждение административных правонарушений. За соблюдением кодекса следят все служащие Министерства внутренних дел."},{"code":"КоАП","num":"1.2","cmd":"/коап1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Лица, совершившие административное правонарушение, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхождения, имущественного и должностного положения, места жительства, отношения к религии, убеждений, принадлежности к общественным объединениям, а также других обстоятельств. Незнание закона не освобождает лицо от ответственности."},{"code":"КоАП","num":"1.3","cmd":"/коап1.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо подлежит ответственности только за те административные правонарушения, в отношении которых установлена его вина."},{"code":"КоАП","num":"1.4","cmd":"/коап1.4","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо, совершившее административное правонарушение, подлежит ответственности на основании закона, действовавшего во время совершения административного правонарушения."},{"code":"КоАП","num":"2.1","cmd":"/коап2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Административным правонарушением признается противоправное, виновное действие (бездействие) физического или юридического лица, за которое настоящим Кодексом установлена ответственность, также почти везде описанная и в Правилах дорожного движения."},{"code":"КоАП","num":"2.1.1","cmd":"/коап2.1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Рецидив преступлений влечет более строгое наказание на основании и в пределах, предусмотренных настоящим Кодексом."},{"code":"КоАП","num":"2.1.2","cmd":"/коап2.1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Рецидивом преступления признается совершение преступления лицом настоящего Кодекса, наказание за которое он уже получал, и оно истекло менее, чем две недели назад."},{"code":"КоАП","num":"2.2","cmd":"/коап2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Существующие формы вины."},{"code":"КоАП","num":"2.2.1","cmd":"/коап2.2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Административное правонарушение признается совершенным умышленно, если лицо, его совершившее, сознавало противоправный характер своего действия (бездействия), предвидело его вредные последствия и желало наступления таких последствий или сознательно их допускало, либо относилось к ним безразлично."},{"code":"КоАП","num":"2.2.2","cmd":"/коап2.2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Административное правонарушение признается совершенным по неосторожности, если лицо, его совершившее, предвидело возможность наступления вредных последствий своего действия (бездействия), но без достаточных к тому оснований самонадеянно рассчитывало на предотвращение таких последствий, либо не предвидело возможности наступления таких последствий, хотя должно было и могло их предвидеть."},{"code":"КоАП","num":"2.3","cmd":"/коап2.3","fine":0,"sanction":"Разъяснение нормы","desc":"При малозначительности совершенного административного правонарушения сотрудник полиции может освободить лицо, совершившее административное правонарушение, от административной ответственности и ограничиться устным замечанием."},{"code":"КоАП","num":"3.1","cmd":"/коап3.1","fine":0,"sanction":"Разъяснение нормы","desc":"Предупреждение – мера, выраженная в пресечении правонарушения лицом без применения иных видов административных наказаний. После, если результатов оно не повлекло, то есть лицо не направило свои действия на устранение нарушения или отказалось в их пресечении со своей стороны, применяются иные виды административных наказаний. Предупреждение выносится в устной или письменной форме с просьбой лицу прекратить совершать тот или иной проступок, за который будет положена иная мера административной ответственности. Неисполнение требований, оговоренных в предупреждении, лицом могут приравниваться к неподчинению, на усмотрение служащего Министерства внутренних дел, и наказывается соответствующей статьей Уголовного Кодекса."},{"code":"КоАП","num":"3.2","cmd":"/коап3.2","fine":0,"sanction":"Разъяснение нормы","desc":"Штраф является денежным взысканием, выражается в рублях и устанавливается для граждан в размере, указанном в соответствующей статье настоящего Кодекса."},{"code":"КоАП","num":"3.3","cmd":"/коап3.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лишение права на управление транспортным средством устанавливается за грубое или систематическое нарушение порядка пользования этим правом в случаях, предусмотренных статьями настоящего Кодекса."},{"code":"КоАП","num":"3.4","cmd":"/коап3.4","fine":0,"sanction":"Разъяснение нормы","desc":"Административный арест заключается в содержании нарушителя в условиях изоляции от общества и устанавливается и назначается лишь в исключительных случаях за отдельные виды административных правонарушений."},{"code":"КоАП","num":"4.1","cmd":"/коап4.1","fine":0,"sanction":"Разъяснение нормы","desc":"Наказание за совершение административного правонарушения назначается в пределах, установленных законом, предусматривающим ответственность за данное административное правонарушение, в соответствии с настоящим Кодексом."},{"code":"КоАП","num":"4.2","cmd":"/коап4.2","fine":0,"sanction":"Разъяснение нормы","desc":"При назначении наказания физическому лицу учитываются характер совершенного им административного правонарушения, личность виновного, его имущественное положение, обстоятельства, смягчающие ответственность, и обстоятельства, отягчающие ответственность."},{"code":"КоАП","num":"4.3","cmd":"/коап4.3","fine":0,"sanction":"Разъяснение нормы","desc":"Никто не может нести ответственность дважды за одно и то же административное правонарушение подряд. Скрыть контент Служащий не вправе суммировать штраф за нарушения одного и того же пункта настоящего Кодекса. Если после оформления протокола лицо повторно совершает нарушение пункта, по которому уже было наказано, то оно может быть повторно привлечено к ответственности. Системный штраф не равен наказанию от сотрудника."},{"code":"КоАП","num":"4.4","cmd":"/коап4.4","fine":0,"sanction":"Разъяснение нормы","desc":"Возмещение имущественного ущерба и морального вреда, причиненных административным правонарушением."},{"code":"КоАП","num":"4.4.1","cmd":"/коап4.4.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уполномоченное лицо, рассматривая дело об административном правонарушении, вправе при отсутствии спора о возмещении имущественного ущерба одновременно с назначением наказания решить вопрос о возмещении имущественного ущерба."},{"code":"КоАП","num":"4.4.2","cmd":"/коап4.4.2","fine":0,"sanction":"Разъяснение нормы","desc":"Споры о возмещении морального вреда, причиненного административным правонарушением, рассматриваются на городском портале Республики Провинция."},{"code":"КоАП","num":"4.5","cmd":"/коап4.5","fine":0,"sanction":"Разъяснение нормы","desc":"Срок давности привлечения к административной ответственности составляет 14 месяцев."},{"code":"КоАП","num":"17.1","cmd":"/коап17.1","fine":0,"sanction":"Разъяснение нормы","desc":"Отстранение от управления транспортным средством, освидетельствование на состояние алкогольного опьянения и медицинское освидетельствование на состояние опьянения."},{"code":"УКРП","num":"1.1","cmd":"/укрп1.1","fine":0,"sanction":"Разъяснение нормы","desc":"Задачами законодательства об уголовных преступлениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, охрана здоровья граждан, санитарно-эпидемиологического благополучия населения, защита общественной нравственности, охрана окружающей среды, установленного порядка осуществления государственной власти, общественного порядка и общественной безопасности, собственности, защита законных экономических интересов физических и юридических лиц, общества и государства от административных правонарушений, а также предупреждение уголовных правонарушений. За соблюдением настоящего Кодекса следят все служащие Министерства внутренних дел."},{"code":"УКРП","num":"1.2","cmd":"/укрп1.2","fine":0,"sanction":"Разъяснение нормы","desc":"Лица, совершившие уголовное преступление, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхождения, имущественного и должностного положения, места жительства, отношения к религии, убеждений, принадлежности к общественным объединениям, а также других обстоятельств. Незнание закона не освобождает лицо от ответственности."},{"code":"УКРП","num":"1.3","cmd":"/укрп1.3","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо подлежит ответственности только за те уголовные преступления, в отношении которых установлена его вина."},{"code":"УКРП","num":"1.4","cmd":"/укрп1.4","fine":0,"sanction":"Разъяснение нормы","desc":"Лицо, совершившее уголовное преступление, подлежит ответственности на основании закона, действовавшего во время совершения данного деяния."},{"code":"УКРП","num":"1.5","cmd":"/укрп1.5","fine":0,"sanction":"Разъяснение нормы","desc":"Если имеется возможность выбора наказания за определенное нарушение - сотрудник имеет право самостоятельно вынести решение."},{"code":"УКРП","num":"1.6","cmd":"/укрп1.6","fine":0,"sanction":"Разъяснение нормы","desc":"При совокупности преступлений лицо несет уголовную ответственность за каждое совершенное преступление по соответствующей статье или части статьи настоящего Кодекса."},{"code":"УКРП","num":"2.1","cmd":"/укрп2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовным преступлением признается противоправное, виновное действие (бездействие) физического лица, за которое настоящим Кодексом следует ответственность."},{"code":"УКРП","num":"2.2","cmd":"/укрп2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Существующие формы вины:"},{"code":"УКРП","num":"2.2.1","cmd":"/укрп2.2.1","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовное преступление признается совершенным умышленно, если лицо, его совершившее, сознавало противоправный характер своего действия (бездействия), предвидело его вредные последствия и желало наступления таких последствий или сознательно их допускало, либо относилось к ним безразлично."},{"code":"УКРП","num":"2.2.2","cmd":"/укрп2.2.2","fine":0,"sanction":"Разъяснение нормы","desc":"Уголовное преступление признается совершенным по неосторожности, если лицо, его совершившее, предвидело возможность наступления вредных последствий своего действия (бездействия), но без достаточных к тому оснований самонадеянно рассчитывало на предотвращение таких последствий, либо не предвидело возможности наступления таких последствий, хотя должно было и могло их предвидеть."},{"code":"УКРП","num":"2.3","cmd":"/укрп2.3","fine":0,"sanction":"Разъяснение нормы","desc":"Соучастие в совершении уголовного преступления, предусмотренного настоящим Кодексом, прикрывательство, укрывательство преступника, является наказуемым и влечет такую же ответственность, которая бы наступала в случае самостоятельного совершения преступления."},{"code":"УКРП","num":"2.4","cmd":"/укрп2.4","fine":0,"sanction":"Разъяснение нормы","desc":"Срок давности привлечения к уголовной ответственности составляет 14 месяцев."},{"code":"УКРП","num":"2.5","cmd":"/укрп2.5","fine":0,"sanction":"Разъяснение нормы","desc":"Нелегальные предметы, обнаруженные у задержанного, подлежат конфискации."},{"code":"УКРП","num":"3.1","cmd":"/укрп3.1","fine":0,"sanction":"Разъяснение нормы","desc":"Штраф является денежным взысканием, выражается в рублях и устанавливается для граждан в размере, указанном в соответствующей статье."},{"code":"УКРП","num":"3.2","cmd":"/укрп3.2","fine":0,"sanction":"Разъяснение нормы","desc":"Арест – мера уголовного наказания, заключающаяся в содержании нарушителя в условиях изоляции от общества, и устанавливается на срок, предусмотренный статьями уголовного кодекса."},{"code":"КоАП","num":"5.1","cmd":"/коап5.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"вождение без документов, предусмотренных пунктом 2.1.1 ПДД"},{"code":"КоАП","num":"5.2","cmd":"/коап5.2","fine":30000,"sanction":"Штраф 30.000 рублей или лишение права на управление ТС с возможностью моментального переобучения.","desc":"непредоставление по требованию сотрудника полиции документов предусмотренных пунктом 2.1.1 ПДД"},{"code":"КоАП","num":"5.3","cmd":"/коап5.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"управление ТС, не зарегистрированным в установленном порядке либо без гос. номеров, либо с изменёнными или закрытыми регистрационными знаками если прошло более 3 суток с момента покупки"},{"code":"КоАП","num":"5.4","cmd":"/коап5.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"управление ТС с тонировкой, светопропускаемость которой менее 70 процентов на боковых передних и лобовом стеклах включая запрещённые цветные пленки"},{"code":"КоАП","num":"5.5","cmd":"/коап5.5","fine":30000,"sanction":"Предупреждение или штраф от 10.000 до 30.000 рублей.","desc":"управление ТС при технической неисправности или в условиях, когда управление запрещено согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"5.6","cmd":"/коап5.6","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"управление мотоциклом или мопедом, либо перевозка пассажиров без мотошлемов согласно пунктом 2.1.3 ПДД"},{"code":"КоАП","num":"5.7","cmd":"/коап5.7","fine":15000,"sanction":"Предупреждение или штраф от 5.000 до 15.000 рублей.","desc":"нарушение ПДД пешеходами и велосипедистами согласно главе 4 ПДД"},{"code":"КоАП","num":"5.8","cmd":"/коап5.8","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"посадка или высадка пассажиров со стороны проезжей части в нарушение правил дорожного движения"},{"code":"КоАП","num":"5.9","cmd":"/коап5.9","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"игнорирование водителем требования об остановке с помощью жезла"},{"code":"КоАП","num":"5.10","cmd":"/коап5.10","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"несоблюдение требований дорожных знаков или разметки согласно приложению 1 и 2 ПДД"},{"code":"КоАП","num":"6.1","cmd":"/коап6.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"использование приоритета с включёнными маячками и звуковым сигналом без убедительности в безопасности манёвра согласно пунктом 3.1 ПДД"},{"code":"КоАП","num":"6.2","cmd":"/коап6.2","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"нарушение правил использования аварийных сигналов согласно пунктом 7.1 ПДД"},{"code":"КоАП","num":"6.3","cmd":"/коап6.3","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"нарушение правил использования знака аварийной остановки согласно пунктом 7.2 ПДД"},{"code":"КоАП","num":"6.4","cmd":"/коап6.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"управление ТС с выключенными фарами согласно пунктом 8.1 ПДД"},{"code":"КоАП","num":"6.5","cmd":"/коап6.5","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"использование звукового сигнала с нарушением ПДД согласно пунктом 8.3 ПДД"},{"code":"КоАП","num":"7.1","cmd":"/коап7.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"проезд на красный сигнал светофора, запрещающий жест регулировщика, или на жёлтый при возможности остановки без создания опасности согласно пунктом 6.1 ПДД"},{"code":"КоАП","num":"7.2","cmd":"/коап7.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"невыполнение требования остановки перед стоп-линией при запрещающем сигнале светофора или жесте регулировщика согласно пунктом 6.2 ПДД"},{"code":"КоАП","num":"8.1","cmd":"/коап8.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"начало движения, перестроение, поворот или остановка без использования сигнала поворота согласно пунктом 9.1 ПДД"},{"code":"КоАП","num":"8.2","cmd":"/коап8.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"непредоставление при перестроении преимущества транспортному средству попутного направления или справа согласно пунктом 9.4 ПДД"},{"code":"КоАП","num":"8.3","cmd":"/коап8.3","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"поворот направо, налево или разворот из полосы, не предназначенной для данного манёвра согласно пунктом 9.4 ПДД"},{"code":"КоАП","num":"8.4","cmd":"/коап8.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"поворот направо, налево, разворот или движение задним ходом с нарушением ПДД знаков или разметки согласно пунктам 9.4, 9.4.1, 9.6, 9.7 ПДД"},{"code":"КоАП","num":"9.1","cmd":"/коап9.1","fine":50000,"sanction":"Штраф 50.000 рублей с лишением права управления до 2 лет.","desc":"движение по полосе, предназначенной для встречного движения, с нарушением ПДД согласно пунктом 10.1 ПДД"},{"code":"КоАП","num":"9.2","cmd":"/коап9.2","fine":50000,"sanction":"Штраф 50.000 рублей.","desc":"выезд на полосу, предназначенную для встречного движения, с нарушением ПДД согласно пунктом 10.1 ПДД"},{"code":"КоАП","num":"9.3","cmd":"/коап9.3","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"движение вне населённых пунктов по левым полосам при свободных правых согласно пунктом 10.2 ПДД"},{"code":"КоАП","num":"9.4","cmd":"/коап9.4","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"движение по прерывистым линиям разметки с нарушением ПДД согласно пунктом 10.4 ПДД"},{"code":"КоАП","num":"9.5","cmd":"/коап9.5","fine":30000,"sanction":"Штраф 30.000 рублей.","desc":"движение по разделительным полосам, обочинам, тротуарам, пешеходным дорожкам и газону согласно пунктом 10.6 ПДД"},{"code":"КоАП","num":"9.6","cmd":"/коап9.6","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"несоблюдение дистанции до впереди идущего ТС и бокового интервала между движущимися ТС согласно пунктом 10.8 ПДД"},{"code":"КоАП","num":"10.1","cmd":"/коап10.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС с нанесёнными спец. цветографическими схемами с включённым синим проблесковым маячком и спец. звуковым сигналом согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"10.2","cmd":"/коап10.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС с спец. цветографическими схемами, с включёнными проблесковыми маячками синего и/или красного цветов, а также сопровождаемого ТС согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"10.3","cmd":"/коап10.3","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"обгон ТС в случаях, когда манёвр запрещён согласно пунктом 12.2 ПДД"},{"code":"КоАП","num":"10.4","cmd":"/коап10.4","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"препятствование обгону согласно пунктом 12.3 ПДД"},{"code":"КоАП","num":"11.1","cmd":"/коап11.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС на пешеходном переходе, ближе 5 м перед ним или на тротуаре согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.2","cmd":"/коап11.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС в местах остановки маршрутных ТС или ближе 15 м от них кроме посадки/высадки или вынужденной остановки согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.3","cmd":"/коап11.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"остановка или стоянка ТС на трамвайных путях газоне или далее первого ряда от края проезжей части согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.4","cmd":"/коап11.4","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушение правил остановки или стоянки ТС на проезжей части или в тоннелях с созданием препятствий для движения других ТС согласно пунктом 13.3 ПДД"},{"code":"КоАП","num":"11.5","cmd":"/коап11.5","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушение правил остановки или стоянки ТС, за исключением случаев частей 1-4 настоящей статьи согласно главе 13 ПДД"},{"code":"КоАП","num":"12.1","cmd":"/коап12.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"нарушения правил проезда перекрёстков, не повлекшие опасности другим участникам движения согласно главе 14 ПДД"},{"code":"КоАП","num":"12.2","cmd":"/коап12.2","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"нарушения правил проезда перекрёстков, повлекшие опасность другим участникам движения согласно главе 14 ПДД"},{"code":"КоАП","num":"13.1","cmd":"/коап13.1","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"пересечение железнодорожных путей в местах, не оборудованных для этого согласно пунктом 16.1 ПДД"},{"code":"КоАП","num":"13.2","cmd":"/коап13.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"выезд на железнодорожный переезд в случаях, когда это запрещено согласно пунктом 16.3 ПДД"},{"code":"КоАП","num":"13.3","cmd":"/коап13.3","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"остановка ТС ближе 5 м от шлагбаума, или при его отсутствии ближе 10м до ближайшего рельса согласно пунктом 16.4 ПДД"},{"code":"КоАП","num":"14.1","cmd":"/коап14.1","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"движение по автомагистрали ТС, скорость которых по характеристикам или состоянию менее 40 км/ч согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.2","cmd":"/коап14.2","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"движение по автомагистрали грузовых автомобилей далее второй полосы согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.3","cmd":"/коап14.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"движение по автомагистрали задним ходом согласно пунктом 17.1 ПДД"},{"code":"КоАП","num":"14.4","cmd":"/коап14.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"создание пешеходом помех для автомобилей при движении в жилых зонах согласно пунктом 18.1 ПДД"},{"code":"КоАП","num":"14.5","cmd":"/коап14.5","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"сквозное движение, учебная езда, стоянка с работающим двигателем а также стоянка грузовых ТС свыше 3,5 тонн вне спец выделенных мест согласно пунктом 18.2 ПДД"},{"code":"КоАП","num":"14.6","cmd":"/коап14.6","fine":10000,"sanction":"Предупреждение или штраф 10.000 рублей.","desc":"движение в колонне с нарушением правил дорожного движения согласно главе 19 ПДД"},{"code":"КоАП","num":"15.1","cmd":"/коап15.1","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"непредоставление преимущества ТС с включенным проблесковым маячком синего и/или красного цвета и спец. звуковым сигналом согласно пунктом 3.2 ПДД"},{"code":"КоАП","num":"15.2","cmd":"/коап15.2","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"непредоставление преимущества троллейбусам и автобусам начинающим движение от места остановки согласно пунктом 20.2 ПДД"},{"code":"КоАП","num":"15.3","cmd":"/коап15.3","fine":10000,"sanction":"Штраф 10.000 рублей.","desc":"непредоставление преимущества ТС, движущимся по главной дороге или при выезде с прилегающей территории согласно пунктом 9.3 ПДД"},{"code":"КоАП","num":"15.4","cmd":"/коап15.4","fine":5000,"sanction":"Предупреждение или штраф 5.000 рублей.","desc":"непредоставление преимущества пешеходам и/или велосипедистам при пересечении проезжей части согласно пунктом 15.1 ПДД"},{"code":"КоАП","num":"16.1","cmd":"/коап16.1","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления на 3-4 года и административный арест 20 суток.","desc":"оставление водителем места ДТП, участником которого он являлся, с нарушением ПДД согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"16.2","cmd":"/коап16.2","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"неоказание первой помощи при ДТП, если она необходима согласно пунктом 2.3 ПДД"},{"code":"КоАП","num":"16.3","cmd":"/коап16.3","fine":35000,"sanction":"Штраф от 10.000 до 35.000 рублей.","desc":"невыполнение водителем обязанностей при ДТП, участником которого он является кроме случаев статьи 16.1 согласно пунктом 2.3 ПДД"},{"code":"КоАП","num":"17.1.1","cmd":"/коап1711","fine":0,"sanction":"Разъяснение нормы","desc":"лицо, управляющее ТС и имеющее признаки опьянения или совершившее правонарушения по ст. 19.1 и 19.4 подлежит отстранению от управления до устранения причины"},{"code":"КоАП","num":"17.1.2","cmd":"/коап1712","fine":0,"sanction":"Разъяснение нормы","desc":"составляется протокол об отстранении от управления и направлении на медицинское освидетельствование копия вручается лицу"},{"code":"КоАП","num":"17.1.3","cmd":"/коап1713","fine":0,"sanction":"Разъяснение нормы","desc":"лицо с признаками опьянения подлежит освидетельствованию при отказе или несогласии направляется на медицинское освидетельствование"},{"code":"КоАП","num":"17.1.4","cmd":"/коап1714","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления до 1 года.","desc":"управление ТС в состоянии опьянения или передача управления лицу в состоянии опьянения согласно п. 2.4 ПДД"},{"code":"КоАП","num":"17.1.5","cmd":"/коап1715","fine":30000,"sanction":"Штраф 30.000 рублей с лишением права управления до 1 года.","desc":"невыполнение законного требования о прохождении медицинского освидетельствования на состояние опьянения"},{"code":"КоАП","num":"17.2","cmd":"/коап17.2","fine":30000,"sanction":"Штраф до 30.000 рублей с лишением права управления до 2 лет.","desc":"опасное вождение согласно пунктом 2.4 ПДД"},{"code":"КоАП","num":"17.3","cmd":"/коап17.3","fine":0,"sanction":"Предупреждение.","desc":"управление ТС при неуплате штрафов до 10.000 рублей"},{"code":"КоАП","num":"17.4","cmd":"/коап17.4","fine":30000,"sanction":"Штраф 30.000 рублей.","desc":"управление ТС при неуплате штрафов от 10.000 до 50.000 рублей"},{"code":"КоАП","num":"17.5","cmd":"/коап17.5","fine":50000,"sanction":"Штраф 50.000 рублей с лишением права управления на 1 год.","desc":"управление ТС при неуплате штрафов от 50.000 до 100.000 рублей"},{"code":"КоАП","num":"17.6","cmd":"/коап17.6","fine":100000,"sanction":"Штраф 100.000 рублей с лишением права управления на 2 года.","desc":"управление ТС при неуплате штрафов свыше 100.000 рублей"},{"code":"КоАП","num":"18.1","cmd":"/коап18.1","fine":0,"sanction":"Предупреждение.","desc":"превышение скорости на 10-20 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.2","cmd":"/коап18.2","fine":2000,"sanction":"Штраф 2.000 рублей.","desc":"превышение скорости на 20-40 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.3","cmd":"/коап18.3","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"превышение скорости на 40-60 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.4","cmd":"/коап18.4","fine":7000,"sanction":"Штраф 7.000 рублей.","desc":"превышение скорости на 60-80 км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"18.5","cmd":"/коап18.5","fine":10000,"sanction":"Штраф 10.000 рублей с лишением права управления на 1 год.","desc":"превышение скорости на 80+ км/ч, зафиксированное сотрудниками полиции"},{"code":"КоАП","num":"19.1","cmd":"/коап19.1","fine":10000,"sanction":"Штраф до 10.000 рублей или административный арест 10 суток.","desc":"мелкое хулиганство, нарушение общественного порядка с нецензурной лексикой оскорбительным поведением или повреждением чужого имущества а так же нахождение в нижнем белье вне водоёмов, бассейнов, спортзалов"},{"code":"КоАП","num":"19.2","cmd":"/коап19.2","fine":10000,"sanction":"Штраф до 10.000 рублей или административный арест 10 суток.","desc":"оскорбление, унижение чести и достоинства другого лица неприличной или аморальной формой"},{"code":"КоАП","num":"19.3","cmd":"/коап19.3","fine":20000,"sanction":"Штраф до 20.000 рублей или административный арест 10 суток.","desc":"нанесение побоев или иных насильственных действий, причиняющих физическую боль, не содержащих уголовно наказуемое деяние"},{"code":"КоАП","num":"19.4","cmd":"/коап19.4","fine":5000,"sanction":"Штраф 5.000 рублей.","desc":"распитие алкоголя в общественных местах или появление в состоянии опьянения оскорбляющем человеческое достоинство и общественную нравственность"},{"code":"КоАП","num":"19.5","cmd":"/коап19.5","fine":0,"sanction":"Предупреждение или административный арест 10 суток.","desc":"занятие попрошайничеством в общественных местах"},{"code":"КоАП","num":"19.6","cmd":"/коап19.6","fine":100000,"sanction":"Штраф 100.000 рублей.","desc":"предпринимательская деятельность без регистрации или лицензии, если она обязательна"},{"code":"КоАП","num":"19.7","cmd":"/коап19.7","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"заведомо ложный вызов пожарной охраны, полиции, скорой или иных служб"},{"code":"КоАП","num":"19.8","cmd":"/коап19.8","fine":20000,"sanction":"Штраф до 20.000 рублей или административный арест 10 суток.","desc":"организация, участие или призыв к несогласованному митингу с нарушением порядка и созданием помех движению"},{"code":"КоАП","num":"19.9","cmd":"/коап19.9","fine":20000,"sanction":"Штраф 20.000 рублей, или лишение права управления на 1 год, или административный арест до 20 суток.","desc":"неповиновение законному распоряжению сотрудника полиции или военнослужащего"},{"code":"КоАП","num":"19.10","cmd":"/коап19.10","fine":20000,"sanction":"Штраф 20.000 рублей.","desc":"клевета, распространение заведомо ложных сведений порочащих честь и достоинство или репутацию другого лица"},{"code":"УКРП","num":"4.1","cmd":"/укрп4.1","fine":0,"sanction":"Арест сроком на 1 год.","desc":"умышленное причинение вреда здоровью человека без летального исхода"},{"code":"УКРП","num":"4.2","cmd":"/укрп4.2","fine":0,"sanction":"Арест сроком на 2 года.","desc":"умышленное нанесение особо тяжких телесных повреждений по итогу которых человек был доведен до предсмертного положения"},{"code":"УКРП","num":"4.2.1","cmd":"/укрп421","fine":0,"sanction":"Арест сроком от 4 до 6 лет.","desc":"умышленное нанесение особо тяжких телесных повреждений двум или более лицам"},{"code":"УКРП","num":"4.2.2","cmd":"/укрп422","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"нанесение особо тяжких телесных повреждений по неосторожности или в состоянии аффекта вызванного насилием, издевательством или тяжким оскорблением со стороны потерпевшего либо иными противоправными или аморальными действиями потерпевшего"},{"code":"УКРП","num":"4.3","cmd":"/укрп4.3","fine":0,"sanction":"Арест сроком на 1 год.","desc":"угроза нанесения особо тяжких телесных повреждений или причинения вреда здоровью человека"},{"code":"УКРП","num":"4.4","cmd":"/укрп4.4","fine":0,"sanction":"Арест сроком от 4 до 6 лет.","desc":"похищение гражданина или незаконное лишение человека свободы, не связанное с похищением"},{"code":"УКРП","num":"4.5","cmd":"/укрп4.5","fine":0,"sanction":"Арест сроком от 3 до 6 лет.","desc":"действия, направленные против половой неприкосновенности и половой свободы личности"},{"code":"УКРП","num":"4.6","cmd":"/укрп4.6","fine":0,"sanction":"Арест сроком на 1 год.","desc":"незаконный сбор или распространение сведений о частной жизни лица без его согласия"},{"code":"УКРП","num":"5.1","cmd":"/укрп5.1","fine":50000,"sanction":"или 50.000 рублей, а также арест сроком на 3 года.","desc":"получение должностным лицом взятки за осуществление очевидно незаконных действий Штраф в полуторакратном размере от полученной взятки"},{"code":"УКРП","num":"5.2","cmd":"/укрп5.2","fine":0,"sanction":"Арест сроком на 3 года.","desc":"дача взятки должностному лицу лично или через посредника"},{"code":"УКРП","num":"5.3","cmd":"/укрп5.3","fine":0,"sanction":"Арест сроком от 3 до 6 лет.","desc":"посягательство на жизнь и здоровье сотрудника полиции военнослужащего или работника инкассации"},{"code":"УКРП","num":"5.4","cmd":"/укрп5.4","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"применение насилия или угроза применения насилия в отношении представителя власти"},{"code":"УКРП","num":"5.5","cmd":"/укрп5.5","fine":0,"sanction":"Арест сроком на 1 год.","desc":"хамство или дерзость по отношению к сотруднику правоохранительных органов"},{"code":"УКРП","num":"5.6","cmd":"/укрп5.6","fine":0,"sanction":"Арест сроком на 2 года.","desc":"публичное оскорбление или неоднократное неуважение к представителям власти"},{"code":"УКРП","num":"5.7","cmd":"/укрп5.7","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"провокационные действия в отношении сотрудников государственных структур"},{"code":"УКРП","num":"5.7.1","cmd":"/укрп571","fine":0,"sanction":"Арест сроком до 2 лет.","desc":"длительное преследование экипажа сотрудников правоохранительных органов или создание помех их работе"},{"code":"УКРП","num":"5.8","cmd":"/укрп5.8","fine":0,"sanction":"Арест сроком на 2 года.","desc":"неоднократное неповиновение законным требованиям служащего полиции"},{"code":"УКРП","num":"5.8.1","cmd":"/укрп581","fine":0,"sanction":"Арест сроком на 3 года.","desc":"уход от правоохранительных органов с нанесением ущерба имуществу"},{"code":"УКРП","num":"5.8.2","cmd":"/укрп582","fine":0,"sanction":"Арест сроком на 4 года.","desc":"уход от правоохранительных органов с причинением телесных повреждений средней тяжести и выше"},{"code":"УКРП","num":"5.9","cmd":"/укрп5.9","fine":0,"sanction":"Арест сроком на 2 года.","desc":"умышленное уничтожение или повреждение имущества государственных организаций"},{"code":"УКРП","num":"5.10","cmd":"/укрп5.10","fine":0,"sanction":"Арест сроком на 2 года.","desc":"заведомо ложный донос или ложные показания по уголовному, административному делу"},{"code":"УКРП","num":"5.11","cmd":"/укрп5.11","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"разглашение секретных данных или сведений о предстоящих операциях"},{"code":"УКРП","num":"5.12","cmd":"/укрп5.12","fine":0,"sanction":"Арест сроком на 1 год.","desc":"представление себя служащим государственной организации если это не соответствует действительности"},{"code":"УКРП","num":"5.13","cmd":"/укрп5.13","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"халатность, повлекшая крупный ущерб или нарушение прав граждан"},{"code":"УКРП","num":"6.1","cmd":"/укрп6.1","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"терроризм, совершение взрыва, поджога или иных действий создающих опасность гибели людей или тяжкие последствия"},{"code":"УКРП","num":"6.2","cmd":"/укрп6.2","fine":0,"sanction":"Арест на 3 года.","desc":"ложное сообщение о готовящихся взрыве, поджоге или иных опасных действиях"},{"code":"УКРП","num":"6.3","cmd":"/укрп6.3","fine":0,"sanction":"Арест сроком до 3 лет.","desc":"захват или удержание лица в качестве заложника"},{"code":"УКРП","num":"6.4","cmd":"/укрп6.4","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"организация массовых беспорядков, сопровождающихся насилием и разрушениями"},{"code":"УКРП","num":"6.5","cmd":"/укрп6.5","fine":0,"sanction":"Арест сроком до 6 лет.","desc":"создание банды, руководство ею или участие в её деятельности"},{"code":"УКРП","num":"6.6","cmd":"/укрп6.6","fine":0,"sanction":"Арест на 1 год.","desc":"вандализм, порча имущества или осквернение сооружений"},{"code":"УКРП","num":"6.7","cmd":"/укрп6.7","fine":0,"sanction":"Арест сроком на 2 года.","desc":"незаконное проникновение в жилище или частную территорию"},{"code":"УКРП","num":"6.8","cmd":"/укрп6.8","fine":0,"sanction":"Арест на 2 года.","desc":"проникновение на охраняемый объект"},{"code":"УКРП","num":"6.9","cmd":"/укрп6.9","fine":0,"sanction":"Арест на 3 года.","desc":"незаконное обращение с огнестрельным оружием или боеприпасами"},{"code":"УКРП","num":"6.10","cmd":"/укрп6.10","fine":0,"sanction":"Арест на 3 года.","desc":"незаконный оборот наркотических средств или психотропных веществ"},{"code":"УКРП","num":"6.11","cmd":"/укрп6.11","fine":0,"sanction":"Арест на 1 год.","desc":"неоказание первой или медицинской помощи без уважительных причин"},{"code":"УКРП","num":"6.12","cmd":"/укрп6.12","fine":0,"sanction":"Арест сроком на 3 года.","desc":"попытка срыва мероприятий или помеха их проведению"},{"code":"УКРП","num":"6.13","cmd":"/укрп6.13","fine":0,"sanction":"Арест на 3 года.","desc":"подделка или использование поддельных лицензий или удостоверений"},{"code":"УКРП","num":"6.14","cmd":"/укрп6.14","fine":0,"sanction":"Арест до 3 лет.","desc":"превышение должностных полномочий, повлекшее существенные нарушения"},{"code":"УКРП","num":"7.1","cmd":"/укрп7.1","fine":50000,"sanction":"Штраф 50.000 рублей и возмещение ущерба или арест на 3 года.","desc":"мошенничество, хищение имущества путем обмана или злоупотребления доверием"},{"code":"УКРП","num":"7.2","cmd":"/укрп7.2","fine":0,"sanction":"Арест на 2 года.","desc":"грабеж или кража чужого имущества"},{"code":"УКРП","num":"7.3","cmd":"/укрп7.3","fine":0,"sanction":"Арест на 3 года.","desc":"вымогательство, требование передачи имущества под угрозами"},{"code":"УКРП","num":"7.4","cmd":"/укрп7.4","fine":50000,"sanction":"Штраф 50.000 рублей и возмещение ущерба или арест на 2 года.","desc":"умышленное уничтожение или повреждение имущества, повлекшее значительный ущерб"},{"code":"УКРП","num":"7.5","cmd":"/укрп7.5","fine":0,"sanction":"Арест на 2 года.","desc":"организация или проведение азартных игр в общественных местах"},{"code":"ФЗоП","num":"2.4.4.1","cmd":"/фзопобр","fine":0,"sanction":"Обязанность при обращении","desc":"При обращении к гражданину сотрудник обязан: назвать должность, звание, фамилию, предъявить по обоснованному требованию удостоверение, сообщить причину и цель обращения."},{"code":"ФЗоП","num":"2.4.4.2","cmd":"/фзопправа","fine":0,"sanction":"Разъяснение причины и прав","desc":"При ограничении прав и свобод разъяснить причину и основания таких мер после задержания, а также права и обязанности гражданина."},{"code":"ФЗоП","num":"2.4.6","cmd":"/фзопмат","fine":0,"sanction":"Ознакомление с материалами","desc":"Полиция обязана обеспечить гражданину возможность ознакомления с документами и материалами, непосредственно затрагивающими его права и свободы."},{"code":"ФЗоП","num":"3.8.1.11","cmd":"/фзопнадзор","fine":0,"sanction":"Надзор за БДД","desc":"Обязанность полиции осуществлять государственный контроль (надзор) в области обеспечения безопасности дорожного движения и пресекать АПН."},{"code":"ФЗоП","num":"3.8.1.13","cmd":"/фзопконф","fine":0,"sanction":"Конфискация нелегала","desc":"Обязанность конфисковывать нелегальные предметы, обнаруженные у задержанного (согласно ст. 2.5 УК РП), и изымать поддельные документы (п. 3.8.1.12)."},{"code":"ФЗоП","num":"3.9.1.1","cmd":"/фзоптреб","fine":0,"sanction":"Прекращение нарушений","desc":"Право требовать от граждан и должностных лиц прекращения противоправных действий."},{"code":"ФЗоП","num":"3.9.1.2","cmd":"/фзоп912","fine":0,"sanction":"Проверка документов и штрафов","desc":"Право проверять документы (паспорт, ВУ, ПТС) при подозрении в преступлении/розыске/АПН, при признаках нарушения п. 2.4 ПДД, а также проверять наличие неоплаченных штрафов."},{"code":"ФЗоП","num":"3.9.1.4","cmd":"/фзопотойти","fine":0,"sanction":"Покинуть место проц. действий","desc":"Право требовать от граждан покинуть место процессуальных действий (оформление, допрос, опрос). Сотрудник имеет право НЕ разглашать, какие именно процессуальные действия он проводит."},{"code":"ФЗоП","num":"3.9.1.7","cmd":"/фзопдост","fine":0,"sanction":"Доставление в отдел МВД","desc":"Право доставлять граждан в служебное помещение полиции для решения вопроса о задержании или установления личности, если есть основания полагать, что он в розыске."},{"code":"ФЗоП","num":"3.9.1.8","cmd":"/фзопдосмотр","fine":0,"sanction":"Личный досмотр и досмотр ТС","desc":"Право осуществлять личный досмотр граждан, досмотр их вещей и ТС при наличии данных о запрещенных предметах/веществах, а также при задержании (п. 4.10.5)."},{"code":"ФЗоП","num":"3.9.1.9","cmd":"/фзопост","fine":0,"sanction":"Остановка ТС и проверка ВУ/ПТС","desc":"Право останавливать ТС для обеспечения безопасности дорожного движения, проверять ВУ и ПТС, задерживать ТС в розыске и временно ограничивать движение."},{"code":"ФЗоП","num":"3.9.1.11","cmd":"/фзопотстр","fine":0,"sanction":"Отстранение от управления ТС","desc":"Право задерживать ТС и отстранять водителей от управления ТС в случаях, предусмотренных законодательством (опьянение, отсутствие прав и др.)."},{"code":"ФЗоП","num":"3.9.1.12","cmd":"/фзопкамера","fine":0,"sanction":"Видеофиксация и спецприборы","desc":"Право использовать информационные базы, видео- и аудиотехнику, фотоаппаратуру, а также технические и специальные средства (регистратор, тауметр, алкотестер)."},{"code":"ФЗоП","num":"3.9.1.14","cmd":"/фзопдоступтс","fine":0,"sanction":"Доступ к ТС для проверки","desc":"Право требовать от водителя предоставить доступ к ТС для проведения проверок (например, замер тонировки), если есть основания полагать, что ТС неисправно или совершается АПН."},{"code":"ФЗоП","num":"3.9.1.17","cmd":"/фзопмаяк","fine":0,"sanction":"Маячки и СГУ (п. 17–18)","desc":"Маячки + СГУ: погоня, срочный вызов, колонна (ведущий/замыкающий), раненый, спецмероприятие. Маячки без СГУ: патруль/пост, стоянка в нарушение ПДД, ДТП/оцепление."},{"code":"ФЗоП","num":"3.9.2","cmd":"/фзопост9","fine":0,"sanction":"9 оснований остановки ТС","desc":"1) Признаки нарушения БДД; 2) Причастность к ДТП/АПН/преступлению; 3) ТС в розыске; 4) Опрос очевидцев; 5) Ограничение ДД; 6–7) Пропуск спецтранспорта; 8) Помощь; 9) Проверка документов."},{"code":"ФЗоП","num":"4.10.2","cmd":"/фзопзадерж","fine":0,"sanction":"10 оснований задержания","desc":"Подозреваемые в преступлении; побег; в розыске; дело об АПН; проникновение на охраняемый объект; до выяснения обстоятельств; невыполнение законных требований сотрудника (ст. 9)."},{"code":"ФЗоП","num":"4.10.7","cmd":"/фзопзвонок","fine":0,"sanction":"Право на 1 телефонный звонок","desc":"Задержанный перед допросом имеет право на 1 телефонный разговор в присутствии сотрудника (не предоставляется, если может сообщить информацию преступнику — п. 4.10.8)."},{"code":"ФЗоП","num":"4.11.2","cmd":"/фзопоцеп","fine":0,"sanction":"Оцепление и блокирование","desc":"Право проводить оцепление/блокирование при авариях, массовых беспорядках, розыске беглецов, преследовании преступников и КТО с ограничением движения ТС и пешеходов."},{"code":"ФЗоП","num":"5.13.2","cmd":"/фзопбезпред","fine":0,"sanction":"Сила/оружие БЕЗ предупреждения","desc":"Без предупреждения: 1) Провокация; 2) Проникновение на охраняемый объект после предупреждения; 3) Непосредственная угроза жизни/здоровью; 4) Застигнут в момент преступления/арестного АПН."},{"code":"ФЗоП","num":"5.14.1","cmd":"/фзопсила","fine":0,"sanction":"Применение физической силы","desc":"Право применять физ. силу и боевые приемы борьбы для пресечения преступлений/АПН, доставления и задержания лиц, а также преодоления противодействия законным требованиям."},{"code":"ФЗоП","num":"5.15.1","cmd":"/фзопспец","fine":0,"sanction":"Применение спецсредств","desc":"Наручники (п. 3,4,6): сопротивление, застигнут при преступлении/попытка скрыться, конвоирование/побег. Дубинка и тайзер (п. 1–5,7,8): нападение, пресечение АПН/преступления, сопротивление."},{"code":"ФЗоП","num":"5.17.1","cmd":"/фзопоружие","fine":0,"sanction":"Применение огнестрельного оружия","desc":"Защита жизни/здоровья, пресечение захвата оружия/патрульки, вооруженное сопротивление, встраивание в колонну, остановка ТС путем повреждения при отказе остановиться и угрозе гражданам (п. 5.17.3.1)."},{"code":"ФЗоП","num":"5.17.8","cmd":"/фзопзапретор","fine":0,"sanction":"Запреты по оружию (п. 5–9)","desc":"Запрещено: 1) Стрелять с водительского места при наличии вооруженного напарника (п. 8); 2) Останавливать ТС тяжелым/автоматическим/гладкоствольным оружием (п. 9); 3) При скоплении людей (п. 6)."},{"code":"ФЗоП","num":"6.19.7","cmd":"/фзопстрой","fine":0,"sanction":"Правила в строю и Онлайн-протокол","desc":"В строю запрещено: разговаривать, доставать телефон/оружие, вставать/покидать без разрешения, спать (AFK) > 60 сек. Ст. 20: каждую субботу до 23:59 МСК сдавать онлайн-протокол."},{"code":"ПДД","num":"1.3","cmd":"/пдд1.3","fine":0,"sanction":"Обязанности участников движения","desc":"Участники дорожного движения обязаны знать и соблюдать относящиеся к ним требования Правил, сигналов светофоров, знаков и разметки, а также выполнять распоряжения регулировщиков."},{"code":"ПДД","num":"1.4","cmd":"/пдд1.4","fine":0,"sanction":"Правостороннее движение","desc":"На дорогах Республики Провинция установлено правостороннее движение транспортных средств."},{"code":"ПДД","num":"1.5","cmd":"/пдд1.5","fine":0,"sanction":"Безопасность движения","desc":"Участники движения должны действовать безопасно. Запрещается повреждать покрытие дорог, самовольно устанавливать/снимать знаки и светофоры, оставлять на дороге создающие помехи предметы."},{"code":"ПДД","num":"2.1.1","cmd":"/пдд2.1.1","fine":0,"sanction":"Документы водителя","desc":"Водитель обязан иметь при себе и по требованию сотрудников полиции передавать для проверки: водительское удостоверение соответствующей категории и паспорт транспортного средства (ПТС)."},{"code":"ПДД","num":"2.1.2","cmd":"/пдд2.1.2","fine":0,"sanction":"Государственные номера","desc":"Водитель обязан иметь на транспортном средстве регистрационные знаки (гос. номера) государства, в котором оно зарегистрировано."},{"code":"ПДД","num":"2.1.3","cmd":"/пдд2.1.3","fine":0,"sanction":"Ремни безопасности и мотошлем","desc":"Быть пристегнутым ремнем безопасности и не перевозить непристегнутых пассажиров. При управлении мотоциклом быть в застегнутом мотошлеме и не перевозить пассажиров без застегнутого мотошлема."},{"code":"ПДД","num":"2.2.1","cmd":"/пдд2.2.1","fine":0,"sanction":"Исправное техническое состояние ТС","desc":"Перед выездом и в пути обеспечить исправное тех. состояние ТС. Запрещено движение при неисправности тормозной системы, рулевого управления, негорящих фарах/габаритах ночью, недействующем дворнике в дождь/снег."},{"code":"ПДД","num":"2.2.2","cmd":"/пдд2.2.2","fine":0,"sanction":"Освидетельствование на опьянение","desc":"По требованию должностных лиц полиции водитель обязан проходить освидетельствование на состояние алкогольного опьянения и медицинское освидетельствование на состояние опьянения."},{"code":"ПДД","num":"2.2.3","cmd":"/пдд2.2.3","fine":0,"sanction":"Остановка по требованию полиции","desc":"Водитель обязан производить остановку транспортного средства по требованию уполномоченных должностных лиц полиции/ГИБДД."},{"code":"ПДД","num":"2.3.1","cmd":"/пдд2.3.1","fine":0,"sanction":"Обязанности водителя при ДТП","desc":"При ДТП водитель обязан немедленно остановить ТС (не трогать с места), включить аварийную сигнализацию, выставить знак аварийной остановки и не перемещать предметы, имеющие отношение к происшествию."},{"code":"ПДД","num":"2.3.2","cmd":"/пдд2.3.2","fine":0,"sanction":"Пострадавшие при ДТП","desc":"При наличии пострадавших принять меры доврачебной помощи, вызвать скорую помощь и полицию. В экстренных случаях доставить пострадавших в больницу и вернуться на место происшествия."},{"code":"ПДД","num":"2.3.4","cmd":"/пдд2.3.4","fine":0,"sanction":"Оформление европротокола","desc":"Если при ДТП с участием двух ТС вред причинен только имуществу и нет разногласий, водители имеют право оформить европротокол без вызова сотрудников полиции."},{"code":"ПДД","num":"2.3.5","cmd":"/пдд2.3.5","fine":0,"sanction":"Возмещение ущерба виновником ДТП","desc":"Виновник ДТП обязан выплатить пострадавшей стороне компенсацию в размере, названном пострадавшим (но не превышающем полную стоимость ремонта автомобиля)."},{"code":"ПДД","num":"2.4","cmd":"/пдд2.4","fine":0,"sanction":"Запреты водителю","desc":"Запрещено: управлять ТС в состоянии опьянения или утомления; передавать руль пьяному; пересекать организованные колонны; опасное вождение (дрифт, резкое торможение, помеха обгону, подрезания)."},{"code":"ПДД","num":"3.1","cmd":"/пдд3.1","fine":0,"sanction":"Применение спецсигналов (СГУ)","desc":"Водители ТС с маячками синего/красного цвета при выполнении неотложного служебного задания могут отступать от ПДД при обеспечении безопасности. Приоритетом пользуются, только убедившись, что им уступают."},{"code":"ПДД","num":"3.2","cmd":"/пдд3.2","fine":0,"sanction":"Уступить дорогу спецтранспорту","desc":"При приближении ТС со включенным проблесковым маячком и сиреной водители обязаны уступить дорогу. Запрещается выполнять обгон ТС с нанесёнными спец. цветографическими схемами со спецсигналами."},{"code":"ПДД","num":"3.3","cmd":"/пдд3.3","fine":0,"sanction":"Приближение к стоящей патрульке","desc":"Приближаясь к стоящему ТС со включенным проблесковым маячком, водитель обязан снизить скорость, чтобы иметь возможность немедленно остановиться в случае необходимости."},{"code":"ПДД","num":"4.1","cmd":"/пдд4.1","fine":0,"sanction":"Движение пешеходов","desc":"Пешеходы должны двигаться по тротуарам, пешеходным дорожкам, а при их отсутствии — по обочинам или в один ряд по краю проезжей части навстречу движению ТС."},{"code":"ПДД","num":"4.2","cmd":"/пдд4.2","fine":0,"sanction":"Переход дороги пешеходами","desc":"Пешеходы должны переходить дорогу по пешеходным переходам (подземным/надземным), а при их отсутствии — на перекрестках по линии тротуаров или обочин."},{"code":"ПДД","num":"4.6","cmd":"/пдд4.6","fine":0,"sanction":"Пешеходы и спецтранспорт","desc":"При приближении ТС со включенными маячками и спецсигналом пешеходы обязаны воздержаться от перехода, а находящиеся на проезжей части — незамедлительно освободить её."},{"code":"ПДД","num":"6.1","cmd":"/пдд6.1","fine":0,"sanction":"Значения сигналов светофора","desc":"Зеленый — движение разрешено. Желтый — запрещает движение (кроме экстренного торможения). Красный (и мигающий красный) — движение категорически запрещено."},{"code":"ПДД","num":"6.2","cmd":"/пдд6.2","fine":0,"sanction":"Остановка перед стоп-линией","desc":"При запрещающем сигнале светофора водители должны остановиться перед стоп-линией, а при ее отсутствии — перед перекрестком, не создавая помех пешеходам."},{"code":"ПДД","num":"6.3","cmd":"/пдд6.3","fine":0,"sanction":"Требование об остановке","desc":"Требование об остановке подается с помощью СГУ (громкоговорителя) или направленным жестом руки/жезла. Водитель обязан остановиться в указанном ему месте."},{"code":"ПДД","num":"6.5","cmd":"/пдд6.5","fine":0,"sanction":"Приоритет регулировщика","desc":"Водители и пешеходы обязаны выполнять требования регулировщика, даже если они противоречат сигналам светофора, дорожным знакам или линиям разметки."},{"code":"ПДД","num":"7.1","cmd":"/пдд7.1","fine":0,"sanction":"Включение аварийной сигнализации","desc":"Аварийная сигнализация должна быть включена: при ДТП; при вынужденной остановке в запрещенных местах; при буксировке (на буксируемом ТС); для предупреждения об опасности."},{"code":"ПДД","num":"7.2","cmd":"/пдд7.2","fine":0,"sanction":"Знак аварийной остановки","desc":"Знак выставляется при ДТП или вынужденной остановке на расстоянии не менее 15 метров от ТС в населенных пунктах и не менее 30 метров — вне населенных пунктов."},{"code":"ПДД","num":"8.1","cmd":"/пдд8.1","fine":0,"sanction":"Ближний свет фар в любое время","desc":"В любое время суток на всех движущихся транспортных средствах с целью их обозначения должен быть включен ближний свет фар."},{"code":"ПДД","num":"8.3","cmd":"/пдд8.3","fine":0,"sanction":"Применение звукового сигнала","desc":"Звуковые сигналы разрешено применять только для предотвращения ДТП или для предупреждения об обгоне вне населенных пунктов. Подача сигнала в городе без угрозы ДТП запрещена."},{"code":"ПДД","num":"9.1","cmd":"/пдд9.1","fine":0,"sanction":"Подача сигнала поворота","desc":"Перед началом движения, перестроением, поворотом, разворотом и остановкой водитель обязан заблаговременно подавать сигналы световыми указателями поворота соответствующего направления."},{"code":"ПДД","num":"9.3","cmd":"/пдд9.3","fine":0,"sanction":"Выезд с прилегающей территории","desc":"При выезде на дорогу с прилегающей территории (двор, АЗС, парковка) водитель обязан уступить дорогу транспортным средствам и пешеходам, движущимся по ней."},{"code":"ПДД","num":"9.4","cmd":"/пдд9.4","fine":0,"sanction":"Крайнее положение перед поворотом","desc":"Перед поворотом направо, налево или разворотом водитель обязан заблаговременно занять соответствующее крайнее положение на проезжей части данного направления."},{"code":"ПДД","num":"9.4.1","cmd":"/пдд9.4.1","fine":0,"sanction":"Поворот с трамвайных путей","desc":"При наличии слева трамвайных путей попутного направления на одном уровне поворот налево и разворот должны выполняться с них (если знаками или разметкой не предписан иной порядок)."},{"code":"ПДД","num":"9.5","cmd":"/пдд9.5","fine":0,"sanction":"Помеха справа при пересечении","desc":"Когда траектории движения ТС пересекаются, а очередность проезда не оговорена Правилами, дорогу обязан уступить водитель, к которому транспортное средство приближается справа."},{"code":"ПДД","num":"9.6","cmd":"/пдд9.6","fine":0,"sanction":"Места, где запрещен разворот","desc":"Разворот запрещен: на пешеходных переходах; в тоннелях; на мостах, путепроводах, эстакадах и под ними; на ЖД переездах; в местах остановок маршрутных ТС."},{"code":"ПДД","num":"9.7","cmd":"/пдд9.7","fine":0,"sanction":"Запрет движения задним ходом","desc":"Движение задним ходом запрещено: на перекрестках; на дорогах с односторонним движением; на дорогах общего пользования при опасности маневра; и во всех местах, где запрещен разворот."},{"code":"ПДД","num":"10.1.1","cmd":"/пдд10.1.1","fine":0,"sanction":"Выезд на встречную полосу","desc":"На любых дорогах с двусторонним движением запрещается движение по полосе встречного движения, если она отделена трамвайными путями или разделительной полосой."},{"code":"ПДД","num":"10.2","cmd":"/пдд10.2","fine":0,"sanction":"Расположение ТС на трассе","desc":"Вне населенных пунктов (при скорости более 80 км/ч) водители должны вести ТС ближе к правому краю дороги. Запрещается занимать левые полосы при свободных правых."},{"code":"ПДД","num":"10.6","cmd":"/пдд10.6","fine":0,"sanction":"Запрет езды по обочинам и газонам","desc":"Запрещается движение транспортных средств по разделительным полосам, обочинам, тротуарам, пешеходным дорожкам и газонам."},{"code":"ПДД","num":"10.7","cmd":"/пдд10.7","fine":0,"sanction":"Пересечение сплошной линии","desc":"Запрещается намеренное пересечение одинарной или двойной сплошной линии разметки. Допускается только для объезда препятствия или в случае крайней необходимости (спасение жизни)."},{"code":"ПДД","num":"10.8","cmd":"/пдд10.8","fine":0,"sanction":"Дистанция и боковой интервал","desc":"Водитель обязан соблюдать безопасную дистанцию до впереди идущего транспортного средства и необходимый боковой интервал, исключающие возможность столкновения."},{"code":"ПДД","num":"11.2","cmd":"/пдд11.2","fine":0,"sanction":"Скоростной режим в городе","desc":"В населенных пунктах разрешается движение со скоростью не более 60 км/ч, а в жилых зонах и на дворовых территориях — не более 20 км/ч."},{"code":"ПДД","num":"11.3","cmd":"/пдд11.3","fine":0,"sanction":"Скоростной режим вне города","desc":"Вне населенных пунктов разрешено: на автомагистралях — не более 110 км/ч, на остальных дорогах — не более 90 км/ч. Автобусам на всех дорогах — не более 90 км/ч."},{"code":"ПДД","num":"11.4","cmd":"/пдд11.4","fine":0,"sanction":"Запреты по скорости","desc":"Запрещается: превышать установленное ограничение скорости; создавать помехи необоснованно малой скоростью; резко тормозить без предотвращения ДТП."},{"code":"ПДД","num":"12.2","cmd":"/пдд12.2","fine":0,"sanction":"Запрет выполнения обгона","desc":"Запрещено начинать обгон, если: ТС впереди производит обгон/объезд или включило левый поворотник; следующее за вами ТС начало обгон; по завершении нельзя безопасно вернуться в полосу."},{"code":"ПДД","num":"12.3","cmd":"/пдд12.3","fine":0,"sanction":"Препятствование обгону","desc":"Водителю обгоняемого транспортного средства запрещается препятствовать обгону повышением скорости движения или иными действиями."},{"code":"ПДД","num":"12.4","cmd":"/пдд12.4","fine":0,"sanction":"Места, где запрещен обгон","desc":"Обгон запрещен: на перекрестках; на пешеходных переходах; на ЖД переездах и ближе 100 м перед ними; на мостах, эстакадах, в тоннелях; в конце подъема и на опасных поворотах."},{"code":"ПДД","num":"13.1","cmd":"/пдд13.1","fine":0,"sanction":"Правила остановки и стоянки","desc":"Остановка и стоянка разрешаются на правой стороне дороги на обочине, а при ее отсутствии — у края проезжей части. В один ряд параллельно краю проезжей части."},{"code":"ПДД","num":"13.3","cmd":"/пдд13.3","fine":0,"sanction":"Места, где запрещена остановка","desc":"Остановка запрещена: на путях трамвая; на ЖД и мостах; ближе 5 м перед пешеходным переходом; ближе 5 м от края пересекаемой проезжей части; ближе 15 м от остановок маршруток/такси."},{"code":"ПДД","num":"13.5","cmd":"/пдд13.5","fine":0,"sanction":"Места, где запрещена стоянка","desc":"Стоянка запрещена в местах, где запрещена остановка, а также: вне населенных пунктов на проезжей части дорог; ближе 50 метров от железнодорожных переездов."},{"code":"ПДД","num":"14.1","cmd":"/пдд14.1","fine":0,"sanction":"Уступить при повороте","desc":"При повороте направо или налево водитель обязан уступить дорогу пешеходам и велосипедистам, пересекающим проезжую часть дороги, на которую он поворачивает."},{"code":"ПДД","num":"14.4.2","cmd":"/пдд14.4.2","fine":0,"sanction":"Проезд равнозначного перекрестка","desc":"На перекрестке равнозначных дорог водитель обязан уступить дорогу ТС, приближающимся справа (помеха справа). Трамвай имеет преимущество перед безрельсовыми ТС."},{"code":"ПДД","num":"14.4.3","cmd":"/пдд14.4.3","fine":0,"sanction":"Круговое движение","desc":"При въезде на перекресток, на котором организовано круговое движение, водитель обязан уступить дорогу транспортным средствам, уже движущимся по кругу."},{"code":"ПДД","num":"15.1","cmd":"/пдд15.1","fine":0,"sanction":"Пешеходный переход","desc":"Водитель транспортного средства, приближающегося к нерегулируемому пешеходному переходу, обязан уступить дорогу пешеходам, переходящим дорогу или вступившим на проезжую часть."},{"code":"ПДД","num":"16.1","cmd":"/пдд16.1","fine":0,"sanction":"Движение через ЖД пути","desc":"Водители транспортных средств могут пересекать железнодорожные пути только по оборудованным железнодорожным переездам, уступая дорогу поезду (локомотиву)."},{"code":"ПДД","num":"16.3","cmd":"/пдд16.3","fine":0,"sanction":"Запреты на ЖД переезде","desc":"Запрещается выезжать на переезд: при закрытом/закрывающемся шлагбауме; запрещающем сигнале светофора; приближающемся поезде; а также объезжать стоящие перед переездом ТС по встречке."},{"code":"ПДД","num":"16.4","cmd":"/пдд16.4","fine":0,"sanction":"Остановка перед переездом","desc":"При запрете движения через ЖД водитель останавливается у стоп-линии или светофора, а если их нет — не ближе 5 м от шлагбаума (не ближе 10 м до ближайшего рельса)."},{"code":"ПДД","num":"17.1","cmd":"/пдд17.1","fine":0,"sanction":"Движение по автомагистралям","desc":"На автомагистрали запрещено: движение пешеходов, мопедов, ТС со скоростью <40 км/ч; грузовикам далее 2 полосы; остановка вне спецплощадок; разворот в разрывах; задний ход."},{"code":"ПДД","num":"18.1","cmd":"/пдд18.1","fine":0,"sanction":"Движение в жилых зонах и дворах","desc":"В жилых зонах пешеходы имеют преимущество (движение ТС не более 20 км/ч). Запрещаются сквозное движение, учебная езда и стоянка с работающим двигателем."},{"code":"ПДД","num":"19.4","cmd":"/пдд19.4","fine":0,"sanction":"Движение в колоннах","desc":"ТС движутся в колонне в один ряд ближе к правому краю. Другим транспортным средствам запрещается занимать место для постоянного движения в организованной колонне."}];
+
+var urlParams = new URLSearchParams(window.location.search);
+var currentPin = urlParams.get('pin') || '51';
+var currentLawFilter = 'ALL';
+var currentTargetId = '';
+var selectedArticlesMap = {};
+var soundEnabled = true;
+
+var TABLET_DATA = {
+    profile: null,
+    articles: EMBEDDED_ARTICLES,
+    live: {}
+};
+
+var tabletWs = null;
+
+// Sound Synthesizer via Web Audio API
+var audioCtx = null;
+function playSoundEffect(type) {
+    if (!soundEnabled) return;
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        var now = audioCtx.currentTime;
+
+        if (type === 'beep') {
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.06);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        } else if (type === 'roger' || type === 'roger_beep') {
+            // Motorola Dual Tone Roger Beep (1250Hz -> 1550Hz)
+            osc.frequency.setValueAtTime(1250, now);
+            osc.frequency.setValueAtTime(1550, now + 0.07);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.setValueAtTime(0.22, now + 0.12);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+            osc.start(now);
+            osc.stop(now + 0.16);
+        } else if (type === 'radio_click') {
+            // Tactical squelch burst + mic key chirp
+            var bufferSize = Math.floor(audioCtx.sampleRate * 0.08);
+            var noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            var output = noiseBuffer.getChannelData(0);
+            for (var bi = 0; bi < bufferSize; bi++) {
+                output[bi] = Math.random() * 2 - 1;
+            }
+            var whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            var filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 2200;
+            whiteNoise.connect(filter);
+            filter.connect(gain);
+
+            osc.frequency.setValueAtTime(1400, now);
+            osc.frequency.linearRampToValueAtTime(1800, now + 0.04);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+
+            whiteNoise.start(now);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        }
+    } catch(e) {}
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    var btn = document.getElementById('sound-btn');
+    if (btn) btn.innerText = soundEnabled ? '🔊' : '🔇';
+    showToast(soundEnabled ? '🔊 Звук включен' : '🔇 Звук выключен');
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(function(){});
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(function(){});
+        }
+    }
+}
+
+function switchMobileTab(num) {
+    playSoundEffect('beep');
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
+    var contentArea = document.querySelector('.content-area');
+    if (contentArea) {
+        if (num === 5) {
+            contentArea.classList.add('map-active-mode');
+        } else {
+            contentArea.classList.remove('map-active-mode');
+        }
+    }
+    for (var i = 1; i <= 5; i++) {
+        var pane = document.getElementById('pane-' + i);
+        var nav = document.getElementById('tab-nav-' + i);
+        if (pane) {
+            pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
+            pane.style.display = (i === num) ? 'flex' : 'none';
+        }
+        if (nav) nav.className = (i === num) ? 'tab-btn active' : 'tab-btn';
+    }
+    if (num === 5) {
+        onOpenTacticalMap();
+    }
+}
+
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.innerText = msg;
+    t.className = 'show';
+    setTimeout(function() {
+        t.className = '';
+    }, 1800);
+}
+
+function setConnStatus(online, text) {
+    var conn = document.getElementById('hud-conn');
+    if (!conn) return;
+    if (online) {
+        conn.innerHTML = '<span class="status-dot"></span><span>' + (text || 'БОРТ ON') + '</span>';
+        conn.style.color = '#7EE787';
+        conn.style.borderColor = 'rgba(46, 160, 67, 0.45)';
+        conn.style.background = 'rgba(46, 160, 67, 0.15)';
+    } else if (text && text.indexOf('ОЖИДАНИЕ') !== -1) {
+        conn.innerHTML = '<span class="status-dot" style="background:#D29922; box-shadow:0 0 8px #D29922;"></span><span>' + text + '</span>';
+        conn.style.color = '#FFD33D';
+        conn.style.borderColor = 'rgba(210, 153, 34, 0.45)';
+        conn.style.background = 'rgba(210, 153, 34, 0.15)';
+    } else {
+        conn.innerHTML = '<span class="status-dot" style="background:#F85149; box-shadow:0 0 8px #F85149;"></span><span>' + (text || 'ПЕРЕПОДКЛЮЧЕНИЕ...') + '</span>';
+        conn.style.color = '#FF7B72';
+        conn.style.borderColor = 'rgba(248, 81, 73, 0.45)';
+        conn.style.background = 'rgba(248, 81, 73, 0.15)';
+    }
+}
+
+function updateTabletHud(data) {
+    if (!data) return;
+    if (data.agentOnline === true) {
+        setConnStatus(true, 'БОРТ ON');
+    } else if (data.agentOnline === false) {
+        setConnStatus(false, 'ОЖИДАНИЕ (' + currentPin + ')');
+    }
+
+    if (data.profile) {
+        var p = data.profile;
+        var tag = p.teg || currentPin;
+        var cachedFio = localStorage.getItem('my_tablet_fio') || '';
+        MY_OFFICER_PROFILE.fio = (p.fio && p.fio !== 'Сотрудник ДПС') ? p.fio : (cachedFio || p.fio || 'Сотрудник ДПС');
+        MY_OFFICER_PROFILE.rank = p.rank || 'Инспектор';
+        MY_OFFICER_PROFILE.teg = tag;
+        MY_OFFICER_PROFILE.prop2 = p.prop2 || '01';
+        MY_OFFICER_PROFILE.gibdd = p.gibdd || 'Приволжск';
+        document.getElementById('hud-unit').innerText = (p.gibdd || 'УГИБДД') + ' • БОРТ-' + tag;
+        document.getElementById('hud-officer').innerText = (MY_OFFICER_PROFILE.rank || 'Инспектор') + ' ' + (MY_OFFICER_PROFILE.fio || '') + ' [' + tag + '-' + (p.prop2 || '01') + '] ✏️';
+        updateMapMyStatusDisplay();
+    }
+
+    if (data.live) {
+        var l = data.live;
+        MY_OFFICER_LIVE.chaseActive = !!l.chaseActive;
+        document.getElementById('kpi-duty').innerText = l.dutyClock || '00:00';
+        document.getElementById('kpi-fines').innerText = (l.finesCnt || 0) + ' шт.';
+        document.getElementById('kpi-arrests').innerText = (l.arrestsCnt || 0) + ' чел.';
+        document.getElementById('kpi-pts').innerText = (l.forumPts || 0) + '/20';
+
+        if (l.targetId && !document.getElementById('target-id-val').matches(':focus')) {
+            currentTargetId = l.targetId;
+            document.getElementById('target-id-val').value = l.targetId;
+        }
+    }
+}
+
+function editOfficerProfilePrompt() {
+    var cur = (MY_OFFICER_PROFILE.fio && MY_OFFICER_PROFILE.fio !== 'Сотрудник ДПС') ? MY_OFFICER_PROFILE.fio : '';
+    var newFio = prompt('Введите ваше ФИО для планшета:', cur);
+    if (newFio !== null && newFio.trim() !== '') {
+        MY_OFFICER_PROFILE.fio = newFio.trim();
+        localStorage.setItem('my_tablet_fio', newFio.trim());
+        var tag = MY_OFFICER_PROFILE.teg || currentPin;
+        var prop = MY_OFFICER_PROFILE.prop2 || '01';
+        document.getElementById('hud-officer').innerText = (MY_OFFICER_PROFILE.rank || 'Инспектор') + ' ' + newFio.trim() + ' [' + tag + '-' + prop + '] ✏️';
+        fetch('/api/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: currentPin, fio: newFio.trim(), teg: tag, prop2: prop })
+        }).catch(function(){});
+    }
+}
+
+function stepTargetId(delta) {
+    playSoundEffect('beep');
+    var el = document.getElementById('target-id-val');
+    var val = parseInt(el.value, 10) || 0;
+    val = Math.max(0, val + delta);
+    el.value = val;
+    syncTargetId(val);
+}
+
+function syncTargetId(val) {
+    currentTargetId = String(val).trim();
+    if (currentTargetId) {
+        triggerAction('set_target_id|' + currentTargetId);
+    }
+}
+
+function triggerAction(actionName) {
+    if (actionName === 'voice_on') {
+        playSoundEffect('radio_click');
+    } else if (actionName === 'voice_off') {
+        playSoundEffect('roger_beep');
+    } else if (actionName.indexOf('report_') === 0 || actionName.indexOf('meg') === 0) {
+        playSoundEffect('radio_click');
+        setTimeout(function() { playSoundEffect('roger_beep'); }, 350);
+    } else {
+        playSoundEffect('roger_beep');
+    }
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(25);
+
+    if (tabletWs && tabletWs.readyState === 1) {
+        tabletWs.send(JSON.stringify({ type: 'action', cmd: actionName, pin: currentPin }));
+        showToast('⚡ Сигнал отправлен: ' + actionName);
+        return;
+    }
+
+    fetch('/api/tablet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: currentPin, cmd: actionName })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        showToast('⚡ Сигнал отправлен: ' + actionName);
+    })
+    .catch(function(err) {
+        fetch('/api/action?cmd=' + encodeURIComponent(actionName))
+            .then(function(r) { return r.json(); })
+            .then(function() { showToast('⚡ Сигнал отправлен'); })
+            .catch(function() { showToast('❌ Ошибка связи с бортом!'); });
+    });
+}
+
+function initTabletWs() {
+    var wsProto = (location.protocol === 'https:') ? 'wss:' : 'ws:';
+    var wsHost = location.host || '152.234.229.245:3000';
+    var wsUrl = wsProto + '//' + wsHost + '/ws?role=tablet&pin=' + encodeURIComponent(currentPin);
+
+    try {
+        if (tabletWs) {
+            try { tabletWs.close(); } catch(e) {}
+        }
+        tabletWs = new WebSocket(wsUrl);
+
+        tabletWs.onopen = function() {
+            setConnStatus(true, 'БОРТ ON');
+        };
+
+        tabletWs.onmessage = function(ev) {
+            try {
+                var msg = JSON.parse(ev.data);
+                if (msg.type === 'telemetry' || msg.live || msg.profile) {
+                    updateTabletHud(msg);
+                } else if (msg.type === 'map_update' || msg.type === 'map_remove') {
+                    handleMapWsEvent(msg);
+                }
+            } catch(e) {}
+        };
+
+        tabletWs.onclose = function() {
+            setTimeout(initTabletWs, 2500);
+        };
+
+        tabletWs.onerror = function() {
+            try { tabletWs.close(); } catch(e) {}
+        };
+    } catch(e) {
+        setTimeout(initTabletWs, 2500);
+    }
+}
+
+function fetchState() {
+    fetch('/api/tablet/state?pin=' + encodeURIComponent(currentPin))
+        .then(function(r) {
+            if (!r.ok) return fetch('/api/state').then(function(r2) { return r2.json(); });
+            return r.json();
+        })
+        .then(function(data) {
+            updateTabletHud(data);
+        })
+        .catch(function(err) {
+            if (!tabletWs || tabletWs.readyState !== 1) {
+                setConnStatus(false, 'ПЕРЕПОДКЛЮЧЕНИЕ...');
+            }
+        });
+}
+
+function setLawFilter(code) {
+    playSoundEffect('beep');
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
+    currentLawFilter = code;
+    var pills = document.querySelectorAll('.filter-pill');
+    for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.remove('active');
+    }
+    var map = { 'ALL': 'btn-filt-all', 'КоАП': 'btn-filt-koap', 'УКРП': 'btn-filt-uk', 'ФЗоП': 'btn-filt-fzop', 'ПДД': 'btn-filt-pdd' };
+    var activeId = map[code] || 'btn-filt-all';
+    var el = document.getElementById(activeId);
+    if (el) el.classList.add('active');
+    filterLaws();
+}
+
+function toggleSelectArticle(artCmd, fineVal) {
+    playSoundEffect('beep');
+    if (selectedArticlesMap[artCmd]) {
+        delete selectedArticlesMap[artCmd];
+    } else {
+        selectedArticlesMap[artCmd] = fineVal || 0;
+    }
+    updateComboFineBar();
+    renderLaws(lastFilteredList);
+}
+
+function clearSelectedArticles() {
+    selectedArticlesMap = {};
+    updateComboFineBar();
+    renderLaws(lastFilteredList);
+}
+
+function updateComboFineBar() {
+    var bar = document.getElementById('combo-fine-bar');
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    var totalSum = 0;
+    for (var i = 0; i < keys.length; i++) {
+        totalSum += (selectedArticlesMap[keys[i]] || 0);
+    }
+    document.getElementById('combo-title-txt').innerText = '🧾 ВЫБРАНО СТАТЕЙ: ' + keys.length;
+    document.getElementById('combo-sum-txt').innerText = totalSum.toLocaleString('ru-RU') + ' ₽';
+    bar.style.display = 'block';
+}
+
+function speakComboArticles() {
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) return;
+    triggerAction('speak_arts|' + keys.join(','));
+}
+
+function issueComboTicket() {
+    var keys = Object.keys(selectedArticlesMap);
+    if (keys.length === 0) return;
+    var totalSum = 0;
+    for (var i = 0; i < keys.length; i++) {
+        totalSum += (selectedArticlesMap[keys[i]] || 0);
+    }
+    triggerAction('fine_calc|' + totalSum + '|' + keys.join(', '));
+}
+
+var lastFilteredList = TABLET_DATA.articles;
+
+function renderLaws(list) {
+    lastFilteredList = list || [];
+    var c = document.getElementById('laws-list');
+    if (!c) return;
+    if (!list || list.length === 0) {
+        c.innerHTML = '<div style="text-align:center; padding:30px; color:#8B949E; font-size:13px;">🔍 Статей не найдено</div>';
+        return;
+    }
+    var html = [];
+    var maxShow = Math.min(list.length, 250);
+    for (var i = 0; i < maxShow; i++) {
+        var a = list[i];
+        var badgeClass = 'law-code-badge';
+        if (a.code === 'УКРП') badgeClass += ' uk';
+        else if (a.code === 'ФЗоП') badgeClass += ' fzop';
+        else if (a.code === 'ПДД') badgeClass += ' pdd';
+
+        var fineText = a.sanction || (a.fine ? a.fine + ' ₽' : '');
+        var cmdDisplay = a.cmd || '';
+        var isSelected = !!selectedArticlesMap[a.cmd || a.num];
+
+        html.push('<div class="law-card ' + (isSelected ? 'selected' : '') + '">');
+        html.push('  <div class="law-card-top">');
+        html.push('    <span class="' + badgeClass + '">' + a.code + ' • ст. ' + a.num + '</span>');
+        if (fineText) {
+            html.push('    <span class="law-fine-sum">' + fineText + '</span>');
+        }
+        html.push('  </div>');
+        html.push('  <div class="law-desc">' + a.desc + '</div>');
+        html.push('  <div class="law-actions-row">');
+        html.push('    <button class="law-select-btn ' + (isSelected ? 'active' : '') + '" onclick="toggleSelectArticle(\'' + (a.cmd || a.num) + '\', ' + (a.fine || 0) + ')">' + (isSelected ? '✓ В расчёте' : '+ В расчёт') + '</button>');
+        html.push('    <span style="font-size:11px; color:#58A6FF; font-family:Consolas,monospace;">' + cmdDisplay + '</span>');
+        html.push('    <button class="law-speak-btn" onclick="triggerAction(\'speak_art|' + (a.cmd || a.num) + '\')">📢 Зачитать</button>');
+        html.push('  </div>');
+        html.push('</div>');
+    }
+    c.innerHTML = html.join('');
+}
+
+function filterLaws() {
+    var q = (document.getElementById('law-search').value || '').toLowerCase().trim();
+    var list = TABLET_DATA.articles || [];
+    var filtered = [];
+    for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (currentLawFilter !== 'ALL' && a.code !== currentLawFilter) {
+            continue;
+        }
+        if (q) {
+            var hay = (a.code + ' ' + a.num + ' ' + (a.cmd || '') + ' ' + (a.desc || '') + ' ' + (a.sanction || '')).toLowerCase();
+            if (hay.indexOf(q) === -1) continue;
+        }
+        filtered.push(a);
+    }
+    renderLaws(filtered);
+}
+
+// =========================================================================================
+// ТАКТИЧЕСКИЙ РАДАР И ИНТЕРАКТИВНАЯ КАРТА РЕСПУБЛИКИ ПРОВИНЦИЯ (ТАБ 5)
+// =========================================================================================
+var MY_OFFICER_PROFILE = { fio: '', rank: 'Инспектор', teg: currentPin || '52', prop2: '01', gibdd: 'Приволжск' };
+var MY_OFFICER_LIVE = { chaseActive: false };
+var myMapUnit = null;
+var cachedMapUnits = [];
+var mapScale = 0.22;
+var mapPosX = -300;
+var mapPosY = -300;
+var isMapDragging = false;
+var mapMovedDistance = 0;
+var mapDragStartX = 0;
+var mapDragStartY = 0;
+var mapStageStartX = 0;
+var mapStageStartY = 0;
+var mapTouchStartDist = 0;
+var mapTouchStartScale = 0.22;
+var mapTouchCenter = { x: 0, y: 0 };
+var selectedModalCode = '10-4';
+var pendingPinCoords = { x: 50.0, y: 50.0 };
+var mapInitialized = false;
+var mapPollingTimer = null;
+
+function updateMapMyStatusDisplay() {
+    var callEl = document.getElementById('map-my-callsign');
+    var codeEl = document.getElementById('map-my-code');
+    if (callEl) callEl.innerText = (MY_OFFICER_PROFILE.teg || '52') + '-' + (MY_OFFICER_PROFILE.prop2 || '01');
+    if (codeEl) {
+        if (myMapUnit) {
+            var postStr = myMapUnit.postNum ? ' (Пост ' + myMapUnit.postNum + ')' : '';
+            codeEl.innerText = myMapUnit.tenCode + postStr;
+        } else {
+            codeEl.innerText = 'Метка не установлена (кликните по карте)';
+        }
+    }
+}
+
+function onOpenTacticalMap() {
+    initTacticalMapIfNeeded();
+    setTimeout(function() {
+        jumpMapCity('all');
+        fetchMapUnits();
+    }, 60);
+    if (!mapPollingTimer) {
+        mapPollingTimer = setInterval(fetchMapUnits, 4000);
+    }
+}
+
+function initTacticalMapIfNeeded() {
+    if (mapInitialized) return;
+    mapInitialized = true;
+
+    var viewport = document.getElementById('map-viewport');
+    var stage = document.getElementById('map-stage');
+    if (!viewport || !stage) return;
+
+    // Initial positioning
+    jumpMapCity('all');
+
+    // MOUSE EVENTS
+    viewport.addEventListener('mousedown', function(e) {
+        if (e.target.closest('.map-marker') || e.target.closest('.map-floating-controls') || e.target.closest('.map-modal-backdrop') || e.target.closest('.units-drawer')) {
+            return;
+        }
+        isMapDragging = true;
+        mapMovedDistance = 0;
+        mapDragStartX = e.clientX;
+        mapDragStartY = e.clientY;
+        mapStageStartX = mapPosX;
+        mapStageStartY = mapPosY;
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isMapDragging) return;
+        var dx = e.clientX - mapDragStartX;
+        var dy = e.clientY - mapDragStartY;
+        mapMovedDistance += Math.abs(dx) + Math.abs(dy);
+        mapPosX = mapStageStartX + dx;
+        mapPosY = mapStageStartY + dy;
+        applyMapTransform();
+    });
+
+    window.addEventListener('mouseup', function(e) {
+        if (!isMapDragging) return;
+        isMapDragging = false;
+        // If moved < 6px, treat as click/tap on map
+        if (mapMovedDistance < 6) {
+            handleMapClick(e.clientX, e.clientY);
+        }
+    });
+
+    // MOUSE WHEEL ZOOM (Centered on mouse cursor)
+    viewport.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        var rect = viewport.getBoundingClientRect();
+        var mouseX = e.clientX - rect.left;
+        var mouseY = e.clientY - rect.top;
+
+        var zoomFactor = (e.deltaY < 0) ? 1.18 : 0.84;
+        var newScale = Math.max(0.12, Math.min(1.8, mapScale * zoomFactor));
+        if (newScale === mapScale) return;
+
+        // Keep cursor position pinned
+        mapPosX = mouseX - (mouseX - mapPosX) * (newScale / mapScale);
+        mapPosY = mouseY - (mouseY - mapPosY) * (newScale / mapScale);
+        mapScale = newScale;
+        applyMapTransform();
+    }, { passive: false });
+
+    // TOUCH EVENTS (Mobile & Tablet)
+    viewport.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.map-marker') || e.target.closest('.map-floating-controls') || e.target.closest('.map-modal-backdrop') || e.target.closest('.units-drawer')) {
+            return;
+        }
+        if (e.touches.length === 1) {
+            isMapDragging = true;
+            mapMovedDistance = 0;
+            mapDragStartX = e.touches[0].clientX;
+            mapDragStartY = e.touches[0].clientY;
+            mapStageStartX = mapPosX;
+            mapStageStartY = mapPosY;
+        } else if (e.touches.length === 2) {
+            isMapDragging = false;
+            mapTouchStartDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            mapTouchStartScale = mapScale;
+            mapTouchCenter = {
+                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+            };
+        }
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', function(e) {
+        if (isMapDragging && e.touches.length === 1) {
+            var dx = e.touches[0].clientX - mapDragStartX;
+            var dy = e.touches[0].clientY - mapDragStartY;
+            mapMovedDistance += Math.abs(dx) + Math.abs(dy);
+            mapPosX = mapStageStartX + dx;
+            mapPosY = mapStageStartY + dy;
+            applyMapTransform();
+        } else if (e.touches.length === 2 && mapTouchStartDist > 0) {
+            var currentDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            var factor = currentDist / mapTouchStartDist;
+            var newScale = Math.max(0.12, Math.min(1.8, mapTouchStartScale * factor));
+            mapScale = newScale;
+            applyMapTransform();
+        }
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', function(e) {
+        if (isMapDragging) {
+            isMapDragging = false;
+            if (mapMovedDistance < 8 && e.changedTouches.length > 0) {
+                handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        }
+        if (e.touches.length < 2) {
+            mapTouchStartDist = 0;
+        }
+    });
+
+    updateMapMyStatusDisplay();
+}
+
+function applyMapTransform() {
+    var stage = document.getElementById('map-stage');
+    if (!stage) return;
+    stage.style.transform = 'translate(' + mapPosX + 'px, ' + mapPosY + 'px) scale(' + mapScale + ')';
+}
+
+window.addEventListener('resize', function() {
+    var p5 = document.getElementById('pane-5');
+    if (p5 && (p5.style.display === 'flex' || p5.classList.contains('active'))) {
+        jumpMapCity('all');
+    }
+});
+
+window.addEventListener('orientationchange', function() {
+    setTimeout(function() {
+        var p5 = document.getElementById('pane-5');
+        if (p5 && (p5.style.display === 'flex' || p5.classList.contains('active'))) {
+            jumpMapCity('all');
+        }
+    }, 150);
+});
+
+function handleMapClick(clientX, clientY) {
+    var stage = document.getElementById('map-stage');
+    if (!stage) return;
+    var rect = stage.getBoundingClientRect();
+    var pxX = (clientX - rect.left) / mapScale;
+    var pxY = (clientY - rect.top) / mapScale;
+
+    var pctX = Math.max(0.5, Math.min(99.5, (pxX / 3000 * 100)));
+    var pctY = Math.max(0.5, Math.min(99.5, (pxY / 3000 * 100)));
+
+    openSetLocationModal(pctX, pctY);
+}
+
+function jumpMapCity(city) {
+    var vp = document.getElementById('map-viewport');
+    var w = (vp && vp.clientWidth > 50) ? vp.clientWidth : (window.innerWidth || 400);
+    var h = (vp && vp.clientHeight > 50) ? vp.clientHeight : ((window.innerHeight - 130) || 500);
+
+    // Reset pills
+    var pills = ['all', 'priv', 'mirny', 'nevsky'];
+    for (var i = 0; i < pills.length; i++) {
+        var el = document.getElementById('pill-city-' + pills[i]);
+        if (el) el.className = 'map-nav-pill';
+    }
+
+    if (city === 'all') {
+        var pAll = document.getElementById('pill-city-all');
+        if (pAll) pAll.className = 'map-nav-pill active';
+        mapScale = Math.min(w / 3000, h / 3000) * 0.95;
+        if (mapScale < 0.14) mapScale = 0.14;
+        mapPosX = (w - 3000 * mapScale) / 2;
+        mapPosY = (h - 3000 * mapScale) / 2;
+    } else if (city === 'privolzhsk') {
+        var pPriv = document.getElementById('pill-city-priv');
+        if (pPriv) pPriv.className = 'map-nav-pill active';
+        mapScale = 0.65;
+        mapPosX = (w / 2) - (3000 * 0.65 * 0.52);
+        mapPosY = (h / 2) - (3000 * 0.65 * 0.68);
+    } else if (city === 'mirny') {
+        var pMir = document.getElementById('pill-city-mirny');
+        if (pMir) pMir.className = 'map-nav-pill active';
+        mapScale = 0.65;
+        mapPosX = (w / 2) - (3000 * 0.65 * 0.25);
+        mapPosY = (h / 2) - (3000 * 0.65 * 0.54);
+    } else if (city === 'nevsky') {
+        var pNev = document.getElementById('pill-city-nevsky');
+        if (pNev) pNev.className = 'map-nav-pill active';
+        mapScale = 0.65;
+        mapPosX = (w / 2) - (3000 * 0.65 * 0.68);
+        mapPosY = (h / 2) - (3000 * 0.65 * 0.28);
+    }
+    applyMapTransform();
+}
+
+function mapZoomIn() {
+    mapScale = Math.min(1.8, mapScale * 1.3);
+    applyMapTransform();
+}
+
+function mapZoomOut() {
+    mapScale = Math.max(0.12, mapScale / 1.3);
+    applyMapTransform();
+}
+
+function mapResetView() {
+    jumpMapCity('all');
+}
+
+function mapCenterOnMe() {
+    if (!myMapUnit) {
+        showToast('⚠️ Вы ещё не поставили метку на карте');
+        return;
+    }
+    centerMapOnUnit(myMapUnit.x, myMapUnit.y);
+}
+
+function centerMapOnUnit(pctX, pctY) {
+    var vp = document.getElementById('map-viewport');
+    var w = vp ? vp.clientWidth : 400;
+    var h = vp ? vp.clientHeight : 500;
+    mapScale = Math.max(0.65, mapScale);
+    mapPosX = (w / 2) - (3000 * mapScale * (pctX / 100));
+    mapPosY = (h / 2) - (3000 * mapScale * (pctY / 100));
+    applyMapTransform();
+}
+
+// -------------------------------------------------------------
+// SET LOCATION & TEN-CODE MODAL
+// -------------------------------------------------------------
+function openSetLocationModal(pctX, pctY) {
+    if (pctX !== undefined && pctY !== undefined) {
+        pendingPinCoords.x = pctX;
+        pendingPinCoords.y = pctY;
+    }
+    var coordsEl = document.getElementById('modal-point-coords');
+    if (coordsEl) {
+        coordsEl.innerText = 'X: ' + pendingPinCoords.x.toFixed(1) + '%, Y: ' + pendingPinCoords.y.toFixed(1) + '%';
+    }
+    var m = document.getElementById('map-pin-modal');
+    if (m) m.style.display = 'flex';
+}
+
+function closeSetLocationModal() {
+    var m = document.getElementById('map-pin-modal');
+    if (m) m.style.display = 'none';
+}
+
+function selectModalTenCode(code) {
+    selectedModalCode = code;
+    var btns = document.querySelectorAll('.ten-code-btn');
+    btns.forEach(function(b) {
+        if (b.getAttribute('data-code') === code) {
+            b.classList.add('selected');
+        } else {
+            b.classList.remove('selected');
+        }
+    });
+
+    var postField = document.getElementById('modal-post-field');
+    if (postField) {
+        postField.style.display = (code === '10-4' || code === '10-4-4') ? 'block' : 'none';
+    }
+}
+
+function submitOfficerLocation() {
+    var postInput = document.getElementById('modal-post-input');
+    var noteInput = document.getElementById('modal-note-input');
+    var postVal = postInput ? postInput.value.trim() : '';
+    var noteVal = noteInput ? noteInput.value.trim() : '';
+
+    var payload = {
+        pin: currentPin,
+        fio: MY_OFFICER_PROFILE.fio || 'Сотрудник',
+        rank: MY_OFFICER_PROFILE.rank || 'Инспектор',
+        teg: MY_OFFICER_PROFILE.teg || currentPin,
+        prop2: MY_OFFICER_PROFILE.prop2 || '01',
+        city: MY_OFFICER_PROFILE.gibdd || 'Приволжск',
+        x: pendingPinCoords.x,
+        y: pendingPinCoords.y,
+        tenCode: selectedModalCode,
+        postNum: postVal,
+        note: noteVal,
+        isChase: !!MY_OFFICER_LIVE.chaseActive
+    };
+
+    myMapUnit = payload;
+    closeSetLocationModal();
+    updateMapMyStatusDisplay();
+    showToast('📍 Метка экипажа установлена (' + selectedModalCode + ')');
+
+    // Send to Server
+    fetch('/api/map/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(function(r) { return r.json(); })
+      .then(function(data) {
+          if (data && data.unit) {
+              fetchMapUnits();
+          }
+      }).catch(function() {
+          // Render locally anyway
+          fetchMapUnits();
+      });
+}
+
+function removeMyLocation() {
+    if (!myMapUnit) {
+        showToast('Метка ещё не была установлена');
+        return;
+    }
+    myMapUnit = null;
+    updateMapMyStatusDisplay();
+    showToast('🗑️ Ваша метка снята');
+
+    fetch('/api/map/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: currentPin })
+    }).finally(function() {
+        fetchMapUnits();
+    });
+}
+
+// -------------------------------------------------------------
+// RENDER & TELEMETRY
+// -------------------------------------------------------------
+function fetchMapUnits() {
+    fetch('/api/map/units')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.units) {
+                cachedMapUnits = data.units;
+                renderMapMarkers(cachedMapUnits);
+            }
+        }).catch(function() {
+            // If offline, render at least my local unit if exists
+            if (myMapUnit) {
+                renderMapMarkers([myMapUnit]);
+            }
+        });
+}
+
+function handleMapWsEvent(msg) {
+    if (msg.type === 'map_update' && msg.unit) {
+        var found = false;
+        for (var i = 0; i < cachedMapUnits.length; i++) {
+            if (cachedMapUnits[i].id === msg.unit.id || cachedMapUnits[i].pin === msg.unit.pin) {
+                cachedMapUnits[i] = msg.unit;
+                found = true;
+                break;
+            }
+        }
+        if (!found) cachedMapUnits.push(msg.unit);
+        renderMapMarkers(cachedMapUnits);
+    } else if (msg.type === 'map_remove' && msg.id) {
+        cachedMapUnits = cachedMapUnits.filter(function(u) { return u.id !== msg.id && u.pin !== msg.id; });
+        renderMapMarkers(cachedMapUnits);
+    }
+}
+
+function renderMapMarkers(units) {
+    var layer = document.getElementById('map-markers-layer');
+    if (!layer) return;
+
+    // Badge count
+    var badgeEl = document.getElementById('map-units-badge');
+    if (badgeEl) badgeEl.innerText = units.length;
+
+    var html = [];
+    var listHtml = [];
+
+    units.forEach(function(u) {
+        var callsign = (u.teg || '52') + '-' + (u.prop2 || '01');
+        var isChase = !!u.isChase || u.tenCode === '10-15';
+        var badgeCls = 'marker-badge';
+        if (isChase) badgeCls += ' ten-chase';
+        else if (u.tenCode === '10-4' || u.tenCode === '10-4-4') badgeCls += ' ten-post';
+        else badgeCls += ' ten-patrol';
+
+        var codeLabel = u.tenCode;
+        if (u.postNum) codeLabel += ' П-' + u.postNum;
+
+        // Map Marker Element
+        html.push('<div class="map-marker ' + (isChase ? 'chase' : '') + '" style="left:' + u.x + '%; top:' + u.y + '%;" onclick="centerMapOnUnit(' + u.x + ', ' + u.y + ')">');
+        html.push('  <div class="' + badgeCls + '">' + callsign + ' • ' + codeLabel + '</div>');
+        html.push('  <div class="marker-pin">' + (isChase ? '🚨' : '🚔') + '</div>');
+        html.push('</div>');
+
+        // Drawer Unit Card
+        listHtml.push('<div class="drawer-unit-card" onclick="centerMapOnUnit(' + u.x + ', ' + u.y + '); toggleMapUnitsList();">');
+        listHtml.push('  <div style="display:flex; justify-content:space-between; align-items:center;">');
+        listHtml.push('    <span style="font-weight:800; color:#58A6FF; font-size:12px;">🚔 ' + callsign + ' (' + (u.rank || 'Инспектор') + ')</span>');
+        listHtml.push('    <span style="font-size:10px; font-weight:800; color:' + (isChase ? '#F85149' : '#7EE787') + ';">' + codeLabel + '</span>');
+        listHtml.push('  </div>');
+        listHtml.push('  <div style="font-size:11px; color:#E6EDF3; margin-top:2px;">' + (u.fio || 'Сотрудник') + ' • ' + (u.city || 'УГИБДД') + '</div>');
+        if (u.note) {
+            listHtml.push('  <div style="font-size:10px; color:#8B949E; margin-top:2px;">💬 ' + u.note + '</div>');
+        }
+        listHtml.push('</div>');
+    });
+
+    layer.innerHTML = html.join('');
+
+    var drawerBody = document.getElementById('map-units-list-body');
+    if (drawerBody) {
+        drawerBody.innerHTML = listHtml.length ? listHtml.join('') : '<div style="color:#8B949E; font-size:12px; text-align:center; padding:20px;">Нет активных экипажей на карте</div>';
+    }
+}
+
+function toggleMapUnitsList() {
+    var d = document.getElementById('map-units-drawer');
+    if (!d) return;
+    d.style.display = (d.style.display === 'none' || !d.style.display) ? 'flex' : 'none';
+}
+
+// Initial bootstrap
+initTabletWs();
+fetchState();
+setInterval(fetchState, 2000);
+filterLaws();
+</script>
+</body>
+</html>

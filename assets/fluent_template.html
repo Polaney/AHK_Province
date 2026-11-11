@@ -2051,7 +2051,7 @@ html, body {
         <div class="form-row">
             <div class="form-lbl">Подразделение / Пол / Взвод:</div>
             <div class="form-ctrl" style="display:flex;">
-                <select id="pf-gibdd" class="fluent-select" style="width:34%; margin-right:3%;">
+                <select id="pf-gibdd" class="fluent-select" style="width:34%; margin-right:3%;" onchange="onModalGibddChange()">
                     <option value="УГИБДД-П">УГИБДД-П</option>
                     <option value="УГИБДД-М">УГИБДД-М</option>
                     <option value="УГИБДД-Н">УГИБДД-Н</option>
@@ -3111,6 +3111,14 @@ function onModalCityChange() {
     if (frak === 'Приволжск') g.value = 'УГИБДД-П';
     else if (frak === 'Мирный') g.value = 'УГИБДД-М';
     else if (frak === 'Невский') g.value = 'УГИБДД-Н';
+}
+
+function onModalGibddChange() {
+    var g = document.getElementById('pf-gibdd').value;
+    var f = document.getElementById('pf-frak');
+    if (g === 'УГИБДД-П') f.value = 'Приволжск';
+    else if (g === 'УГИБДД-М') f.value = 'Мирный';
+    else if (g === 'УГИБДД-Н') f.value = 'Невский';
 }
 
 function saveProfileModal() {
