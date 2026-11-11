@@ -11391,26 +11391,57 @@ PerformDownloadAndUpdate() {
         GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Замена файла и перезапуск...
         Sleep, 300
 
-        cmdScript := A_Temp . "\ahk_replace_" . A_TickCount . ".cmd"
+        ; Создаём надёжный фоновый VBS-скрипт (полная поддержка кириллицы UTF-16, без мигания окон и сбоев timeout)
+        vbsScript := A_Temp . "\ahk_apply_update_" . A_TickCount . ".vbs"
+        vbs := "WScript.Sleep 800`r`n"
+        vbs .= "Set fso = CreateObject(""Scripting.FileSystemObject"")`r`n"
+        vbs .= "On Error Resume Next`r`n"
+        vbs .= "For i = 1 To 40`r`n"
+        vbs .= "    fso.CopyFile """ . tempFile . """, """ . currentPath . """, True`r`n"
+        vbs .= "    If Err.Number = 0 Then Exit For`r`n"
+        vbs .= "    Err.Clear`r`n"
+        vbs .= "    WScript.Sleep 250`r`n"
+        vbs .= "Next`r`n"
+        vbs .= "fso.DeleteFile """ . tempFile . """, True`r`n"
+        vbs .= "Set shell = CreateObject(""WScript.Shell"")`r`n"
+        vbs .= "shell.CurrentDirectory = """ . A_ScriptDir . """`r`n"
+        vbs .= "shell.Run """""""" & """ . currentPath . """ & """""""", 1, False`r`n"
+        vbs .= "fso.DeleteFile WScript.ScriptFullName, True`r`n"
+
+        FileDelete, %vbsScript%
+        fVbs := FileOpen(vbsScript, "w", "UTF-16")
+        if IsObject(fVbs) {
+            fVbs.Write(vbs)
+            fVbs.Close()
+        }
+
+        ; Резервный CMD скрипт с ping вместо timeout
+        cmdScript := A_Temp . "\ahk_apply_update_" . A_TickCount . ".cmd"
         cmdContent := "@echo off`r`n"
-        cmdContent .= "timeout /t 1 /nobreak >nul`r`n"
+        cmdContent .= "chcp 65001 >nul`r`n"
+        cmdContent .= "ping 127.0.0.1 -n 2 >nul`r`n"
         cmdContent .= ":retry`r`n"
         cmdContent .= "move /y """ . tempFile . """ """ . currentPath . """ >nul 2>&1`r`n"
         cmdContent .= "if exist """ . tempFile . """ (`r`n"
-        cmdContent .= "    timeout /t 1 /nobreak >nul`r`n"
+        cmdContent .= "    ping 127.0.0.1 -n 2 >nul`r`n"
         cmdContent .= "    goto retry`r`n"
         cmdContent .= ")`r`n"
+        cmdContent .= "cd /d """ . A_ScriptDir . """`r`n"
         cmdContent .= "start """" """ . currentPath . """`r`n"
         cmdContent .= "del ""%~f0""`r`n"
 
         FileDelete, %cmdScript%
-        fCmd := FileOpen(cmdScript, "w", "CP866")
+        fCmd := FileOpen(cmdScript, "w", "UTF-8")
         if IsObject(fCmd) {
             fCmd.Write(cmdContent)
             fCmd.Close()
         }
 
-        Run, %cmdScript%,, Hide
+        try {
+            Run, wscript.exe ;B ;nologo "%vbsScript%",, Hide
+        } catch {
+            Run, "%cmdScript%",, Hide
+        }
         ExitApp
     } else {
         FileCopy, %tempFile%, %currentPath%, 1
