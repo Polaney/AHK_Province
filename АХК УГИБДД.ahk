@@ -11457,27 +11457,34 @@ DownloadSingleBinaryFile(targetUrl, OutPath) {
     if (targetUrl = "")
         return false
 
-    FileDelete, %OutPath%
+    tempDl := OutPath . ".tmp"
+    FileDelete, %tempDl%
 
-    ; Попытка 1: curl.exe (самый быстрый, встроен в Win10/Win11, без зависаний, 2-3 сек)
-    curlCmd := "curl.exe -fSL --connect-timeout 4 --max-time 30 """ . targetUrl . """ -o """ . OutPath . """"
+    ; Попытка 1: curl.exe (быстрый, 1-3 сек, без удаления существующего файла при сбое)
+    curlCmd := "curl.exe -fSL --connect-timeout 3 --max-time 15 """ . targetUrl . """ -o """ . tempDl . """"
     RunWait, %curlCmd%,, Hide
-    FileGetSize, sz, %OutPath%
-    if (sz > 50000)
+    FileGetSize, sz, %tempDl%
+    if (sz > 500) {
+        FileCopy, %tempDl%, %OutPath%, 1
+        FileDelete, %tempDl%
         return true
+    }
 
-    ; Попытка 2: PowerShell WebClient с явным TLS 1.2 и таймаутом
-    FileDelete, %OutPath%
-    psCmd := "powershell.exe -WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object Net.WebClient; $wc.Headers.Add('User-Agent','Mozilla/5.0'); try { $wc.DownloadFile('" . targetUrl . "', '" . OutPath . "') } catch {}"""
+    ; Попытка 2: PowerShell WebClient с явным TLS 1.2
+    FileDelete, %tempDl%
+    psCmd := "powershell.exe -WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object Net.WebClient; $wc.Headers.Add('User-Agent','Mozilla/5.0'); try { $wc.DownloadFile('" . targetUrl . "', '" . tempDl . "') } catch {}"""
     RunWait, %psCmd%,, Hide
-    FileGetSize, sz, %OutPath%
-    if (sz > 50000)
+    FileGetSize, sz, %tempDl%
+    if (sz > 500) {
+        FileCopy, %tempDl%, %OutPath%, 1
+        FileDelete, %tempDl%
         return true
+    }
 
     ; Попытка 3: WinHttp
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(3000, 4000, 15000, 20000)
+        whr.SetTimeouts(2000, 3000, 8000, 10000)
         whr.Open("GET", targetUrl, false)
         whr.SetRequestHeader("User-Agent", "Mozilla/5.0 AHK-Updater")
         whr.Option(6) := true
@@ -11487,15 +11494,19 @@ DownloadSingleBinaryFile(targetUrl, OutPath) {
             ado.Type := 1
             ado.Open()
             ado.Write(whr.ResponseBody)
-            ado.SaveToFile(OutPath, 2)
+            ado.SaveToFile(tempDl, 2)
             ado.Close()
-            FileGetSize, sz, %OutPath%
-            if (sz > 50000)
+            FileGetSize, sz, %tempDl%
+            if (sz > 500) {
+                FileCopy, %tempDl%, %OutPath%, 1
+                FileDelete, %tempDl%
                 return true
+            }
         }
     } catch {
     }
 
+    FileDelete, %tempDl%
     return false
 }
 
@@ -11647,6 +11658,17 @@ BuildFluentInitialJson() {
 }
 
 EnsureAssetsUpToDate() {
+    if (A_IsCompiled) {
+        ; В скомпилированном EXE все файлы вшиты в бинарник и извлекаются мгновенно без блокировок и интернета
+        try {
+            if (!FileExist(A_ScriptDir . "\assets"))
+                FileCreateDir, %A_ScriptDir%\assets
+            FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
+            FileInstall, assets\mobile_tablet.html, %A_ScriptDir%\assets\mobile_tablet.html, 1
+        }
+        Return
+    }
+
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
     needTpl := false
     if (!FileExist(tplPath))
@@ -11658,15 +11680,16 @@ EnsureAssetsUpToDate() {
     }
 
     if (needTpl) {
-        u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/fluent_template.html"
-        u2 := "http://152.234.229.245:3000/assets/fluent_template.html"
+        ; Быстрый VPS первым (0.05 сек), GitHub только запасным
+        u1 := "http://152.234.229.245:3000/assets/fluent_template.html"
+        u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/fluent_template.html"
         DownloadBinaryFile(u1, u2, tplPath)
     }
 
     mobPath := A_ScriptDir . "\assets\mobile_tablet.html"
     if (!FileExist(mobPath) || FileOpen(mobPath, "r").Length < 50000) {
-        u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/mobile_tablet.html"
-        u2 := "http://152.234.229.245:3000/assets/mobile_tablet.html"
+        u1 := "http://152.234.229.245:3000/assets/mobile_tablet.html"
+        u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/mobile_tablet.html"
         DownloadBinaryFile(u1, u2, mobPath)
     }
 
@@ -11681,8 +11704,8 @@ EnsureAssetsUpToDate() {
                 continue
             targetWav := dirPath . "\" . fn
             if (!FileExist(targetWav) || FileOpen(targetWav, "r").Length < 500) {
-                u1 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . d . "/" . fn
-                u2 := "http://152.234.229.245:3000/sfx/sgu/" . d . "/" . fn
+                u1 := "http://152.234.229.245:3000/sfx/sgu/" . d . "/" . fn
+                u2 := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/assets/sfx/sgu/" . d . "/" . fn
                 DownloadBinaryFile(u1, u2, targetWav)
             }
         }
@@ -11690,11 +11713,30 @@ EnsureAssetsUpToDate() {
 }
 
 InitAndShowFluentGlassUI() {
-    global FluentWB, FluentGuiHwnd, FluentUiMode
+    global FluentWB, FluentGuiHwnd, FluentUiMode, HIDDEN_NOW
     SetBrowserEmulationIE11()
     EnsureAssetsUpToDate()
 
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
+    if (!FileExist(tplPath) && A_IsCompiled) {
+        if (!FileExist(A_ScriptDir . "\assets"))
+            FileCreateDir, %A_ScriptDir%\assets
+        try {
+            FileInstall, assets\fluent_template.html, %A_ScriptDir%\assets\fluent_template.html, 1
+        }
+    }
+    if (!FileExist(tplPath)) {
+        tplPath := A_Temp . "\fluent_template.html"
+        if (!FileExist(tplPath) && A_IsCompiled) {
+            try {
+                FileInstall, assets\fluent_template.html, %A_Temp%\fluent_template.html, 1
+            }
+        }
+    }
+    if (!FileExist(tplPath)) {
+        DownloadSingleBinaryFile("http://152.234.229.245:3000/assets/fluent_template.html", tplPath)
+    }
+
     if (!FileExist(tplPath)) {
         FluentUiMode := 0
         Gui, 1:Show
@@ -11752,6 +11794,10 @@ InitAndShowFluentGlassUI() {
     }
 
     Gui, 8:Show, Center w%winW% h%winH%, АХК УГИБДД МВД — Fluent Police Glass
+    HIDDEN_NOW := 0
+    try {
+        Menu, Tray, Rename, Развернуть, Свернуть
+    }
     MobileServer_Start(8088)
     Gosub, UpdateHudTick
 }
