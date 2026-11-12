@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.5"
-global AppVersionCode       := 275
+global AppNumericVersion    := "2.7.6"
+global AppVersionCode       := 276
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -20,6 +20,15 @@ global SelectedSguPack   := "default"
 global SelectedSirenPack := "default"
 global SelectedHornPack  := "default"
 global SguVolume         := 100
+
+; КРИПТОГРАФИЧЕСКИЙ ОТКРЫТЫЙ КЛЮЧ RSA (ПРОВЕРКА ПОДЛИННОСТИ ОБНОВЛЕНИЙ)
+global ReleasePublicKeyXml := "<RSAKeyValue><Modulus>x+hwQy/fT8wUyBmXxNMCx1uzGOPhiWaJ2Vy7umIKl1Az4B91cK2MBrS5GGtzT9E+wgVuRuimCVnA57B28OMWXP5yosml/g+a0yPSdqTQ5SZ64BjWefz004MEit+X1BL7PYiusCYQ7JnK/3wJoIMSIYJ7I5J64GciQ11En+f9Szz0vtSoF/w12tFBHkXhw8v1xmJIozzXjeOV3De/KXgYIOsx83qqiaYFCt2Zq2LkKtZwS+1j+xG8/z3zm6/D82VMRn/9A/Y6nfGu4HDhbNXmoPvMUmByVSddT3qAZaGmNATsP7ffZoIRX+CgTgim/3bCJ/erOT8+lu9Bh6yzDZsjsQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>"
+global ClientId            := ""
+global TelemetryConsent    := 0
+global PendingUpdateExeHash := ""
+global PendingUpdateExeSig  := ""
+global PendingUpdateAhkHash := ""
+global PendingUpdateAhkSig  := ""
 
 ; Группа окон игры MTA Province / GTA San Andreas для изоляции боевых биндов
 GroupAdd, ProvinceGameGroup, ahk_exe Multi Theft Auto.exe
@@ -349,11 +358,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.5") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.6") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.5") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.6") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -554,7 +563,7 @@ InitBindsCatalog()
 InitTimersAndLogReader()
 InitAutoUpdater()
 TabletRelay_Init()
-InitClientHeartbeat()
+InitClientSession()
 InitNativeInputBridge()
 
 ; -------------------------------------------------------------------------------------------------
@@ -2908,6 +2917,15 @@ Gui, 2:Font, S9 CFFB84D Norm, Consolas
 Gui, 2:Add, Text, x26 y354 w614 h76 vProfilePreviewText, Загрузка предпросмотра...
 
 Gui, 2:Font, S11 CE6EDF3 Bold, Segoe UI
+Gui, 2:Font, S9 C8B949E Norm, Segoe UI
+Gui, 2:Add, Text, x16 y412 w120 h22, Анонимный ID:
+Gui, 2:Font, S9 C79C0FF Bold, Consolas
+cidDisp := GetOrCreateClientId()
+Gui, 2:Add, Edit, x135 y409 w365 h24 ReadOnly Background161D2E c79C0FF vClientIdEdit, %cidDisp%
+Gui, 2:Font, S9 CE6EDF3 Bold, Segoe UI
+Gui, 2:Add, Button, x508 y408 w142 h26 gBtnResetClientId, 🔄 Сбросить ID
+
+Gui, 2:Font, S11 CE6EDF3 Bold, Segoe UI
 Gui, 2:Add, Button, x16 y450 w160 h38 gSave, 💾 Сохранить
 Gui, 2:Add, Button, x184 y450 w155 h38 gExportProfileBackup, 📤 Экспорт (бэкап)
 Gui, 2:Add, Button, x347 y450 w155 h38 gImportProfileBackup, 📥 Импорт профиля
@@ -2945,6 +2963,11 @@ FileSelectFolder, SelectedLogDir, , 3, Выберите папку MTA\logs (г�
 if (SelectedLogDir != "") {
     GuiControl, 2:, ProvLogPath, %SelectedLogDir%
 }
+Return
+
+BtnResetClientId:
+newCid := ResetClientId()
+GuiControl, 2:, ClientIdEdit, %newCid%
 Return
 
 Save:
@@ -11237,8 +11260,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.5"
-global AppVersionCode       := 275
+global AppNumericVersion    := "2.7.6"
+global AppVersionCode       := 276
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11250,8 +11273,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.5"
-        AppVersionCode       := 275
+        AppNumericVersion    := "2.7.6"
+        AppVersionCode       := 276
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11279,8 +11302,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.5"
-        AppVersionCode       := 275
+        AppNumericVersion    := "2.7.6"
+        AppVersionCode       := 276
     }
 
     if (!IsSilent)
@@ -11329,6 +11352,15 @@ CheckForUpdates(IsSilent := 1) {
     RegExMatch(jsonStr, """ahk_url"":\s*""([^""]+)""", mAhk)
     RegExMatch(jsonStr, """ahk_mirror"":\s*""([^""]+)""", mAhkMirror)
     RegExMatch(jsonStr, """changelog"":\s*""((?:[^""\\]|\\.)*)""", mLog)
+    RegExMatch(jsonStr, """exe_sha256"":\s*""([^""]+)""", mExeHash)
+    RegExMatch(jsonStr, """exe_signature"":\s*""([^""]+)""", mExeSig)
+    RegExMatch(jsonStr, """ahk_sha256"":\s*""([^""]+)""", mAhkHash)
+    RegExMatch(jsonStr, """ahk_signature"":\s*""([^""]+)""", mAhkSig)
+
+    PendingUpdateExeHash := mExeHash1
+    PendingUpdateExeSig  := mExeSig1
+    PendingUpdateAhkHash := mAhkHash1
+    PendingUpdateAhkSig  := mAhkSig1
 
     newVer := mVer1
     newCode := mCode1 + 0
@@ -11425,6 +11457,23 @@ PerformDownloadAndUpdate() {
         GuiControl, 7:, UpdateStatusTxt, ❌ Ошибка скачивания. Проверьте интернет или скачайте вручную.
         MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте подключение к сети или скачайте архив вручную: vk.ru/polaneychick
         Return
+    }
+
+    ; -------------------------------------------------------------
+    ; КРИПТОГРАФИЧЕСКАЯ ПРОВЕРКА ЦИФРОВОЙ ПОДПИСИ ОБНОВЛЕНИЯ (RSA-SHA256)
+    ; -------------------------------------------------------------
+    GuiControl, 7:, UpdateStatusTxt, 🔐 Проверка цифровой подписи RSA...
+    expectedHash := A_IsCompiled ? PendingUpdateExeHash : PendingUpdateAhkHash
+    expectedSig  := A_IsCompiled ? PendingUpdateExeSig  : PendingUpdateAhkSig
+
+    if (expectedHash != "" && expectedSig != "") {
+        if (!VerifyUpdateSignature(tempFile, expectedHash, expectedSig)) {
+            FileDelete, %tempFile%
+            GuiControl, 7:Enable, BtnUpdateNow
+            GuiControl, 7:, UpdateStatusTxt, ❌ Ошибка: Недействительная цифровая подпись!
+            MsgBox, 16, Ошибка безопасности, ⛔ ВНИМАНИЕ: Цифровая подпись обновления недействительна!`n`nФайл не прошёл криптографическую проверку (возможно повреждён или подменён на сервере).`nВ целях вашей безопасности установка и запуск отменены!
+            Return
+        }
     }
 
     currentPath := A_ScriptFullPath
@@ -11559,6 +11608,66 @@ DownloadBinaryFile(Url1, Url2, OutPath) {
         return true
     return false
 }
+
+
+; =================================================================================================
+; КРИПТОГРАФИЧЕСКАЯ ВЕРИФИКАЦИЯ ЦИФРОВОЙ ПОДПИСИ ОБНОВЛЕНИЯ (RSA-SHA256)
+; =================================================================================================
+VerifyUpdateSignature(TargetFile, ExpectedSha256, ExpectedSignature) {
+    global ReleasePublicKeyXml
+    if (!FileExist(TargetFile) || ExpectedSha256 = "" || ExpectedSignature = "" || ReleasePublicKeyXml = "")
+        return false
+
+    psFile := A_Temp . "\ahk_ver_script_" . A_TickCount . ".ps1"
+    resFile := A_Temp . "\ahk_ver_res_" . A_TickCount . ".txt"
+    FileDelete, %psFile%
+    FileDelete, %resFile%
+
+    scriptBody =
+    (
+$TargetFile = '%TargetFile%'
+$ExpectedHash = '%ExpectedSha256%'
+$ExpectedSig = '%ExpectedSignature%'
+$ResFile = '%resFile%'
+$PubXml = '%ReleasePublicKeyXml%'
+
+try {
+    $bytes = [System.IO.File]::ReadAllBytes($TargetFile)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $calcHash = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-","").ToLower()
+    if ($calcHash -ne $ExpectedHash.ToLower().Trim()) {
+        [System.IO.File]::WriteAllText($ResFile, "HASH_MISMATCH")
+        exit 1
+    }
+    $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider
+    $rsa.FromXmlString($PubXml)
+    $sigBytes = [Convert]::FromBase64String($ExpectedSig.Trim())
+    $isValid = $rsa.VerifyData($bytes, "SHA256", $sigBytes)
+    if ($isValid) {
+        [System.IO.File]::WriteAllText($ResFile, "VALID")
+        exit 0
+    } else {
+        [System.IO.File]::WriteAllText($ResFile, "INVALID_SIGNATURE")
+        exit 2
+    }
+} catch {
+    [System.IO.File]::WriteAllText($ResFile, "ERROR: " + $_.Exception.Message)
+    exit 3
+}
+    )
+
+    FileAppend, %scriptBody%, %psFile%, UTF-8
+    RunWait, powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "%psFile%",, Hide
+    FileDelete, %psFile%
+
+    res := ""
+    if (FileExist(resFile)) {
+        FileRead, res, %resFile%
+        FileDelete, %resFile%
+    }
+    return (Trim(res) = "VALID")
+}
+
 
 FetchUrlText(Url, TimeoutSec := 5) {
     ComObjError(false)
@@ -12387,7 +12496,7 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
             UpdateGenderVariables()
             UpdateSidebarOfficerCard()
             RefreshFluentWebData()
-            SendClientHeartbeat()
+            SendSessionEvent("start")
             PlaySafeBeep(900, 120)
             TrayTip, ✅ Профиль сохранён, % Rank . " " . Fio1 . " (" . Teg . "-" . Prop2 . ")", 3, 1
         }
@@ -13300,82 +13409,218 @@ return
 ; =================================================================================================
 ; КЛИЕНТСКИЙ ТЕЛЕМЕТРИЧЕСКИЙ ПУЛЬС В КОМАНДНЫЙ ЦЕНТР (ADMIN DASHBOARD)
 ; =================================================================================================
-InitClientHeartbeat() {
-    SetTimer, SendClientHeartbeatTick, -1500
-    SetTimer, SendClientHeartbeatTick, 25000
+InitClientSession() {
+    global TelemetryConsent
+    CheckPrivacyConsent()
+    GetOrCreateClientId()
+    OnExit("OnAppExitSendStatus")
+    if (TelemetryConsent = 1) {
+        SetTimer, SendSessionStartDelayed, -2000
+    }
 }
 
-SendClientHeartbeatTick:
-SendClientHeartbeat()
+SendSessionStartDelayed:
+SendSessionEvent("start")
 Return
 
-GetClientHwid() {
-    RegRead, guid, HKLM\SOFTWARE\Microsoft\Cryptography, MachineGuid
-    if (guid = "" || ErrorLevel)
-        guid := A_ComputerName . "-" . A_UserName
-    return guid
+OnAppExitSendStatus(ExitReason, ExitCode) {
+    global TelemetryConsent
+    if (TelemetryConsent = 1) {
+        SendSessionEvent("stop")
+        Sleep, 150
+    }
+}
+
+; =================================================================================================
+; БЕЗОПАСНЫЙ СЕССИОННЫЙ МЕНЕДЖЕР И АНОНИМНЫЙ CLIENT ID (БЕЗ HWID И БЕЗ СПАМ-ЗАПРОСОВ)
+; =================================================================================================
+GenerateRandomUuid() {
+    hexChars := ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
+    uuid := ""
+    Loop, 36 {
+        idx := A_Index
+        if (idx = 9 || idx = 14 || idx = 19 || idx = 24) {
+            uuid .= "-"
+        } else if (idx = 15) {
+            uuid .= "4" ; UUIDv4
+        } else if (idx = 20) {
+            Random, r, 8, 11
+            uuid .= hexChars[r + 1] ; variant 10xx
+        } else {
+            Random, r, 0, 15
+            uuid .= hexChars[r + 1]
+        }
+    }
+    return uuid
+}
+
+GetOrCreateClientId() {
+    global ClientId
+    if (ClientId != "")
+        return ClientId
+
+    iniPath := A_Temp . "\gibdd.egl"
+    localIni := A_ScriptDir . "\gibdd_profile.ini"
+    idFile := A_ScriptDir . "\client_id.txt"
+
+    savedId := ""
+    if (FileExist(idFile)) {
+        FileRead, savedId, %idFile%
+        savedId := Trim(savedId)
+    }
+
+    if (savedId = "" && FileExist(localIni)) {
+        IniRead, savedId, %localIni%, Privacy, ClientId, ERROR
+        if (savedId = "ERROR")
+            savedId := ""
+    }
+
+    if (savedId = "" && FileExist(iniPath)) {
+        IniRead, savedId, %iniPath%, Privacy, ClientId, ERROR
+        if (savedId = "ERROR")
+            savedId := ""
+    }
+
+    if (savedId = "" || StrLen(savedId) < 16) {
+        savedId := GenerateRandomUuid()
+        try {
+            FileDelete, %idFile%
+            FileAppend, %savedId%, %idFile%, UTF-8
+        }
+        IniWrite, %savedId%, %iniPath%, Privacy, ClientId
+        if (FileExist(localIni))
+            IniWrite, %savedId%, %localIni%, Privacy, ClientId
+    }
+
+    ClientId := savedId
+    return ClientId
+}
+
+ResetClientId() {
+    global ClientId
+    newId := GenerateRandomUuid()
+    ClientId := newId
+
+    iniPath := A_Temp . "\gibdd.egl"
+    localIni := A_ScriptDir . "\gibdd_profile.ini"
+    idFile := A_ScriptDir . "\client_id.txt"
+
+    try {
+        FileDelete, %idFile%
+        FileAppend, %newId%, %idFile%, UTF-8
+    }
+    IniWrite, %newId%, %iniPath%, Privacy, ClientId
+    if (FileExist(localIni))
+        IniWrite, %newId%, %localIni%, Privacy, ClientId
+
+    TrayTip, 🔄 Client ID сброшен, Сгенерирован новый анонимный идентификатор: %newId%, 4, 1
+    return newId
+}
+
+CheckPrivacyConsent() {
+    global TelemetryConsent
+    iniPath := A_Temp . "\gibdd.egl"
+    localIni := A_ScriptDir . "\gibdd_profile.ini"
+
+    IniRead, savedConsent, %iniPath%, Privacy, TelemetryConsent, UNDEFINED
+    if (savedConsent = "UNDEFINED" && FileExist(localIni)) {
+        IniRead, savedConsent, %localIni%, Privacy, TelemetryConsent, UNDEFINED
+    }
+
+    if (savedConsent = "UNDEFINED" || savedConsent = "ERROR" || savedConsent = "") {
+        ShowPrivacyConsentDialog()
+    } else {
+        TelemetryConsent := (savedConsent = "1" || savedConsent = 1) ? 1 : 0
+    }
+}
+
+ShowPrivacyConsentDialog() {
+    global
+    Gui, 9:Destroy
+    Gui, 9:Color, 0D1426, 16223E
+    Gui, 9:Font, S12 C58A6FF Bold, Segoe UI
+    Gui, 9:Add, Text, x20 y16 w560 h26, 🔒 Конфиденциальность и безопасность данных
+
+    Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
+    msgText := "Программа «АХК УГИБДД» уважает вашу приватность.`n`n"
+    msgText .= "Для работы функций синхронизации (бортовой планшет и статус дежурства) "
+    msgText .= "скрипт может отправлять на сервер базовую техническую информацию:`n`n"
+    msgText .= "  • Случайный анонимный Client ID (без сбора MachineGuid, имени ПК или данных Windows);`n"
+    msgText .= "  • Номер версии программы (для уведомлений об обновлениях);`n"
+    msgText .= "  • Событие начала и окончания дежурства (при запуске и закрытии).`n`n"
+    msgText .= "Никакие личные файлы, пароли, переписки или системные данные НЕ собираются и НЕ передаются.`n`n"
+    msgText .= "Вы можете разрешить анонимную синхронизацию или отказаться и использовать скрипт в 100% локальном режиме."
+
+    Gui, 9:Add, Text, x20 y48 w560 h140, % msgText
+
+    Gui, 9:Font, S10 C7EE787 Bold, Segoe UI
+    Gui, 9:Add, Button, x20 y200 w270 h40 gPrivacyConsentAccept, ✅ Согласен (Онлайн-режим)
+
+    Gui, 9:Font, S10 CFF7B72 Bold, Segoe UI
+    Gui, 9:Add, Button, x310 y200 w270 h40 gPrivacyConsentDecline, ❌ Отказаться (Только оффлайн)
+
+    Gui, 9:Show, w600 h256, АХК УГИБДД — Выбор режима работы
+    WinWaitClose, АХК УГИБДД — Выбор режима работы
+}
+
+PrivacyConsentAccept:
+global TelemetryConsent := 1
+SavePrivacyChoice(1)
+Gui, 9:Destroy
+SendSessionEvent("start")
+Return
+
+PrivacyConsentDecline:
+global TelemetryConsent := 0
+SavePrivacyChoice(0)
+Gui, 9:Destroy
+TrayTip, 🛡️ Локальный режим, Программа работает полностью оффлайн без отправки данных., 4, 1
+Return
+
+SavePrivacyChoice(val) {
+    iniPath := A_Temp . "\gibdd.egl"
+    localIni := A_ScriptDir . "\gibdd_profile.ini"
+    IniWrite, %val%, %iniPath%, Privacy, TelemetryConsent
+    if (FileExist(localIni))
+        IniWrite, %val%, %localIni%, Privacy, TelemetryConsent
 }
 
 SendClientHeartbeat() {
-    global TabletRelayHost, TabletRelayPin, Fio1, Rank, Teg, Prop2, Gibdd, Vers
-    global LiveShiftDuration, LiveFinesCount, LiveArrestsCount, LiveForumPoints, LastBroadcastMessageId
+    SendSessionEvent("start")
+}
+
+SendSessionEvent(actionType := "start") {
+    global TelemetryConsent, TabletRelayHost, TabletRelayPin, Fio1, Rank, Teg, Prop2, Gibdd, Vers
+    if (TelemetryConsent != 1)
+        return
 
     if (TabletRelayHost = "")
         TabletRelayHost := "https://mvd-province.ru"
 
-    hwid := GetClientHwid()
-    dutyStr := (LiveShiftDuration != "") ? LiveShiftDuration : "00:00"
-    finesVal := (LiveFinesCount + 0)
-    arrVal := (LiveArrestsCount + 0)
-    ptsVal := (LiveForumPoints + 0)
+    cid := GetOrCreateClientId()
     pinVal := (TabletRelayPin != "" && TabletRelayPin != "ERROR") ? TabletRelayPin : ((Teg != "" && Teg != "ERROR") ? Teg : "51")
 
-    url := TabletRelayHost . "/api/client/heartbeat"
-
+    url := TabletRelayHost . "/api/client/session"
     payload := "{"
-    payload .= """hwid"":""" . JsonEscapeStr(hwid) . ""","
+    payload .= """clientId"":""" . JsonEscapeStr(cid) . ""","
+    payload .= """action"":""" . JsonEscapeStr(actionType) . ""","
     payload .= """pin"":""" . JsonEscapeStr(pinVal) . ""","
     payload .= """rank"":""" . JsonEscapeStr(Rank) . ""","
-    payload .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
     payload .= """teg"":""" . JsonEscapeStr(Teg) . ""","
-    payload .= """prop2"":""" . JsonEscapeStr(Prop2) . ""","
     payload .= """city"":""" . JsonEscapeStr(Gibdd) . ""","
-    payload .= """version"":""" . JsonEscapeStr(Vers) . ""","
-    payload .= """dutyClock"":""" . JsonEscapeStr(dutyStr) . ""","
-    payload .= """finesCnt"":" . finesVal . ","
-    payload .= """arrestsCnt"":" . arrVal . ","
-    curStatus := "10-0"
-    if (ChaseActive)
-        curStatus := "10-15"
-    else if (DutyType != "" && InStr(DutyType, "Пост"))
-        curStatus := "10-4"
-    else if (DutyType != "" && InStr(DutyType, "Патруль"))
-        curStatus := "10-0-1"
-
-    payload .= """forumPts"":" . ptsVal . ","
-    payload .= """status"":""" . curStatus . """"
+    payload .= """version"":""" . JsonEscapeStr(Vers) . """"
     payload .= "}"
 
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.Open("POST", url, true) ; Асинхронно, без задержек и фризов игры
+        whr.Open("POST", url, true) ; Асинхронно, без блокировки и фризов игры
         whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
         whr.SetRequestHeader("User-Agent", "AHK-GIBDD/" . Vers)
         whr.Send(payload)
-        if (whr.WaitForResponse(1.5)) {
-            resp := whr.ResponseText
-            if (InStr(resp, """broadcast"":{")) {
-                RegExMatch(resp, "O)""id"":""([^""]+)"".*?""message"":""([^""]+)""", match)
-                if (match && match.1 != LastBroadcastMessageId) {
-                    LastBroadcastMessageId := match.1
-                    msgText := StrReplace(match.2, "\n", "`n")
-                    SoundPlay, %A_ScriptDir%\1.mp3
-                    TrayTip, 📢 ОПОВЕЩЕНИЕ РУКОВОДСТВА УГИБДД!, %msgText%, 8, 2
-                }
-            }
+        if (actionType = "stop") {
+            whr.WaitForResponse(0.5)
         }
     } catch e {
-        ; Игнорируем сетевые сбои в оффлайне
     }
 }
 

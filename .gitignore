@@ -38,3 +38,8 @@ deploy-vps-update.ps1
 *gumvd*
 *ÃÓ ÌÂÄ*
 *ÃÓÂÄ*
+
+# Cryptographic Private Keys
+.keys/
+*.pem
+

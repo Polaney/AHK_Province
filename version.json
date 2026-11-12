@@ -1,11 +1,15 @@
 {
-  "version_code": 275,
-  "version": "2.7.5",
-  "release_date": "2026-11-11",
-  "title": "Обновление v2.7.5: Новый кибер-дизайн бортового планшета, тактический радар и официальный домен mvd-province.ru",
-  "changelog": "- 🗺️ Исправлена работа тактического радара и интерактивной карты в планшете\\n- 📱 Полный редизайн бортового планшета: эргономичный кибер-тактический MDT интерфейс\\n- 🌐 Переход на официальный HTTPS-домен https://mvd-province.ru с официальным SSL\\n- 🏙️ Адаптация приветствия для всех городов (Приволжск, Мирный, Невский)\\n- 🛡️ Исправлен режим активности только в окне игры (proxy_sa.exe / GTA SA)\\n- 📋 Исправлены команды /доктаум1-4 и добавлена подсказка в интерфейсе\\n- 🎛️ Конструктор СГУ с раздельным выбором сирены и крякалки",
+  "version_code": 276,
+  "version": "2.7.6",
+  "release_date": "2026-11-12",
+  "title": "Обновление безопасности v2.7.6: Цифровая подпись RSA-SHA256, приватность и анонимный Client ID",
+  "changelog": "- 🔐 Добавлена сквозная цифровая подпись обновлений RSA-SHA256: защита от подмены и подделки\\n- 🛡️ 100% приватность: полный отказ от сбора HWID/MachineGuid Windows, случайный Client UUID\\n- 🔄 Возможность сброса и перегенерации Client ID в настройках профиля\\n- 📜 Окно подтверждения отправки данных при старте (с возможностью полного оффлайн-режима)\\n- ⚡ Оптимизация сети: отказ от ежеминутных фоновых heartbeat-запросов, фиксация старта и завершения сессии",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
-  "ahk_mirror": "http://152.234.229.245:3000/download/ahk"
+  "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
+  "exe_sha256": "42997c19fd107eb0149e6166a088ec1c3a61b119bde2d9bab4e29043ef2ab44f",
+  "exe_signature": "WrXG485bcFCVxW69hcFSSJbXX5Abu41/NtRhW+OYwGjq6yO2GHCrSe5ygw4lAjVJbcY4DGcfVq/Uux3uVD7tYNiISsM4QRVizp0OwLcZnEm9V8SfRX6AseTFFTYdFVgEN/2wl2WNd2Ey3PFQg0Ee+fmJaunzWvSleh/acurO22/8ultXwrHDm6BhFL/LI6HdDTzO867AgeUKMwpb30xD9cqNoKDfX+0tzAZ1jQLMgHgXhgBpe7Z+WVXwdeIzB3AY7jYXE36BflRg6doOLeApDCRVg3ah56mRvjVwNZOl0x6Ejaevk7DU6HwixKcuMZXDVz0ew8/z6qSJP4a6twXxMw==",
+  "ahk_sha256": "fe4778892d23d929b8bb93acfdfefd72d6c6f510cd991e9a83aa798b65a98541",
+  "ahk_signature": "Mwaptbf4bkXY2pQW9TFVobHmnk5c95LydQUUHEIpO+xWocw8LOKQ7CT2vHTD9SK+XfkpKwDj7g5dTET88VcygRtcIUuORJID17PQS1cGEwq5wP0VA5IcEQT2FzlwKbvYvV1cgaJ/1RsYwcnPCk7SiqskbPCdq5ovANQ6GIKaBN2QMKRVpWEsCHpTt8/QS+gh9jzcMc7iS5Aki8Z0qMxpcX8ZcMUC4PhYoy1XXXHD6bGpSaw6kAchaAmjRa8LM3RKldGOFpEjcukaavS2W4AZUbI+v0JNWnfdabR610LSfWBqgxAYn0fIKErsjX/godFSAEsq3pb8RpieLzDczYDwyA=="
 }
