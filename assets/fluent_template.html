@@ -2067,6 +2067,14 @@ html, body {
             </div>
         </div>
 
+                <div class="form-row">
+            <div class="form-lbl" style="color:#58A6FF;">🔒 Анонимный Client ID:</div>
+            <div class="form-ctrl" style="display:flex; gap:8px;">
+                <input type="text" id="pf-clientid" class="fluent-input" style="flex:1; font-family:Consolas,monospace; color:#79C0FF; font-size:12px;" readonly placeholder="Генерация UUID...">
+                <button type="button" class="btn-glass" style="font-size:11px; padding:4px 10px; color:#58A6FF; font-weight:700;" onclick="resetClientIdAction()">🔄 Сбросить ID</button>
+            </div>
+        </div>
+
         <div style="display:flex; justify-content:space-between; margin-top:16px; padding-top:12px; border-top:1px solid rgba(56,139,253,0.25);">
             <div>
                 <button class="btn-fluent" onclick="saveProfileModal()">💾 Сохранить изменения</button>
@@ -3093,7 +3101,21 @@ function openProfileModal() {
     document.getElementById('pf-gibdd').value = p.gibdd || 'УГИБДД-Н';
     document.getElementById('pf-gender').value = p.gender || 'Я мужык';
     document.getElementById('pf-checkmb').value = p.checkMB || 'ОР/СР';
+    var cid = (APP_DATA && APP_DATA.clientId) ? APP_DATA.clientId : '—';
+    var cidEl = document.getElementById('pf-clientid');
+    if (cidEl) cidEl.value = cid;
     document.getElementById('profile-modal').style.display = 'flex';
+}
+
+function resetClientIdAction() {
+    callAhk('reset_client_id');
+}
+
+function onClientIdResetFromAhk(newId) {
+    if (APP_DATA) APP_DATA.clientId = newId;
+    var inp = document.getElementById('pf-clientid');
+    if (inp) inp.value = newId;
+    showToast('🔄 Сгенерирован новый анонимный Client ID');
 }
 
 function closeProfileModal() {

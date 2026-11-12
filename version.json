@@ -8,8 +8,8 @@
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "42997c19fd107eb0149e6166a088ec1c3a61b119bde2d9bab4e29043ef2ab44f",
-  "exe_signature": "WrXG485bcFCVxW69hcFSSJbXX5Abu41/NtRhW+OYwGjq6yO2GHCrSe5ygw4lAjVJbcY4DGcfVq/Uux3uVD7tYNiISsM4QRVizp0OwLcZnEm9V8SfRX6AseTFFTYdFVgEN/2wl2WNd2Ey3PFQg0Ee+fmJaunzWvSleh/acurO22/8ultXwrHDm6BhFL/LI6HdDTzO867AgeUKMwpb30xD9cqNoKDfX+0tzAZ1jQLMgHgXhgBpe7Z+WVXwdeIzB3AY7jYXE36BflRg6doOLeApDCRVg3ah56mRvjVwNZOl0x6Ejaevk7DU6HwixKcuMZXDVz0ew8/z6qSJP4a6twXxMw==",
-  "ahk_sha256": "fe4778892d23d929b8bb93acfdfefd72d6c6f510cd991e9a83aa798b65a98541",
-  "ahk_signature": "Mwaptbf4bkXY2pQW9TFVobHmnk5c95LydQUUHEIpO+xWocw8LOKQ7CT2vHTD9SK+XfkpKwDj7g5dTET88VcygRtcIUuORJID17PQS1cGEwq5wP0VA5IcEQT2FzlwKbvYvV1cgaJ/1RsYwcnPCk7SiqskbPCdq5ovANQ6GIKaBN2QMKRVpWEsCHpTt8/QS+gh9jzcMc7iS5Aki8Z0qMxpcX8ZcMUC4PhYoy1XXXHD6bGpSaw6kAchaAmjRa8LM3RKldGOFpEjcukaavS2W4AZUbI+v0JNWnfdabR610LSfWBqgxAYn0fIKErsjX/godFSAEsq3pb8RpieLzDczYDwyA=="
+  "exe_sha256": "e2800c2222221b6be7799f5a63491051dbae424b8cf80d3571864631c8b0c463",
+  "exe_signature": "P/kNniyQk8lB083ALQ5MWn1lr7iwKWJ4uXicsIoePj3dfmS6/6cHaHKM/5kW8Qi7g35XHcyqFcwBOZDbCR0nfWckMd+b7GY8eoFr+l3wLQIVqk67pAw2PWIqFDdBgQyuAs8L0/MjzGpD/kV8wzUtJ/EBakLt9NIiHE1jHlUOlXChlrOKdhEP4wRKYTwm3M0gg8pzw7Wbf3tk5l9PVEHnOmcogRS56FhmbFIj8Isrf6pWQ8g5YBMjQ5VxplbZs6VaEM+HzwDZWgiAGfqRWjjEDHqJrEf/cDz8sMcmiy7NEJQKuY9RRjGV4KeJyNwmnqtk5pCXk5FiQgfVsUJBb0zxFw==",
+  "ahk_sha256": "d1d1202ee46e924458c9a8f29ed8a9aee26080b5cb9d1f988481e04d707a5cc3",
+  "ahk_signature": "TOmy+GOgupI3WyK6AZ0fgpHnTgl02UtGJWVREPXbjwbJyGWC4f22pSeBJuf4Tkq4a4fwELtI+b7NBbb9I+CS9qQUuzSeOAWgeXS0Q2aOkSrzTbRGCI1SrY5NiSfBS5eEHu6ZeKCY3srZIJT9pSFZF/W6d9t/5+yEyPpVQOIDLCr22YVV7zA+5XL0/V5Di7ZinIi6jsYebhgp58M9d15BeDqq1U4PjA7A/v/bXhJdDIie7IQo0UmDeAtLIM6N1hG4yuuUZcxeSuo4vf8wtf7Z8EyZel2/wR+gsd1tUnSHQdeWMKtT4JeA/bwJUARR8H6ZqtNCjnVhuxdkAbQERGS4fQ=="
 }

@@ -378,6 +378,8 @@ RefreshTray()
         Menu, Tray, Icon, %IM%
     Menu, Tray, NoStandard
     Menu, Tray, Add, HideShowMenu
+Menu, Tray, Add, 📋 Анкета сотрудника / ID, OpenProfileTray
+Menu, Tray, Add, 🔄 Сбросить Client ID, ResetClientIdTray
     Menu, Tray, Rename, HideShowMenu, Свернуть
     Menu, Tray, Default, Свернуть
     Menu, Tray, Add
@@ -2912,29 +2914,30 @@ Gui, 2:Add, Edit, x270 y298 w280 h25 vProvLogPath, %ProvLogPath%
 Gui, 2:Add, Button, x556 y297 w94 h27 gBrowseLogFolder, Обзор...
 
 Gui, 2:Font, S10 C58A6FF Bold, Consolas
-Gui, 2:Add, GroupBox, x16 y334 w634 h105, [ Живой предпросмотр приветствия и рации (/п1) ]
+Gui, 2:Add, GroupBox, x16 y330 w634 h70, [ Живой предпросмотр приветствия и рации (/п1) ]
 Gui, 2:Font, S9 CFFB84D Norm, Consolas
-Gui, 2:Add, Text, x26 y354 w614 h76 vProfilePreviewText, Загрузка предпросмотра...
+Gui, 2:Add, Text, x26 y348 w614 h46 vProfilePreviewText, Загрузка предпросмотра...
 
-Gui, 2:Font, S11 CE6EDF3 Bold, Segoe UI
-Gui, 2:Font, S9 C8B949E Norm, Segoe UI
-Gui, 2:Add, Text, x16 y412 w120 h22, Анонимный ID:
+Gui, 2:Font, S10 C58A6FF Bold, Segoe UI
+Gui, 2:Add, GroupBox, x16 y404 w634 h56, [ 🔒 Анонимная идентификация (Приватность без сбора HWID/Windows) ]
+Gui, 2:Font, S9 C8B949E Bold, Segoe UI
+Gui, 2:Add, Text, x26 y426 w95 h20, Client ID:
 Gui, 2:Font, S9 C79C0FF Bold, Consolas
 cidDisp := GetOrCreateClientId()
-Gui, 2:Add, Edit, x135 y409 w365 h24 ReadOnly Background161D2E c79C0FF vClientIdEdit, %cidDisp%
+Gui, 2:Add, Edit, x125 y423 w370 h25 ReadOnly Background161D2E c79C0FF vClientIdEdit, %cidDisp%
 Gui, 2:Font, S9 CE6EDF3 Bold, Segoe UI
-Gui, 2:Add, Button, x508 y408 w142 h26 gBtnResetClientId, 🔄 Сбросить ID
+Gui, 2:Add, Button, x504 y422 w136 h27 gBtnResetClientId, 🔄 Сбросить ID
 
 Gui, 2:Font, S11 CE6EDF3 Bold, Segoe UI
-Gui, 2:Add, Button, x16 y450 w160 h38 gSave, 💾 Сохранить
-Gui, 2:Add, Button, x184 y450 w155 h38 gExportProfileBackup, 📤 Экспорт (бэкап)
-Gui, 2:Add, Button, x347 y450 w155 h38 gImportProfileBackup, 📥 Импорт профиля
-Gui, 2:Add, Button, x510 y450 w140 h38 gClose, Закрыть
+Gui, 2:Add, Button, x16 y468 w160 h38 gSave, 💾 Сохранить
+Gui, 2:Add, Button, x184 y468 w155 h38 gExportProfileBackup, 📤 Экспорт (бэкап)
+Gui, 2:Add, Button, x347 y468 w155 h38 gImportProfileBackup, 📥 Импорт профиля
+Gui, 2:Add, Button, x510 y468 w140 h38 gClose, Закрыть
 Gui, 2:Font, S9 C8B949E Norm, Segoe UI
-Gui, 2:Add, Text, x395 y458 w255 h24 +Right, % "Профиль дублируется в gibdd_profile.ini"
+Gui, 2:Add, Text, x395 y510 w255 h20 +Right, % "Профиль дублируется в gibdd_profile.ini"
 
 Gosub, UpdateProfilePreview
-Gui, 2:Show, w666 h502, Анкета сотрудника | АХК УГИБДД
+Gui, 2:Show, w666 h535, Анкета сотрудника | АХК УГИБДД
 Return
 
 SyncCityAndPreview:
@@ -2968,6 +2971,14 @@ Return
 BtnResetClientId:
 newCid := ResetClientId()
 GuiControl, 2:, ClientIdEdit, %newCid%
+Return
+
+OpenProfileTray:
+Gosub, Data
+Return
+
+ResetClientIdTray:
+ResetClientId()
 Return
 
 Save:
@@ -11743,6 +11754,7 @@ BuildFluentInitialJson() {
     j .= """telemetry"":""file:///" . JsonEscapeStr(telPath) . """"
     j .= "},"
 
+    j .= """clientId"":""" . JsonEscapeStr(GetOrCreateClientId()) . ""","
     j .= """profile"":{"
     j .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
     j .= """rank"":""" . JsonEscapeStr(Rank) . ""","
@@ -12262,6 +12274,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
                     }
                 }
             }
+        }
+        Return
+    }
+    if (action = "reset_client_id") {
+        newCid := ResetClientId()
+        try {
+            FluentWB.document.parentWindow.onClientIdResetFromAhk(newCid)
         }
         Return
     }
