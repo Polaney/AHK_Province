@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.8.3"
-global AppVersionCode       := 283
+global AppNumericVersion    := "2.8.4"
+global AppVersionCode       := 284
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.3") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.4") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.3") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.4") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -1884,6 +1884,226 @@ HasBindParams(linesStr) {
     return (InStr(linesStr, "{paramcmd}") || InStr(linesStr, "{storig}") || InStr(linesStr, "{stnpa}") || InStr(linesStr, "{stresult}") || InStr(linesStr, "{stsy}") || InStr(linesStr, "{styr}"))
 }
 
+global StChoiceWB, StChoiceHwnd, PendingStBindIdx, PendingStParam, PendingStMatches, PendingStPrevWin
+
+BuildArtTagObj(foundArt) {
+    res := {}
+    res.orig := foundArt.Num
+    res.npa := (foundArt.Code = "УКРП") ? "УК РП" : foundArt.Code
+    res.code := foundArt.Code
+    res.result := foundArt.Desc
+    res.sy := (foundArt.Fine > 0) ? (foundArt.Fine . " руб.") : "без штрафа"
+    yrVal := "0"
+    if (RegExMatch(foundArt.Sanction, "i)от\s*(\d+)\s*до\s*(\d+)\s*(?:год|лет)", mYr)) {
+        yrVal := mYr1 . "-" . mYr2
+    } else if (RegExMatch(foundArt.Sanction, "i)(?:на|до)\s*(\d+)\s*(?:год|года|лет)", mYr)) {
+        yrVal := mYr1
+    } else if (RegExMatch(foundArt.Sanction, "i)(\d+)\s*суток", mYr)) {
+        yrVal := mYr1 . " суток"
+    }
+    res.yr := yrVal
+    res.sanction := foundArt.Sanction
+    return res
+}
+
+ResolveAllArticlesForCustomTag(argStr, ByRef explicitCodeOut) {
+    global ArticlesDB
+    q := Trim(argStr)
+    explicitCodeOut := ""
+    matches := []
+    if (q = "" || !IsObject(ArticlesDB))
+        return matches
+
+    targetCode := ""
+    targetNum := q
+    if (RegExMatch(q, "i)^(коап|укрп|ук|пдд|фзоп)\s+(.+)$", m)) {
+        c := m1
+        StringLower, cLow, c
+        if (cLow = "коап")
+            targetCode := "КоАП"
+        else if (cLow = "ук" || cLow = "укрп")
+            targetCode := "УКРП"
+        else if (cLow = "пдд")
+            targetCode := "ПДД"
+        else if (cLow = "фзоп")
+            targetCode := "ФЗоП"
+        targetNum := Trim(m2)
+    } else if (RegExMatch(q, "i)^(.+)\s+(коап|укрп|ук|пдд|фзоп)$", m)) {
+        targetNum := Trim(m1)
+        c := m2
+        StringLower, cLow, c
+        if (cLow = "коап")
+            targetCode := "КоАП"
+        else if (cLow = "ук" || cLow = "укрп")
+            targetCode := "УКРП"
+        else if (cLow = "пдд")
+            targetCode := "ПДД"
+        else if (cLow = "фзоп")
+            targetCode := "ФЗоП"
+    }
+    explicitCodeOut := targetCode
+
+    ; 1. Точное совпадение по номеру во всех кодексах
+    for idx, art in ArticlesDB {
+        if (targetCode != "" && art.Code != targetCode)
+            Continue
+        if (art.Num = targetNum) {
+            matches.Push(BuildArtTagObj(art))
+        }
+    }
+    ; 2. Если точных нет — ищем частичное совпадение по номеру/описанию (до 6 вариантов)
+    if (matches.MaxIndex() = "" || matches.MaxIndex() = 0) {
+        for idx, art in ArticlesDB {
+            if (targetCode != "" && art.Code != targetCode)
+                Continue
+            if (InStr(art.Num, targetNum) || InStr(art.Desc, targetNum)) {
+                matches.Push(BuildArtTagObj(art))
+                if (matches.MaxIndex() >= 6)
+                    Break
+            }
+        }
+    }
+    return matches
+}
+
+ShowStNpaSidePicker(BindIdx, paramStr, matches) {
+    global StChoiceWB, StChoiceHwnd, PendingStBindIdx, PendingStParam, PendingStMatches, PendingStPrevWin
+    PendingStBindIdx := BindIdx
+    PendingStParam := paramStr
+    PendingStMatches := matches
+    PendingStPrevWin := WinExist("A")
+
+    SetBrowserEmulationIE11()
+
+    itemsJson := "["
+    for idx, m in matches {
+        if (idx > 1)
+            itemsJson .= ","
+        itemsJson .= "{""idx"":" . idx . ",""npa"":""" . JsonEscapeStr(m.npa) . """,""orig"":""" . JsonEscapeStr(m.orig) . """,""sy"":""" . JsonEscapeStr(m.sy) . """,""yr"":""" . JsonEscapeStr(m.yr) . """,""desc"":""" . JsonEscapeStr(SubStr(m.result, 1, 95) . (StrLen(m.result) > 95 ? "..." : "")) . """}"
+    }
+    itemsJson .= "]"
+
+    htmlContent := BuildStSidePickerHtml(paramStr, itemsJson)
+    tmpHtml := A_Temp . "\gibdd_st_picker.html"
+    FileDelete, %tmpHtml%
+    fObj := FileOpen(tmpHtml, "w", "UTF-8")
+    if (IsObject(fObj)) {
+        fObj.Write(htmlContent)
+        fObj.Close()
+    }
+
+    cnt := matches.MaxIndex()
+    winH := 88 + (cnt * 76)
+    if (winH > 540)
+        winH := 540
+    posX := A_ScreenWidth - 385
+    posY := Round((A_ScreenHeight - winH) / 2)
+
+    Gui, 17:Destroy
+    Gui, 17:+HwndStChoiceHwnd +AlwaysOnTop -Caption +Border +ToolWindow
+    Gui, 17:Color, 070B14
+    Gui, 17:Margin, 0, 0
+    Gui, 17:Add, ActiveX, x0 y0 w365 h%winH% vStChoiceWB, Shell.Explorer
+    StChoiceWB.Silent := true
+    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=284_" . A_TickCount
+    StChoiceWB.Navigate(navUrl)
+
+    startWait := A_TickCount
+    while (StChoiceWB.ReadyState != 4 && (A_TickCount - startWait < 1500))
+        Sleep, 15
+
+    try {
+        StChoiceWB.document.parentWindow.ahk_call := Func("OnStChoiceWebAction")
+    }
+
+    Gui, 17:Show, x%posX% y%posY% w365 h%winH% NoActivate, Выбор НПА | АХК УГИБДД
+}
+
+OnStChoiceWebAction(action, arg1 := "") {
+    global StChoiceHwnd, PendingStBindIdx, PendingStParam, PendingStMatches, PendingStPrevWin
+    if (action = "close") {
+        Gui, 17:Destroy
+        Return
+    }
+    if (action = "pick") {
+        pickIdx := arg1 + 0
+        if (pickIdx > 0 && IsObject(PendingStMatches) && pickIdx <= PendingStMatches.MaxIndex()) {
+            chosenArt := PendingStMatches[pickIdx]
+            Gui, 17:Destroy
+            if (PendingStPrevWin && WinExist("ahk_id " . PendingStPrevWin)) {
+                WinActivate, ahk_id %PendingStPrevWin%
+                Sleep, 60
+            }
+            ExecuteCustomBind(PendingStBindIdx, PendingStParam, chosenArt)
+        }
+        Return
+    }
+}
+
+BuildStSidePickerHtml(queryStr, itemsJson) {
+    html =
+    ( %
+<!-- saved from url=(0016)http://localhost -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="utf-8">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',sans-serif; }
+body { background:#070B14; color:#E6EDF3; border:1px solid rgba(88,166,255,0.45); overflow:hidden; }
+.hdr { padding:10px 14px; background:linear-gradient(90deg,#0E1830,#152445); border-bottom:1px solid rgba(88,166,255,0.28); display:flex; align-items:center; justify-content:space-between; }
+.hdr-t { font-size:12.5px; font-weight:800; color:#58A6FF; }
+.cls { width:22px; height:22px; border-radius:5px; border:1px solid rgba(248,81,73,0.4); background:rgba(248,81,73,0.12); color:#FF7B72; font-weight:700; cursor:pointer; font-size:11px; }
+.cls:hover { background:#F85149; color:#FFF; }
+.list { padding:10px 12px; max-height:470px; overflow-y:auto; }
+.item { background:rgba(16,25,45,0.9); border:1px solid rgba(88,166,255,0.25); border-radius:8px; padding:9px 11px; margin-bottom:8px; cursor:pointer; transition:all 0.12s; }
+.item:hover { background:rgba(31,111,235,0.28); border-color:#58A6FF; }
+.top { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.badge { font-size:11px; font-weight:800; padding:2px 7px; border-radius:5px; }
+.b-koap { background:rgba(248,81,73,0.2); color:#FF7B72; border:1px solid rgba(248,81,73,0.4); }
+.b-uk { background:rgba(210,153,34,0.22); color:#FFB84D; border:1px solid rgba(210,153,34,0.45); }
+.b-pdd { background:rgba(46,160,67,0.2); color:#7EE787; border:1px solid rgba(46,160,67,0.4); }
+.b-fz { background:rgba(56,139,253,0.2); color:#79C0FF; border:1px solid rgba(56,139,253,0.4); }
+.meta { font-size:11px; color:#7EE787; font-weight:700; }
+.desc { font-size:11px; color:#C9D1D9; line-height:1.35; }
+.foot { padding:6px 12px; font-size:10.5px; color:#8B949E; text-align:center; border-top:1px solid rgba(88,166,255,0.15); }
+</style>
+</head>
+<body>
+<div class="hdr">
+    <div class="hdr-t">⚖️ Выбор НПА для «__QUERY__»</div>
+    <button class="cls" onclick="if(window.ahk_call)ahk_call('close')">✕</button>
+</div>
+<div class="list" id="list"></div>
+<div class="foot">Нажмите на нужный кодекс для озвучки</div>
+<script>
+var items = __ITEMS__;
+var box = document.getElementById('list');
+var html = [];
+for (var i = 0; i < items.length; i++) {
+    var m = items[i];
+    var bc = 'b-fz';
+    if (m.npa.indexOf('КоАП') !== -1) bc = 'b-koap';
+    else if (m.npa.indexOf('УК') !== -1) bc = 'b-uk';
+    else if (m.npa.indexOf('ПДД') !== -1) bc = 'b-pdd';
+    var metaTxt = (m.sy && m.sy !== 'без штрафа') ? m.sy : '';
+    if (m.yr && m.yr !== '0') metaTxt += (metaTxt ? ' • ' : '') + 'Розыск: ' + m.yr;
+    html.push('<div class="item" onclick="if(window.ahk_call)ahk_call(\'pick\', \'' + m.idx + '\')">');
+    html.push('<div class="top"><span class="badge ' + bc + '">' + m.npa + ' • ст. ' + m.orig + '</span><span class="meta">' + metaTxt + '</span></div>');
+    html.push('<div class="desc">' + m.desc + '</div>');
+    html.push('</div>');
+}
+box.innerHTML = html.join('');
+</script>
+</body>
+</html>
+    )
+    html := StrReplace(html, "__QUERY__", queryStr)
+    html := StrReplace(html, "__ITEMS__", itemsJson)
+    return html
+}
+
 ResolveArticleForCustomTag(argStr) {
     global ArticlesDB
     q := Trim(argStr)
@@ -2082,7 +2302,7 @@ FormatCustomBindLine(rawLine, paramStr := "", artObj := "") {
     return formatted
 }
 
-ExecuteCustomBind(BindIdx, paramStr := "") {
+ExecuteCustomBind(BindIdx, paramStr := "", chosenArtObj := "") {
     global CustomBindsDB, AbortBindFlag, OnlyInGameMode, IsBindExecuting, BindQueue
     if (OnlyInGameMode && !IsGameActive())
         Return
@@ -2097,8 +2317,17 @@ ExecuteCustomBind(BindIdx, paramStr := "") {
     SetLocaleRu()
 
     artObj := ""
-    if (InStr(b.Lines, "{storig}") || InStr(b.Lines, "{stnpa}") || InStr(b.Lines, "{stresult}") || InStr(b.Lines, "{stsy}") || InStr(b.Lines, "{styr}")) {
-        artObj := ResolveArticleForCustomTag(paramStr)
+    if (IsObject(chosenArtObj)) {
+        artObj := chosenArtObj
+    } else if (InStr(b.Lines, "{storig}") || InStr(b.Lines, "{stnpa}") || InStr(b.Lines, "{stresult}") || InStr(b.Lines, "{stsy}") || InStr(b.Lines, "{styr}")) {
+        explicitCode := ""
+        allMatches := ResolveAllArticlesForCustomTag(paramStr, explicitCode)
+        if (allMatches.MaxIndex() >= 1 && explicitCode = "") {
+            IsBindExecuting := 0
+            ShowStNpaSidePicker(BindIdx, paramStr, allMatches)
+            Return
+        }
+        artObj := (allMatches.MaxIndex() >= 1) ? allMatches[1] : ResolveArticleForCustomTag(paramStr)
     }
 
     lines := StrSplit(b.Lines, "|")
@@ -11663,8 +11892,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.8.3"
-global AppVersionCode       := 283
+global AppNumericVersion    := "2.8.4"
+global AppVersionCode       := 284
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11676,8 +11905,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.3"
-        AppVersionCode       := 283
+        AppNumericVersion    := "2.8.4"
+        AppVersionCode       := 284
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11705,8 +11934,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.3"
-        AppVersionCode       := 283
+        AppNumericVersion    := "2.8.4"
+        AppVersionCode       := 284
     }
 
     if (!IsSilent)
@@ -14261,7 +14490,7 @@ OnPrivacyConsentWebAction(action, arg1 := "") {
 
 BuildPrivacyConsentHtml() {
     global AppNumericVersion
-    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.3"
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.4"
     html =
     ( %
 <!-- saved from url=(0016)http://localhost -->
