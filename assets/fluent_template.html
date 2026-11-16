@@ -1701,6 +1701,27 @@ html, body {
                     <button class="btn-glass" onclick="callAhk('reset_all_hotkeys')" style="margin-right:0;">⚠️ Сбросить все по умолчанию</button>
                 </div>
 
+                <div class="glass-card" style="height:auto; margin-bottom:14px; padding:12px 14px;">
+                    <div class="card-header" style="margin-bottom:8px;">
+                        <span class="card-title">⚡ Мои пользовательские бинды (<span id="custom-binds-count">0</span>)</span>
+                        <span class="card-subtitle">Команды с аргументами {paramcmd}, /st и личные отыгровки</span>
+                    </div>
+                    <div style="max-height:175px; overflow-y:auto; border:1px solid rgba(56,139,253,0.18); border-radius:8px; background:rgba(8,13,26,0.55);">
+                        <table class="fluent-table">
+                            <thead>
+                                <tr>
+                                    <th>Название бинда</th>
+                                    <th style="width:130px;">Триггер</th>
+                                    <th style="width:120px;">Строк / Пауза</th>
+                                    <th style="width:110px;">Статус</th>
+                                    <th style="width:165px; text-align:right;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="custom-binds-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="fluent-table-wrap">
                     <table class="fluent-table">
                         <thead>
@@ -3017,7 +3038,8 @@ function switchTab(num) {
         if (pane) pane.className = (i === num) ? 'tab-pane active' : 'tab-pane';
     }
     if (num === 7) {
-        renderHotkeysTable();
+        renderCustomBindsTable();
+    renderHotkeysTable();
         var inp = document.getElementById('hk-search-input');
         if (inp) {
             try { inp.focus(); } catch (e) {}
@@ -3298,6 +3320,40 @@ function setHkFilter(cat) {
         if (el) el.className = (pills[i] === currentHkCategory) ? 'filter-pill active' : 'filter-pill';
     }
     renderHotkeysTable();
+}
+
+function renderCustomBindsTable() {
+    var tbody = document.getElementById('custom-binds-tbody');
+    var cntEl = document.getElementById('custom-binds-count');
+    if (!tbody) return;
+    var list = (APP_DATA && APP_DATA.customBinds) ? APP_DATA.customBinds : [];
+    if (cntEl) cntEl.innerText = list.length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#8B949E; padding:16px;">У вас пока нет своих биндов. Нажмите «➕ Создать свой бинд» выше!</td></tr>';
+        return;
+    }
+
+    var html = [];
+    for (var i = 0; i < list.length; i++) {
+        var b = list[i];
+        var linesCnt = b.lines ? b.lines.split('|').length : 1;
+        var stBadge = b.active
+            ? '<span onclick="callAhk(\'toggle_custom_bind\', \'' + b.idx + '\')" style="cursor:pointer; color:#7EE787; font-weight:700;" title="Нажмите, чтобы отключить">✅ Активен</span>'
+            : '<span onclick="callAhk(\'toggle_custom_bind\', \'' + b.idx + '\')" style="cursor:pointer; color:#8B949E; font-weight:700;" title="Нажмите, чтобы включить">⏸️ Выключен</span>';
+
+        html.push('<tr>');
+        html.push('<td style="font-weight:700; color:#E6EDF3;">' + b.name + '</td>');
+        html.push('<td><span class="bind-key cmd" onclick="copyCmd(\'' + b.trigger + '\')">' + b.trigger + '</span></td>');
+        html.push('<td style="color:#8B949E; font-size:12px;">' + linesCnt + ' стр. / ' + b.delay + ' мс</td>');
+        html.push('<td>' + stBadge + '</td>');
+        html.push('<td style="text-align:right; white-space:nowrap;">');
+        html.push('<button class="tb-action-btn" style="margin-right:6px;" onclick="callAhk(\'edit_custom_bind\', \'' + b.idx + '\')">✏️ Изменить</button>');
+        html.push('<button class="tb-action-btn" style="border-color:rgba(248,81,73,0.4); color:#FF7B72;" onclick="callAhk(\'delete_custom_bind\', \'' + b.idx + '\')">🗑️</button>');
+        html.push('</td>');
+        html.push('</tr>');
+    }
+    tbody.innerHTML = html.join('');
 }
 
 function renderHotkeysTable() {
