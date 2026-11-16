@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.9"
-global AppVersionCode       := 279
+global AppNumericVersion    := "2.8.0"
+global AppVersionCode       := 280
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.9") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.0") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.9") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.0") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -2163,7 +2163,7 @@ CustomBindDialogTitle := "➕ Создание нового пользовате
 CustomBindNameVal := "Мой бинд"
 CustomBindTriggerVal := "/мойбинд"
 CustomBindDelayVal := 1200
-CustomBindLinesVal := "Здравия желаю, я сотрудник УГИБДД {Rank} {Fio}!|Предъявите ваше водительское удостоверение."
+CustomBindLinesVal := "Здравия желаю, я сотрудник УГИБДД {Rank} {Fio}!`nПредъявите ваше водительское удостоверение."
 ShowCustomBindEditor()
 Return
 
@@ -2189,146 +2189,249 @@ CustomBindLinesVal := StrReplace(b.Lines, "|", "`n")
 ShowCustomBindEditor()
 Return
 
+global BindEdWB, BindEdGuiHwnd
+
 ShowCustomBindEditor() {
     global EditingCustomBindId, CustomBindDialogTitle, CustomBindNameVal, CustomBindTriggerVal, CustomBindDelayVal, CustomBindLinesVal
+    global BindEdWB, BindEdGuiHwnd, Fio1, Rank, Znak, Otdel, Teg, Prop2, Frak
+
+    SetBrowserEmulationIE11()
+
+    initObj := "{"
+    initObj .= """title"":""" . JsonEscapeStr(CustomBindDialogTitle) . ""","
+    initObj .= """name"":""" . JsonEscapeStr(CustomBindNameVal) . ""","
+    initObj .= """trigger"":""" . JsonEscapeStr(CustomBindTriggerVal) . ""","
+    initObj .= """delay"":" . (CustomBindDelayVal + 0 > 0 ? CustomBindDelayVal + 0 : 1200) . ","
+    initObj .= """lines"":""" . JsonEscapeStr(CustomBindLinesVal) . ""","
+    initObj .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
+    initObj .= """rank"":""" . JsonEscapeStr(Rank) . ""","
+    initObj .= """znak"":""" . JsonEscapeStr(Znak) . ""","
+    initObj .= """otdel"":""" . JsonEscapeStr(Otdel) . ""","
+    initObj .= """callsign"":""" . JsonEscapeStr(Teg . "-" . Prop2) . ""","
+    initObj .= """city"":""" . JsonEscapeStr(Frak) . """"
+    initObj .= "}"
+
+    htmlContent := BuildBindEditorHtml(initObj)
+    tmpHtml := A_Temp . "\gibdd_bind_editor.html"
+    FileDelete, %tmpHtml%
+    fObj := FileOpen(tmpHtml, "w", "UTF-8")
+    if (IsObject(fObj)) {
+        fObj.Write(htmlContent)
+        fObj.Close()
+    }
+
     Gui, 9:Destroy
-    Gui, 9:Color, 121622, 1B2234
-    Gui, 9:Font, S13 C58A6FF Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y12 w560 h26, %CustomBindDialogTitle%
+    Gui, 9:+HwndBindEdGuiHwnd -Caption +Border
+    Gui, 9:Color, 070B14
+    Gui, 9:Margin, 0, 0
+    Gui, 9:Add, ActiveX, x0 y0 w680 h610 vBindEdWB, Shell.Explorer
+    BindEdWB.Silent := true
+    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=280_" . A_TickCount
+    BindEdWB.Navigate(navUrl)
 
-    Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y48 w150 h22, Название бинда:
-    Gui, 9:Font, S10 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Edit, x170 y46 w405 h26 vCBEditName, %CustomBindNameVal%
+    OnMessage(0x0100, "Gui_KeyDown")
+    OnMessage(0x0101, "Gui_KeyDown")
 
-    Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y82 w150 h22, Триггер (команда):
-    Gui, 9:Font, S10 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Edit, x170 y80 w220 h26 vCBEditTrigger, %CustomBindTriggerVal%
-    Gui, 9:Font, S9 C8B949E Norm, Segoe UI
-    Gui, 9:Add, Text, x400 y84 w175 h22, (например /пост или !Numpad1)
+    startWait := A_TickCount
+    while (BindEdWB.ReadyState != 4 && (A_TickCount - startWait < 2000))
+        Sleep, 15
 
-    Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y116 w150 h22, Задержка между строк:
-    Gui, 9:Font, S10 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Edit, x170 y114 w120 h26 vCBEditDelay, %CustomBindDelayVal%
-    Gui, 9:Font, S9 C8B949E Norm, Segoe UI
-    Gui, 9:Add, Text, x300 y118 w275 h22, мс (рекомендуется 1200-1800 мс)
+    try {
+        BindEdWB.document.parentWindow.ahk_call := Func("OnBindEditorWebAction")
+    }
 
-    Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y150 w560 h22, Текст отыгровки (каждая строка с новой строки):
-    Gui, 9:Font, S10 CE6EDF3 Norm, Consolas
-    Gui, 9:Add, Edit, x16 y174 w560 h170 vCBEditLines +Multi +WantReturn, %CustomBindLinesVal%
-
-    Gui, 9:Font, S9 CFFB84D Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y350 w140 h22, Теги профиля / аргумент:
-    Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Button, x160 y348 w72 h24 gInsertVarFio, + {Fio}
-    Gui, 9:Add, Button, x236 y348 w78 h24 gInsertVarRank, + {Rank}
-    Gui, 9:Add, Button, x318 y348 w78 h24 gInsertVarZnak, + {Znak}
-    Gui, 9:Add, Button, x400 y348 w66 h24 gInsertVarId, + {Id}
-    Gui, 9:Add, Button, x470 y348 w106 h24 gInsertVarParamCmd, + {paramcmd}
-
-    Gui, 9:Font, S9 C79C0FF Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y380 w140 h22, Теги статей (/st ...):
-    Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Button, x160 y378 w78 h24 gInsertVarStOrig, + {storig}
-    Gui, 9:Add, Button, x242 y378 w78 h24 gInsertVarStNpa, + {stnpa}
-    Gui, 9:Add, Button, x324 y378 w88 h24 gInsertVarStResult, + {stresult}
-    Gui, 9:Add, Button, x416 y378 w76 h24 gInsertVarStSy, + {stsy}
-    Gui, 9:Add, Button, x496 y378 w80 h24 gInsertVarStYr, + {styr}
-
-    Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Button, x16 y416 w270 h36 gSaveCustomBindDialogBtn, 💾 Сохранить бинд
-    Gui, 9:Add, Button, x306 y416 w270 h36 gCancelCustomBindDialogBtn, ❌ Отмена
-
-    Gui, 9:Show, w592 h466, Конструктор бинда | АХК УГИБДД
+    Gui, 9:Show, w680 h610, Конструктор бинда | АХК УГИБДД
 }
 
-InsertVarFio:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {Fio}"
-Return
+OnBindEditorWebAction(action, a1 := "", a2 := "", a3 := "", a4 := "") {
+    global EditingCustomBindId, CustomBindsDB, BindEdGuiHwnd
+    if (action = "drag") {
+        PostMessage, 0xA1, 2,,, ahk_id %BindEdGuiHwnd%
+        Return
+    }
+    if (action = "close") {
+        Gui, 9:Destroy
+        Return
+    }
+    if (action = "save") {
+        bName := Trim(a1)
+        bTrig := Trim(a2)
+        bDelay := a3 + 0
+        if (bDelay < 150)
+            bDelay := 1200
+        bLines := Trim(a4)
+        if (bName = "" || bTrig = "" || bLines = "") {
+            MsgBox, 48, Конструктор бинда, Заполните название, триггер и хотя бы одну строку отыгровки!
+            Return
+        }
+        cleanLines := StrReplace(bLines, "`r`n", "|")
+        cleanLines := StrReplace(cleanLines, "`n", "|")
+        cleanLines := StrReplace(cleanLines, "`r", "|")
 
-InsertVarRank:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {Rank}"
-Return
+        if (EditingCustomBindId > 0 && EditingCustomBindId <= CustomBindsDB.MaxIndex()) {
+            CustomBindsDB[EditingCustomBindId].Name := bName
+            CustomBindsDB[EditingCustomBindId].Trigger := bTrig
+            CustomBindsDB[EditingCustomBindId].Delay := bDelay
+            CustomBindsDB[EditingCustomBindId].Lines := cleanLines
+        } else {
+            newId := CustomBindsDB.MaxIndex() + 1
+            CustomBindsDB.Push({Id: newId, Name: bName, Trigger: bTrig, Delay: bDelay, Active: 1, Lines: cleanLines})
+        }
 
-InsertVarZnak:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {Znak}"
-Return
-
-InsertVarId:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {Id}"
-Return
-
-InsertVarParamCmd:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {paramcmd}"
-Return
-
-InsertVarStOrig:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {storig}"
-Return
-
-InsertVarStNpa:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {stnpa}"
-Return
-
-InsertVarStResult:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {stresult}"
-Return
-
-InsertVarStSy:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {stsy}"
-Return
-
-InsertVarStYr:
-GuiControlGet, curTxt, 9:, CBEditLines
-GuiControl, 9:, CBEditLines, % curTxt . " {styr}"
-Return
-
-SaveCustomBindDialogBtn:
-Gui, 9:Submit, NoHide
-if (Trim(CBEditName) = "") {
-    MsgBox, 48, Ошибка, Введите название бинда!
-    Return
-}
-if (Trim(CBEditTrigger) = "") {
-    MsgBox, 48, Ошибка, Введите команду запуска или хоткей!
-    Return
-}
-cleanLines := StrReplace(Trim(CBEditLines), "`r`n", "|")
-cleanLines := StrReplace(cleanLines, "`n", "|")
-cleanLines := StrReplace(cleanLines, "`r", "|")
-
-if (EditingCustomBindId > 0 && EditingCustomBindId <= CustomBindsDB.MaxIndex()) {
-    CustomBindsDB[EditingCustomBindId].Name := Trim(CBEditName)
-    CustomBindsDB[EditingCustomBindId].Trigger := Trim(CBEditTrigger)
-    CustomBindsDB[EditingCustomBindId].Delay := CBEditDelay + 0
-    CustomBindsDB[EditingCustomBindId].Lines := cleanLines
-} else {
-    newId := CustomBindsDB.MaxIndex() + 1
-    CustomBindsDB.Push({Id: newId, Name: Trim(CBEditName), Trigger: Trim(CBEditTrigger), Delay: (CBEditDelay + 0), Active: 1, Lines: cleanLines})
+        SaveCustomBindsToIni()
+        PopulateCustomBindsLV()
+        RegisterAllCustomBinds()
+        RefreshFluentWebData()
+        Gui, 9:Destroy
+        PlaySafeBeep(950, 90)
+        TrayTip, ✅ Бинд сохранён!, Команда «%bTrig%» зарегистрирована и готова к работе., 3, 1
+        Return
+    }
 }
 
-SaveCustomBindsToIni()
-PopulateCustomBindsLV()
-RegisterAllCustomBinds()
-Gui, 9:Destroy
-TrayTip, ✅ Бинд сохранен!, Пользовательский бинд успешно зарегистрирован и готов к использованию!, 2, 1
-Return
+BuildBindEditorHtml(initJson) {
+    html =
+    ( %
+<!-- saved from url=(0016)http://localhost -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="utf-8">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',sans-serif; }
+body { background:#070B14; color:#E6EDF3; overflow:hidden; border:1px solid rgba(88,166,255,0.28); height:610px; display:flex; flex-direction:column; }
+.topbar { height:46px; background:linear-gradient(90deg,#0E172B 0%,#13213D 100%); border-bottom:1px solid rgba(88,166,255,0.25); display:flex; align-items:center; justify-content:space-between; padding:0 16px; cursor:move; }
+.title { font-size:14px; font-weight:800; color:#58A6FF; letter-spacing:0.3px; }
+.close-btn { width:28px; height:28px; border-radius:6px; border:1px solid rgba(248,81,73,0.35); background:rgba(248,81,73,0.12); color:#FF7B72; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.close-btn:hover { background:#F85149; color:#FFF; }
+.content { padding:14px 18px; flex:1; overflow-y:auto; }
+.grid-2 { display:flex; gap:12px; margin-bottom:10px; }
+.field { margin-bottom:10px; flex:1; }
+.lbl { font-size:11.5px; font-weight:700; color:#8B949E; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.4px; }
+.inp, .txt { width:100%; background:#0D1526; border:1px solid rgba(88,166,255,0.28); border-radius:8px; color:#FFF; padding:8px 11px; font-size:13px; outline:none; transition:border 0.15s; }
+.inp:focus, .txt:focus { border-color:#58A6FF; box-shadow:0 0 0 2px rgba(88,166,255,0.18); }
+.txt { height:128px; resize:none; font-family:'Consolas',monospace; font-size:12.5px; line-height:1.45; }
+.hint { font-size:11px; color:#79C0FF; margin-top:4px; }
+.tag-box { background:rgba(17,26,46,0.75); border:1px solid rgba(88,166,255,0.2); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+.tag-group-lbl { font-size:11px; font-weight:700; color:#FFB84D; margin-bottom:6px; }
+.tag-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.tag-row:last-child { margin-bottom:0; }
+.chip { background:rgba(56,139,253,0.14); border:1px solid rgba(88,166,255,0.35); color:#79C0FF; padding:4px 9px; border-radius:6px; font-size:11.5px; font-family:'Consolas',monospace; font-weight:700; cursor:pointer; }
+.chip:hover { background:#1F6FEB; color:#FFF; border-color:#58A6FF; }
+.chip.st { background:rgba(255,184,77,0.12); border-color:rgba(255,184,77,0.4); color:#FFB84D; }
+.chip.st:hover { background:#D29922; color:#000; }
+.preview { background:#0B111E; border:1px dashed rgba(126,231,135,0.35); border-radius:8px; padding:8px 11px; font-family:'Consolas',monospace; font-size:11.5px; color:#7EE787; max-height:66px; overflow-y:auto; white-space:pre-wrap; }
+.footer { padding:12px 18px; border-top:1px solid rgba(88,166,255,0.2); background:#0A101E; display:flex; gap:12px; }
+.btn { flex:1; height:38px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-save { background:linear-gradient(135deg,#238636 0%,#2EA043 100%); color:#FFF; }
+.btn-save:hover { background:linear-gradient(135deg,#2EA043 0%,#3FB950 100%); }
+.btn-cancel { background:rgba(248,81,73,0.12); border:1px solid rgba(248,81,73,0.4); color:#FF7B72; max-width:160px; }
+.btn-cancel:hover { background:#F85149; color:#FFF; }
+</style>
+</head>
+<body>
+<div class="topbar" onmousedown="if(window.ahk_call)ahk_call('drag')">
+    <div class="title" id="hdr-title">➕ Конструктор пользовательского бинда</div>
+    <button class="close-btn" onmousedown="event.stopPropagation()" onclick="if(window.ahk_call)ahk_call('close')">✕</button>
+</div>
+<div class="content">
+    <div class="field">
+        <div class="lbl">Название бинда</div>
+        <input id="b-name" class="inp" placeholder="Например: Озвучка статьи или Мегафон">
+    </div>
+    <div class="grid-2">
+        <div class="field" style="flex:1.2;">
+            <div class="lbl">Триггер (команда или клавиша)</div>
+            <input id="b-trig" class="inp" placeholder="/st, /мг или !Numpad1">
+            <div class="hint">С <b>/команда</b> и тегом <b>{paramcmd}</b> или <b>{st...}</b> ждёт ввод аргумента до Enter</div>
+        </div>
+        <div class="field" style="flex:0.8;">
+            <div class="lbl">Пауза между строк (мс)</div>
+            <input id="b-delay" type="number" class="inp" value="1200">
+            <div class="hint">Рекомендуется 1200–1800 мс</div>
+        </div>
+    </div>
+    <div class="field">
+        <div class="lbl">Текст отыгровки (каждая строка — с новой строки)</div>
+        <textarea id="b-lines" class="txt" oninput="updatePreview()"></textarea>
+    </div>
+    <div class="tag-box">
+        <div class="tag-group-lbl">⚡ Вставить тег профиля, времени или аргумента (клик вставит в курсор):</div>
+        <div class="tag-row">
+            <span class="chip" onclick="ins('{Fio}')">{Fio}</span>
+            <span class="chip" onclick="ins('{Rank}')">{Rank}</span>
+            <span class="chip" onclick="ins('{Znak}')">{Znak}</span>
+            <span class="chip" onclick="ins('{Otdel}')">{Otdel}</span>
+            <span class="chip" onclick="ins('{Callsign}')">{Callsign}</span>
+            <span class="chip" onclick="ins('{City}')">{City}</span>
+            <span class="chip" onclick="ins('{Id}')">{Id}</span>
+            <span class="chip" onclick="ins('{Time}')">{Time}</span>
+            <span class="chip" onclick="ins('{paramcmd}')" style="border-color:#7EE787; color:#7EE787;">{paramcmd}</span>
+        </div>
+        <div class="tag-group-lbl" style="color:#79C0FF;">📢 Теги для озвучки статей (работают при вводе, напр. /st 5.8):</div>
+        <div class="tag-row">
+            <span class="chip st" onclick="ins('{storig}')" title="Номер введённой статьи (5.8)">{storig} номер</span>
+            <span class="chip st" onclick="ins('{stnpa}')" title="Кодекс (КоАП / УК РП)">{stnpa} НПА</span>
+            <span class="chip st" onclick="ins('{stresult}')" title="Описание статьи">{stresult} описание</span>
+            <span class="chip st" onclick="ins('{stsy}')" title="Штраф по статье">{stsy} штраф</span>
+            <span class="chip st" onclick="ins('{styr}')" title="Розыск / срок">{styr} розыск</span>
+        </div>
+    </div>
+    <div class="lbl">Живой предпросмотр результата:</div>
+    <div class="preview" id="b-preview"></div>
+</div>
+<div class="footer">
+    <button class="btn btn-save" onclick="saveBind()">💾 Сохранить бинд</button>
+    <button class="btn btn-cancel" onclick="if(window.ahk_call)ahk_call('close')">Отмена</button>
+</div>
+<script>
+var D = __INIT_JSON__;
+document.getElementById('hdr-title').innerText = D.title || 'Конструктор бинда';
+document.getElementById('b-name').value = D.name || '';
+document.getElementById('b-trig').value = D.trigger || '';
+document.getElementById('b-delay').value = D.delay || 1200;
+document.getElementById('b-lines').value = D.lines || '';
 
-CancelCustomBindDialogBtn:
-Gui, 9:Destroy
-Return
+function ins(tag) {
+    var el = document.getElementById('b-lines');
+    var s = el.selectionStart || el.value.length;
+    var e = el.selectionEnd || el.value.length;
+    el.value = el.value.substring(0, s) + tag + el.value.substring(e);
+    el.focus();
+    el.selectionStart = el.selectionEnd = s + tag.length;
+    updatePreview();
+}
+function updatePreview() {
+    var t = document.getElementById('b-lines').value || '';
+    t = t.replace(/{Fio}/g, D.fio || 'Иванов И.И.')
+         .replace(/{Rank}/g, D.rank || 'Сержант')
+         .replace(/{Znak}/g, D.znak || '77-0001')
+         .replace(/{Otdel}/g, D.otdel || 'Инспектор ОР')
+         .replace(/{Callsign}/g, D.callsign || '52-01')
+         .replace(/{City}/g, D.city || 'Приволжск')
+         .replace(/{Id}/g, '124')
+         .replace(/{Time}/g, '17:40')
+         .replace(/{paramcmd}/g, 'Водитель BMW, к обочине!')
+         .replace(/{storig}/g, '5.8')
+         .replace(/{stnpa}/g, 'КоАП')
+         .replace(/{stresult}/g, 'посадка или высадка пассажиров со стороны проезжей части')
+         .replace(/{stsy}/g, '5000 руб.')
+         .replace(/{styr}/g, '0');
+    document.getElementById('b-preview').innerText = t;
+}
+function saveBind() {
+    if (!window.ahk_call) return;
+    window.ahk_call('save', document.getElementById('b-name').value, document.getElementById('b-trig').value, document.getElementById('b-delay').value, document.getElementById('b-lines').value);
+}
+updatePreview();
+</script>
+</body>
+</html>
+    )
+    html := StrReplace(html, "__INIT_JSON__", initJson)
+    return html
+}
 
 TestCustomBindBtn:
 Gui, 1:Default
@@ -11572,8 +11675,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.9"
-global AppVersionCode       := 279
+global AppNumericVersion    := "2.8.0"
+global AppVersionCode       := 280
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11585,8 +11688,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.9"
-        AppVersionCode       := 279
+        AppNumericVersion    := "2.8.0"
+        AppVersionCode       := 280
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11614,8 +11717,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.9"
-        AppVersionCode       := 279
+        AppNumericVersion    := "2.8.0"
+        AppVersionCode       := 280
     }
 
     if (!IsSilent)
@@ -12087,6 +12190,7 @@ BuildFluentInitialJson() {
     j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
     j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
     j .= """antiFloodMode"":""" . JsonEscapeStr(AntiFloodMode) . ""","
+    j .= """telemetryConsent"":" . (TelemetryConsent ? 1 : 0) . ","
     j .= """localIp"":""" . JsonEscapeStr(GetBestLocalIP()) . ""","
     j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088) . ","
     j .= """relayUrl"":""" . JsonEscapeStr(TabletRelayHost) . ""","
@@ -12153,7 +12257,7 @@ EnsureAssetsUpToDate() {
         needTpl := true
     else {
         FileRead, chkHtml, *P65001 %tplPath%
-        if (!InStr(chkHtml, "toggle-antiflood-btn"))
+        if (!InStr(chkHtml, "toggle-privacy-btn"))
             needTpl := true
     }
 
@@ -12198,7 +12302,7 @@ InitAndShowFluentGlassUI() {
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
     if (FileExist(tplPath)) {
         FileRead, chkMainTpl, *P65001 %tplPath%
-        if (!InStr(chkMainTpl, "toggle-antiflood-btn")) {
+        if (!InStr(chkMainTpl, "toggle-privacy-btn")) {
             if (A_IsCompiled) {
                 try FileInstall, assets\fluent_template.html, %A_Temp%\fluent_template.html, 1
                 tplPath := A_Temp . "\fluent_template.html"
@@ -12292,13 +12396,16 @@ InitAndShowFluentGlassUI() {
 }
 
 Gui_KeyDown(wParam, lParam, nMsg, hWnd) {
-    global FluentGuiHwnd, FluentWB
+    global FluentGuiHwnd, FluentWB, BindEdGuiHwnd, BindEdWB
     static IID_IOleInPlaceActiveObject := "{00000117-0000-0000-C000-000000000046}"
-    if (!FluentWB || !FluentGuiHwnd)
+    targetWB := ""
+    if (FluentWB && FluentGuiHwnd && (hWnd = FluentGuiHwnd || DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr") = FluentGuiHwnd))
+        targetWB := FluentWB
+    else if (BindEdWB && BindEdGuiHwnd && (hWnd = BindEdGuiHwnd || DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr") = BindEdGuiHwnd))
+        targetWB := BindEdWB
+    if (!targetWB)
         return
-    if (hWnd != FluentGuiHwnd && DllCall("GetAncestor", "Ptr", hWnd, "UInt", 2, "Ptr") != FluentGuiHwnd)
-        return
-    pipa := ComObjQuery(FluentWB, IID_IOleInPlaceActiveObject)
+    pipa := ComObjQuery(targetWB, IID_IOleInPlaceActiveObject)
     if (!pipa)
         return
     VarSetCapacity(msg, 48, 0)
@@ -12657,6 +12764,11 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         OnlyInGameMode := !OnlyInGameMode
         GuiControl, 1:, OnlyInGameChk, %OnlyInGameMode%
         Gosub, ToggleOnlyInGameMode
+        RefreshFluentWebData()
+        Return
+    }
+    if (action = "open_privacy_dialog") {
+        ShowPrivacyConsentDialog()
         RefreshFluentWebData()
         Return
     }
@@ -13898,48 +14010,147 @@ CheckPrivacyConsent() {
     }
 }
 
+global PrivacyWB, PrivacyGuiHwnd
+
 ShowPrivacyConsentDialog() {
-    global
-    Gui, 9:Destroy
-    Gui, 9:Color, 0D1426, 16223E
-    Gui, 9:Font, S12 C58A6FF Bold, Segoe UI
-    Gui, 9:Add, Text, x20 y16 w560 h26, 🔒 Конфиденциальность и безопасность данных
+    global PrivacyWB, PrivacyGuiHwnd, TelemetryConsent
+    SetBrowserEmulationIE11()
 
-    Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
-    msgText := "Программа «АХК УГИБДД» уважает вашу приватность.`n`n"
-    msgText .= "Для работы функций синхронизации (бортовой планшет и статус дежурства) "
-    msgText .= "скрипт может отправлять на сервер базовую техническую информацию:`n`n"
-    msgText .= "  • Случайный анонимный Client ID (без сбора MachineGuid, имени ПК или данных Windows);`n"
-    msgText .= "  • Номер версии программы (для уведомлений об обновлениях);`n"
-    msgText .= "  • Событие начала и окончания дежурства (при запуске и закрытии).`n`n"
-    msgText .= "Никакие личные файлы, пароли, переписки или системные данные НЕ собираются и НЕ передаются.`n`n"
-    msgText .= "Вы можете разрешить анонимную синхронизацию или отказаться и использовать скрипт в 100% локальном режиме."
+    htmlContent := BuildPrivacyConsentHtml()
+    tmpHtml := A_Temp . "\gibdd_privacy_consent.html"
+    FileDelete, %tmpHtml%
+    fObj := FileOpen(tmpHtml, "w", "UTF-8")
+    if (IsObject(fObj)) {
+        fObj.Write(htmlContent)
+        fObj.Close()
+    }
 
-    Gui, 9:Add, Text, x20 y48 w560 h140, % msgText
+    Gui, 16:Destroy
+    Gui, 16:+HwndPrivacyGuiHwnd -Caption +Border
+    Gui, 16:Color, 070B14
+    Gui, 16:Margin, 0, 0
+    Gui, 16:Add, ActiveX, x0 y0 w660 h540 vPrivacyWB, Shell.Explorer
+    PrivacyWB.Silent := true
+    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=280_" . A_TickCount
+    PrivacyWB.Navigate(navUrl)
 
-    Gui, 9:Font, S10 C7EE787 Bold, Segoe UI
-    Gui, 9:Add, Button, x20 y200 w270 h40 gPrivacyConsentAccept, ✅ Согласен (Онлайн-режим)
+    startWait := A_TickCount
+    while (PrivacyWB.ReadyState != 4 && (A_TickCount - startWait < 2000))
+        Sleep, 15
 
-    Gui, 9:Font, S10 CFF7B72 Bold, Segoe UI
-    Gui, 9:Add, Button, x310 y200 w270 h40 gPrivacyConsentDecline, ❌ Отказаться (Только оффлайн)
+    try {
+        PrivacyWB.document.parentWindow.ahk_call := Func("OnPrivacyConsentWebAction")
+    }
 
-    Gui, 9:Show, w600 h256, АХК УГИБДД — Выбор режима работы
-    WinWaitClose, АХК УГИБДД — Выбор режима работы
+    Gui, 16:Show, w660 h540, АХК УГИБДД — Политика конфиденциальности
+    WinWaitClose, ahk_id %PrivacyGuiHwnd%
 }
 
-PrivacyConsentAccept:
-global TelemetryConsent := 1
-SavePrivacyChoice(1)
-Gui, 9:Destroy
-SendSessionEvent("start")
-Return
+OnPrivacyConsentWebAction(action, arg1 := "") {
+    global PrivacyGuiHwnd, TelemetryConsent
+    if (action = "drag") {
+        PostMessage, 0xA1, 2,,, ahk_id %PrivacyGuiHwnd%
+        Return
+    }
+    if (action = "accept") {
+        TelemetryConsent := 1
+        SavePrivacyChoice(1)
+        Gui, 16:Destroy
+        SendSessionEvent("start")
+        PlaySafeBeep(950, 90)
+        TrayTip, ✅ Онлайн-режим включён, Анонимная синхронизация и автообновления активны., 3, 1
+        Return
+    }
+    if (action = "decline") {
+        TelemetryConsent := 0
+        SavePrivacyChoice(0)
+        Gui, 16:Destroy
+        PlaySafeBeep(700, 90)
+        TrayTip, 🛡️ Локальный оффлайн-режим, Передача любых данных на сервер полностью отключена., 4, 1
+        Return
+    }
+}
 
-PrivacyConsentDecline:
-global TelemetryConsent := 0
-SavePrivacyChoice(0)
-Gui, 9:Destroy
-TrayTip, 🛡️ Локальный режим, Программа работает полностью оффлайн без отправки данных., 4, 1
-Return
+BuildPrivacyConsentHtml() {
+    global AppNumericVersion
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.0"
+    html =
+    ( %
+<!-- saved from url=(0016)http://localhost -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="utf-8">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',sans-serif; }
+body { background:#070B14; color:#E6EDF3; border:1px solid rgba(88,166,255,0.32); height:540px; display:flex; flex-direction:column; overflow:hidden; }
+.header { padding:16px 20px; background:linear-gradient(135deg,#0E1830 0%,#142342 100%); border-bottom:1px solid rgba(88,166,255,0.25); display:flex; align-items:center; justify-content:space-between; cursor:move; }
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.shield { width:40px; height:40px; border-radius:10px; background:rgba(88,166,255,0.16); border:1px solid rgba(88,166,255,0.4); display:flex; align-items:center; justify-content:center; font-size:20px; }
+.hdr-title { font-size:15px; font-weight:800; color:#58A6FF; }
+.hdr-sub { font-size:11.5px; color:#8B949E; margin-top:2px; }
+.body { padding:16px 20px; flex:1; overflow-y:auto; }
+.card { background:rgba(16,25,45,0.85); border:1px solid rgba(88,166,255,0.2); border-radius:10px; padding:12px 14px; margin-bottom:11px; }
+.card.green { border-color:rgba(126,231,135,0.3); background:rgba(20,42,32,0.45); }
+.card.warn { border-color:rgba(255,184,77,0.3); background:rgba(42,34,18,0.45); }
+.card-title { font-size:12.5px; font-weight:800; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.card.green .card-title { color:#7EE787; }
+.card.blue .card-title { color:#79C0FF; }
+.card.warn .card-title { color:#FFB84D; }
+ul { padding-left:18px; font-size:12px; color:#C9D1D9; line-height:1.5; }
+li { margin-bottom:3px; }
+b { color:#FFF; }
+.note { font-size:11.5px; color:#8B949E; line-height:1.45; margin-top:4px; }
+.footer { padding:14px 20px; border-top:1px solid rgba(88,166,255,0.22); background:#0A101E; display:flex; gap:12px; }
+.btn { flex:1; height:42px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-ok { background:linear-gradient(135deg,#238636 0%,#2EA043 100%); color:#FFF; }
+.btn-ok:hover { background:linear-gradient(135deg,#2EA043 0%,#3FB950 100%); }
+.btn-no { background:rgba(248,81,73,0.12); border:1px solid rgba(248,81,73,0.45); color:#FF7B72; }
+.btn-no:hover { background:#F85149; color:#FFF; }
+</style>
+</head>
+<body>
+<div class="header" onmousedown="if(window.ahk_call)ahk_call('drag')">
+    <div class="hdr-left">
+        <div class="shield">🔒</div>
+        <div>
+            <div class="hdr-title">Конфиденциальность и режим работы АХК УГИБДД</div>
+            <div class="hdr-sub">Версия __VER_STR__ • Прозрачная политика обработки данных</div>
+        </div>
+    </div>
+</div>
+<div class="body">
+    <div class="card green">
+        <div class="card-title">✅ Что программа НИКОГДА не собирает</div>
+        <ul>
+            <li><b>Системные данные ПК:</b> MachineGuid, HWID, серийные номера дисков, имя ПК и учётную запись Windows.</li>
+            <li><b>Личные данные:</b> файлы на компьютере, пароли, историю браузера, переписки и буфер обмена.</li>
+        </ul>
+    </div>
+    <div class="card blue">
+        <div class="card-title">📡 Какие данные отправляются (ТОЛЬКО при вашем согласии)</div>
+        <ul>
+            <li><b>Случайный анонимный Client ID (UUID):</b> создаётся локально в файле <i>client_id.txt</i> — вы можете сбросить его в любой момент в «Анкете» или меню трея.</li>
+            <li><b>Версия программы:</b> для проверки и загрузки обновлений с проверкой цифровой подписи RSA-SHA256.</li>
+            <li><b>Статус сессии (запуск и закрытие):</b> отправляется только при старте и выходе (без постоянных фоновых запросов) для работы бортового планшета и карты экипажей.</li>
+        </ul>
+    </div>
+    <div class="card warn">
+        <div class="card-title">🛡️ Если выбрать «Отказаться (Только оффлайн)»</div>
+        <div class="note">Программа перейдёт в <b>100% локальный режим</b>: ни один сетевой запрос не будет отправлен на сервер. Все RP-бинды, калькулятор КоАП/УК, избранное, СГУ и локальный HUD продолжат работать без ограничений. Изменить выбор можно в любой момент в настройках безопасности.</div>
+    </div>
+</div>
+<div class="footer">
+    <button class="btn btn-ok" onclick="if(window.ahk_call)ahk_call('accept')">✅ Согласен (Онлайн-режим)</button>
+    <button class="btn btn-no" onclick="if(window.ahk_call)ahk_call('decline')">🛡️ Отказаться (Только оффлайн)</button>
+</div>
+</body>
+</html>
+    )
+    html := StrReplace(html, "__VER_STR__", verStr)
+    return html
+}
 
 SavePrivacyChoice(val) {
     iniPath := A_Temp . "\gibdd.egl"

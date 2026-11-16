@@ -1,15 +1,15 @@
 {
-  "version_code": 279,
-  "version": "2.7.9",
+  "version_code": 280,
+  "version": "2.8.0",
   "release_date": "2026-11-16",
-  "title": "Обновление v2.7.9: Умный анти-флуд (очередь), тег {paramcmd} и озвучка статей /st",
-  "changelog": "- 🔊 Умный анти-флуд и очередь отправки биндов (переключение: Очередь / Прерывать предыдущий)\n- ⚡ Тег {paramcmd} для своих команд с аргументами (напр. /мг текст)\n- 📢 Поддержка кастомной озвучки статей с тегами {storig}, {stnpa}, {stresult}, {stsy}, {styr} (пример /st 5.8)",
+  "title": "Обновление v2.8.0: Новый дизайн Конструктора биндов и окна конфиденциальности",
+  "changelog": "- 🎨 Полный редизайн «Конструктора биндов» в стиле Fluent Police Glass: чипсы вставки тегов и живой предпросмотр\n- 🔒 Красивое подробное окно согласия о сборе данных и оффлайн-режиме + кнопка настроек приватности в Fluent UI\n- 🐛 Исправлен перенос строк при создании нового бинда",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "508f66a79a40408d8198cf375f644c29b9c3176f57c8158602bb1f6952aa3267",
-  "exe_signature": "GablzKFZ4L7T9ef/mjEtnQh9lofQsvN29lsSjpTojoBdFsOwDcOmV4pzQMjb9tkAYhPO7oX5TLOWy1WD0gEbmVgDs64FatT2uTRijpBsaVKOY6N+2ObhDqccjN98sYTqOxtvkkQZt3XR5F8/vgp5Ybu+ZfazBsJeW356Z9sPxkd7UIOuRrcRAd3qQhkEdc0otlvk2mE57OMS//02UQPmEHq5y8loxoqkFMVKUQ47vbgygWqNFs52xZHfeFg66j3p3E/oTUoNOMoSM6HAGglWI8QS3ypWJJdU8GgLtg8PCu6TRXOZ4lDjBY8dSTHFz0Sh2E/mQiOBVwNGFYE1wUVz0A==",
-  "ahk_sha256": "5b54d02663314e9b91f8f1ad384a9a364af666c1bc793e68c394d3549c3867eb",
-  "ahk_signature": "JyiSRK425NK4N9UnNlpi3b8mAabY+WvqFDA3Bl+DfYID3Xrc1XRPT5QZRyLDx3gL+HfvmUVqMH5yXWN6EbxUDPX691MDry2qCe60623bEQNre8cep7JdSemUzDYfWsG/qf1MqS9ZWqMGU8qWFcPd9eQm4Wv0st3r6ltGMihEdYyUOpBw+Tkpwjrw4B7B+uC6hlSqEokF/Ke4nydp4gFcmd/S+WdN6Sw/TnnWK7+xmGkPnKJpy60izLyEJ8LBpNU6lPU24MmO4GAL99mnefTQL3rUpxRJHlNkPOXnYLoghw9EXmnZb06oXDgvKe5x2t+4tkdjbSzOnHoHCTSF+VYrSw=="
+  "exe_sha256": "06bcd44cad53977c1551358cea55d2eddf471ab154bdd1eeaeb7d2fbe8b75fb5",
+  "exe_signature": "wVraSKsJUz7U4JAOqn5AdKh5bnZhluq+857Lt/d/fayunX/efZPh5hcqGT1vRB2pUB7L4OC1jV2jkXSWRD0wep5XniOp4jxVrshCjPiGgExMTZtNLLoDvbjaApRfEj2XRuYh0vhrPyv7nHDK8OkrlQ5jpW6ZPkZi4S+kEO3qxZEyWXgTWIopnPfnzzj0zU9TAghLJ5pJuw7r3cZVjqo4rNqg/xFrApIjsTMyzw2MscbjnkhhiEl1Zibv6Nl/YSTr3Iy4LcQJmZ6UXVY3v3n9VxzGNPHwu8LQ8ct2DPhF+u0kYvPI7eOrYJFOmTsrFS1aC6rZnXilwt0F8OXYd0N+4Q==",
+  "ahk_sha256": "bd74d7665e48aae6653810f2f7ee1db057f569a75321b052e85117b43a567da2",
+  "ahk_signature": "dcJh4oq2jXAebBq+lwsOzEYU9hRGlE8YXCMfTgDaE8/ea7kd/opmMH4lFtovtCRUYg8p3H6fKS9bdDaRKg+5bO2TtER3+cwfNxHoM1hFPt/hxY7eiDdWSzErYqSnS0EXzQr8l4Hqqz6DTu2TLYOOw3aLQjP5ILyOZIjtdjllJLoUytwS2SivrPPugx3IGpxualF9+wsTy0/mavyMTkt6fgxDLCs1JN67zlFH3lcaB/pdvrvyf1XtP7hWYZX7LKiFptjFiiL7Au2J7UqajgF+AhisuQSct1vX0ljgc1+Wp7Q4zQCtlTjGZQzyPUGyfmQ+F04zIQOMsCkmdZC1IQJB4w=="
 }
