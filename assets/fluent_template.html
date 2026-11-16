@@ -1202,6 +1202,10 @@ html, body {
                                 <span class="bind-key" id="toggle-autoscreen-btn" onclick="callAhk('toggle_autoscreen')">ВКЛ / ВЫКЛ</span>
                             </div>
                             <div class="bind-row">
+                                <span class="bind-name">🔊 Умный анти-флуд (при нажатии двух биндов подряд)</span>
+                                <span class="bind-key" id="toggle-antiflood-btn" onclick="callAhk('toggle_antiflood_mode')" style="min-width:130px; text-align:center;">⏳ ОЧЕРЕДЬ</span>
+                            </div>
+                            <div class="bind-row">
                                 <span class="bind-name">⚡ Экстренная остановка любой длинной отыгровки / лекции</span>
                                 <span class="bind-key" onclick="remapKey('HK_StopBind')" id="hk-disp-HK_StopBind">F12</span>
                             </div>
@@ -3491,6 +3495,8 @@ function initDashboard() {
     if (igBtn) igBtn.innerText = (p.onlyInGame == 1) ? '✅ ВКЛЮЧЕНО' : '❌ ВЫКЛЮЧЕНО';
     var asBtn = document.getElementById('toggle-autoscreen-btn');
     if (asBtn) asBtn.innerText = (p.autoScreen == 1) ? '✅ ВКЛЮЧЕНО' : '❌ ВЫКЛЮЧЕНО';
+    var afBtn = document.getElementById('toggle-antiflood-btn');
+    if (afBtn) afBtn.innerText = (p.antiFloodMode === 'interrupt') ? '⚡ ПРЕРЫВАТЬ' : '⏳ ОЧЕРЕДЬ';
 
     if (APP_DATA.hotkeys) {
         for (var i = 0; i < APP_DATA.hotkeys.length; i++) {

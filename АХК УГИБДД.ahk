@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.8"
-global AppVersionCode       := 278
+global AppNumericVersion    := "2.7.9"
+global AppVersionCode       := 279
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -155,6 +155,10 @@ if (!FileExist(A_ScriptDir . "\assets\tactical_radar_hud.jpg")) {
 }
 
 AbortBindFlag := 0
+global AntiFloodMode := "queue"
+global BindQueue := []
+global IsBindExecuting := 0
+global IsChatSending := 0
 RefreshTray()
 Gosub, AHK
 Return
@@ -292,9 +296,12 @@ SmartSleep(DurationMs)
 
 Bind_StopAction:
 AbortBindFlag := 1
+BindQueue := []
+IsBindExecuting := 0
+IsChatSending := 0
 SetTimer, ClearAbortBindFlag, -450
 PlaySafeBeep(750, 120)
-TrayTip, УГИБДД АХК, ⛔ Текущая отыгровка / лекция остановлена!, 2, 2
+TrayTip, УГИБДД АХК, ⛔ Отыгровка остановлена, очередь очищена!, 2, 2
 Return
 
 ClearAbortBindFlag:
@@ -358,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.8") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.9") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.8") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.9") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -457,14 +464,26 @@ EncodeDelete(Target)
 
 SendChat(TextBind, SleepBind)
 {
+    global IsChatSending, AbortBindFlag
+    waitStart := A_TickCount
+    while (IsChatSending && (A_TickCount - waitStart < 2500)) {
+        if (AbortBindFlag) {
+            AbortBindFlag := 0
+            Exit
+        }
+        Sleep, 40
+    }
+    IsChatSending := 1
     SetLocaleRu()
     SetCapsOff()
     TextBind := Encoded(TextBind)
     if (MvdNativeSend(TextBind)) {
+        IsChatSending := 0
         SmartSleep(SleepBind)
         Return
     }
     Send {F8}^A{Delete}%TextBind%{Enter}{F8}
+    IsChatSending := 0
     SmartSleep(SleepBind)
 }
 
@@ -1801,7 +1820,9 @@ LoadCustomBindsFromIni() {
 
     if (activeIni = "") {
         exampleBind := {Id: 1, Name: "Предупреждение о светофоре", Trigger: "/светофор", Delay: 1200, Active: 1, Lines: "Водитель, напоминаю: проезд на запрещающий сигнал светофора наказывается по КоАП!|Соблюдайте правила дорожного движения!"}
+        stBind := {Id: 2, Name: "Озвучка статьи (пример /st)", Trigger: "/st", Delay: 1200, Active: 1, Lines: "Согласно ст. {storig} {stnpa}: {stresult}|Наказание: штраф {stsy}, уровень розыска/срок: {styr}."}
         CustomBindsDB.Push(exampleBind)
+        CustomBindsDB.Push(stBind)
         SaveCustomBindsToIni()
         Return
     }
@@ -1859,19 +1880,106 @@ PopulateCustomBindsLV() {
     GuiControl, 1:+Redraw, CustomBindsLV
 }
 
+HasBindParams(linesStr) {
+    return (InStr(linesStr, "{paramcmd}") || InStr(linesStr, "{storig}") || InStr(linesStr, "{stnpa}") || InStr(linesStr, "{stresult}") || InStr(linesStr, "{stsy}") || InStr(linesStr, "{styr}"))
+}
+
+ResolveArticleForCustomTag(argStr) {
+    global ArticlesDB
+    q := Trim(argStr)
+    res := {orig: q, npa: "НПА", result: "Статья не найдена в базе", sy: "0 руб.", yr: "0"}
+    if (q = "" || !IsObject(ArticlesDB))
+        return res
+
+    ; Разбираем опциональный кодекс в запросе (напр. "коап 5.8", "ук 5.3", "5.8")
+    targetCode := ""
+    targetNum := q
+    if (RegExMatch(q, "i)^(коап|укрп|ук|пдд|фзоп)\s+(.+)$", m)) {
+        c := m1
+        StringLower, cLow, c
+        if (cLow = "коап")
+            targetCode := "КоАП"
+        else if (cLow = "ук" || cLow = "укрп")
+            targetCode := "УКРП"
+        else if (cLow = "пдд")
+            targetCode := "ПДД"
+        else if (cLow = "фзоп")
+            targetCode := "ФЗоП"
+        targetNum := Trim(m2)
+    } else if (RegExMatch(q, "i)^(.+)\s+(коап|укрп|ук|пдд|фзоп)$", m)) {
+        targetNum := Trim(m1)
+        c := m2
+        StringLower, cLow, c
+        if (cLow = "коап")
+            targetCode := "КоАП"
+        else if (cLow = "ук" || cLow = "укрп")
+            targetCode := "УКРП"
+        else if (cLow = "пдд")
+            targetCode := "ПДД"
+        else if (cLow = "фзоп")
+            targetCode := "ФЗоП"
+    }
+
+    foundArt := ""
+    ; 1. Точный поиск по номеру (и кодексу если указан)
+    for idx, art in ArticlesDB {
+        if (targetCode != "" && art.Code != targetCode)
+            Continue
+        if (art.Num = targetNum) {
+            foundArt := art
+            Break
+        }
+    }
+    ; 2. Поиск по описанию, если не найден номер
+    if (!IsObject(foundArt)) {
+        for idx, art in ArticlesDB {
+            if (targetCode != "" && art.Code != targetCode)
+                Continue
+            if (InStr(art.Desc, targetNum) || InStr(art.Num, targetNum)) {
+                foundArt := art
+                Break
+            }
+        }
+    }
+
+    if (IsObject(foundArt)) {
+        res.orig := foundArt.Num
+        res.npa := (foundArt.Code = "УКРП") ? "УК РП" : foundArt.Code
+        res.result := foundArt.Desc
+        res.sy := (foundArt.Fine > 0) ? (foundArt.Fine . " руб.") : "без штрафа"
+        ; Вытаскиваем уровень розыска / срок из Sanction
+        yrVal := "0"
+        if (RegExMatch(foundArt.Sanction, "i)от\s*(\d+)\s*до\s*(\d+)\s*(?:год|лет)", mYr)) {
+            yrVal := mYr1 . "-" . mYr2
+        } else if (RegExMatch(foundArt.Sanction, "i)(?:на|до)\s*(\d+)\s*(?:год|года|лет)", mYr)) {
+            yrVal := mYr1
+        } else if (RegExMatch(foundArt.Sanction, "i)(\d+)\s*суток", mYr)) {
+            yrVal := mYr1 . " суток"
+        }
+        res.yr := yrVal
+    }
+    return res
+}
+
 RegisterAllCustomBinds() {
     global CustomBindsDB
     for idx, b in CustomBindsDB {
-        if (!b.Active)
-            Continue
         trig := Trim(b.Trigger)
+        if (trig = "")
+            Continue
         if (SubStr(trig, 1, 1) = "/") {
-            try {
-                Hotstring(":*:" . trig, "ExecuteCustomBindFromHotstring", "On")
+            try Hotstring(":*:" . trig, "ExecuteCustomBindFromHotstring", "Off")
+            try Hotstring(":B0:" . trig, "ExecuteCustomBindParamHotstring", "Off")
+            if (!b.Active)
+                Continue
+            if (HasBindParams(b.Lines)) {
+                try Hotstring(":B0:" . trig, "ExecuteCustomBindParamHotstring", "On")
+            } else {
+                try Hotstring(":*:" . trig, "ExecuteCustomBindFromHotstring", "On")
             }
-        } else if (trig != "") {
+        } else if (b.Active) {
             try {
-                fn := Func("ExecuteCustomBind").Bind(idx)
+                fn := Func("EnqueueCustomBind").Bind(idx, "")
                 Hotkey, %trig%, %fn%, On
             }
         }
@@ -1882,15 +1990,83 @@ ExecuteCustomBindFromHotstring:
 matchTrigger := Trim(A_ThisHotkey)
 matchTrigger := StrReplace(matchTrigger, ":*:", "")
 for idx, b in CustomBindsDB {
-    if (b.Active && b.Trigger = matchTrigger) {
-        ExecuteCustomBind(idx)
+    if (b.Active && Trim(b.Trigger) = matchTrigger) {
+        EnqueueCustomBind(idx, "")
         Break
     }
 }
 Return
 
-FormatCustomBindLine(rawLine) {
-    global Fio1, Rank, Znak, Otdel, Teg, Prop2, LastTargetID
+ExecuteCustomBindParamHotstring:
+matchTrigger := Trim(A_ThisHotkey)
+matchTrigger := StrReplace(matchTrigger, ":B0:", "")
+ih := InputHook("V", "{Enter}{Escape}")
+ih.Start()
+ih.Wait()
+if (ih.EndKey = "Escape") {
+    Send, {Escape}
+    Return
+}
+paramText := ih.Input
+; Стираем введённый в игре триггер + пробел/EndChar + аргумент
+delCount := StrLen(matchTrigger) + 1 + StrLen(paramText)
+Send, {BS %delCount%}
+Sleep, 30
+Send, {Escape}
+Sleep, 50
+for idx, b in CustomBindsDB {
+    if (b.Active && Trim(b.Trigger) = matchTrigger) {
+        EnqueueCustomBind(idx, Trim(paramText))
+        Break
+    }
+}
+Return
+
+EnqueueCustomBind(BindIdx, paramStr := "") {
+    global BindQueue, IsBindExecuting, AntiFloodMode, AbortBindFlag, CustomBindsDB, OnlyInGameMode
+    if (OnlyInGameMode && !IsGameActive())
+        Return
+
+    b := CustomBindsDB[BindIdx]
+    if (!IsObject(b) || !b.Active)
+        Return
+
+    if (IsBindExecuting) {
+        if (AntiFloodMode = "interrupt") {
+            AbortBindFlag := 1
+            BindQueue := []
+            waitI := 0
+            while (IsBindExecuting && waitI < 20) {
+                Sleep, 30
+                waitI++
+            }
+            AbortBindFlag := 0
+        } else {
+            if (BindQueue.MaxIndex() >= 5) {
+                TrayTip, ⚠️ Очередь заполнена, Дождитесь выполнения текущих отыгровок., 2, 2
+                Return
+            }
+            BindQueue.Push({idx: BindIdx, param: paramStr})
+            qLen := BindQueue.MaxIndex()
+            bNameDisp := b.Name
+            TrayTip, ⏳ В очереди (#%qLen%), Бинд «%bNameDisp%» запустится сразу после текущего., 2, 1
+            Return
+        }
+    }
+    ExecuteCustomBind(BindIdx, paramStr)
+}
+
+ProcessNextQueuedBind:
+global BindQueue
+if (IsObject(BindQueue) && BindQueue.MaxIndex() > 0) {
+    nextJob := BindQueue.RemoveAt(1)
+    if (IsObject(nextJob))
+        ExecuteCustomBind(nextJob.idx, nextJob.param)
+}
+Return
+
+FormatCustomBindLine(rawLine, paramStr := "", artObj := "") {
+    global Fio1, Rank, Znak, Otdel, Teg, Prop2, LastTargetID, Frak, Gibdd
     formatted := rawLine
     formatted := StrReplace(formatted, "{Fio}", Fio1)
     formatted := StrReplace(formatted, "{Rank}", Rank)
@@ -1900,11 +2076,26 @@ FormatCustomBindLine(rawLine) {
     formatted := StrReplace(formatted, "{Callsign}", Teg . "-" . Prop2)
     formatted := StrReplace(formatted, "{Id}", (LastTargetID != "" ? LastTargetID : "0"))
     formatted := StrReplace(formatted, "{TargetID}", (LastTargetID != "" ? LastTargetID : "0"))
+    formatted := StrReplace(formatted, "{City}", Frak)
+    formatted := StrReplace(formatted, "{Gibdd}", Gibdd)
+    FormatTime, curTimeStr, , HH:mm
+    FormatTime, curDateStr, , dd.MM.yyyy
+    formatted := StrReplace(formatted, "{Time}", curTimeStr)
+    formatted := StrReplace(formatted, "{Date}", curDateStr)
+    formatted := StrReplace(formatted, "{paramcmd}", paramStr)
+
+    if (IsObject(artObj)) {
+        formatted := StrReplace(formatted, "{storig}", artObj.orig)
+        formatted := StrReplace(formatted, "{stnpa}", artObj.npa)
+        formatted := StrReplace(formatted, "{stresult}", artObj.result)
+        formatted := StrReplace(formatted, "{stsy}", artObj.sy)
+        formatted := StrReplace(formatted, "{styr}", artObj.yr)
+    }
     return formatted
 }
 
-ExecuteCustomBind(BindIdx) {
-    global CustomBindsDB, AbortBindFlag, OnlyInGameMode
+ExecuteCustomBind(BindIdx, paramStr := "") {
+    global CustomBindsDB, AbortBindFlag, OnlyInGameMode, IsBindExecuting, BindQueue
     if (OnlyInGameMode && !IsGameActive())
         Return
 
@@ -1912,19 +2103,27 @@ ExecuteCustomBind(BindIdx) {
     if (!IsObject(b) || !b.Active)
         Return
 
+    IsBindExecuting := 1
     AbortBindFlag := 0
     SetCapsOff()
     SetLocaleRu()
+
+    artObj := ""
+    if (InStr(b.Lines, "{storig}") || InStr(b.Lines, "{stnpa}") || InStr(b.Lines, "{stresult}") || InStr(b.Lines, "{stsy}") || InStr(b.Lines, "{styr}")) {
+        artObj := ResolveArticleForCustomTag(paramStr)
+    }
+
     lines := StrSplit(b.Lines, "|")
     delayMs := (b.Delay > 100) ? b.Delay : 1200
 
     for idx, singleLine in lines {
         if (AbortBindFlag) {
             AbortBindFlag := 0
-            TrayTip, ⛔ Отыгровка отменена, Пользовательский бинд прерван по F12., 2, 2
+            IsBindExecuting := 0
+            TrayTip, ⛔ Отыгровка отменена, Пользовательский бинд прерван., 2, 2
             Return
         }
-        textToSend := FormatCustomBindLine(Trim(singleLine))
+        textToSend := FormatCustomBindLine(Trim(singleLine), paramStr, artObj)
         if (textToSend = "")
             Continue
 
@@ -1934,15 +2133,22 @@ ExecuteCustomBind(BindIdx) {
             Send, %textToSend%{Enter}
         } else {
             SmartSleep(delayMs)
-            if (AbortBindFlag)
+            if (AbortBindFlag) {
+                AbortBindFlag := 0
+                IsBindExecuting := 0
                 Return
+            }
             Send, {F6}
             SmartSleep(350)
             Send, %textToSend%{Enter}
         }
     }
+    IsBindExecuting := 0
     TriggerSmartScreenshot("Свой бинд: " . b.Name)
     LogJournalAction("Свой бинд", (LastTargetID != "" ? LastTargetID : "Общий"), b.Name, 0)
+    if (IsObject(BindQueue) && BindQueue.MaxIndex() > 0) {
+        SetTimer, ProcessNextQueuedBind, -200
+    }
 }
 
 CustomBindsLVAction:
@@ -2015,18 +2221,28 @@ ShowCustomBindEditor() {
     Gui, 9:Add, Edit, x16 y174 w560 h170 vCBEditLines +Multi +WantReturn, %CustomBindLinesVal%
 
     Gui, 9:Font, S9 CFFB84D Bold, Segoe UI
-    Gui, 9:Add, Text, x16 y352 w160 h22, Вставить переменную:
+    Gui, 9:Add, Text, x16 y350 w140 h22, Теги профиля / аргумент:
     Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
-    Gui, 9:Add, Button, x180 y350 w85 h24 gInsertVarFio, + {Fio}
-    Gui, 9:Add, Button, x270 y350 w85 h24 gInsertVarRank, + {Rank}
-    Gui, 9:Add, Button, x360 y350 w85 h24 gInsertVarZnak, + {Znak}
-    Gui, 9:Add, Button, x450 y350 w85 h24 gInsertVarId, + {Id}
+    Gui, 9:Add, Button, x160 y348 w72 h24 gInsertVarFio, + {Fio}
+    Gui, 9:Add, Button, x236 y348 w78 h24 gInsertVarRank, + {Rank}
+    Gui, 9:Add, Button, x318 y348 w78 h24 gInsertVarZnak, + {Znak}
+    Gui, 9:Add, Button, x400 y348 w66 h24 gInsertVarId, + {Id}
+    Gui, 9:Add, Button, x470 y348 w106 h24 gInsertVarParamCmd, + {paramcmd}
+
+    Gui, 9:Font, S9 C79C0FF Bold, Segoe UI
+    Gui, 9:Add, Text, x16 y380 w140 h22, Теги статей (/st ...):
+    Gui, 9:Font, S9 CE6EDF3 Norm, Segoe UI
+    Gui, 9:Add, Button, x160 y378 w78 h24 gInsertVarStOrig, + {storig}
+    Gui, 9:Add, Button, x242 y378 w78 h24 gInsertVarStNpa, + {stnpa}
+    Gui, 9:Add, Button, x324 y378 w88 h24 gInsertVarStResult, + {stresult}
+    Gui, 9:Add, Button, x416 y378 w76 h24 gInsertVarStSy, + {stsy}
+    Gui, 9:Add, Button, x496 y378 w80 h24 gInsertVarStYr, + {styr}
 
     Gui, 9:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 9:Add, Button, x16 y390 w270 h36 gSaveCustomBindDialogBtn, 💾 Сохранить бинд
-    Gui, 9:Add, Button, x306 y390 w270 h36 gCancelCustomBindDialogBtn, ❌ Отмена
+    Gui, 9:Add, Button, x16 y416 w270 h36 gSaveCustomBindDialogBtn, 💾 Сохранить бинд
+    Gui, 9:Add, Button, x306 y416 w270 h36 gCancelCustomBindDialogBtn, ❌ Отмена
 
-    Gui, 9:Show, w592 h440, Конструктор бинда | АХК УГИБДД
+    Gui, 9:Show, w592 h466, Конструктор бинда | АХК УГИБДД
 }
 
 InsertVarFio:
@@ -2047,6 +2263,36 @@ Return
 InsertVarId:
 GuiControlGet, curTxt, 9:, CBEditLines
 GuiControl, 9:, CBEditLines, % curTxt . " {Id}"
+Return
+
+InsertVarParamCmd:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {paramcmd}"
+Return
+
+InsertVarStOrig:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {storig}"
+Return
+
+InsertVarStNpa:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {stnpa}"
+Return
+
+InsertVarStResult:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {stresult}"
+Return
+
+InsertVarStSy:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {stsy}"
+Return
+
+InsertVarStYr:
+GuiControlGet, curTxt, 9:, CBEditLines
+GuiControl, 9:, CBEditLines, % curTxt . " {styr}"
 Return
 
 SaveCustomBindDialogBtn:
@@ -2835,6 +3081,10 @@ LoadUserConfig() {
         Post := "1"
     if (OnlyInGameMode = "ERROR" || OnlyInGameMode = "")
         OnlyInGameMode := 0
+
+    global AntiFloodMode
+    IniRead, savedAf, %IniPath%, Settings, AntiFloodMode, queue
+    AntiFloodMode := (savedAf = "interrupt") ? "interrupt" : "queue"
     if (RadioSfxEnabled = "ERROR" || RadioSfxEnabled = "")
         RadioSfxEnabled := 1
 
@@ -11322,8 +11572,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.8"
-global AppVersionCode       := 278
+global AppNumericVersion    := "2.7.9"
+global AppVersionCode       := 279
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11335,8 +11585,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.8"
-        AppVersionCode       := 278
+        AppNumericVersion    := "2.7.9"
+        AppVersionCode       := 279
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11364,8 +11614,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.8"
-        AppVersionCode       := 278
+        AppNumericVersion    := "2.7.9"
+        AppVersionCode       := 279
     }
 
     if (!IsSilent)
@@ -11836,6 +12086,7 @@ BuildFluentInitialJson() {
     j .= """sendEngine"":""" . JsonEscapeStr(ActiveSendEngine) . ""","
     j .= """onlyInGame"":" . (OnlyInGameMode ? 1 : 0) . ","
     j .= """autoScreen"":" . (AutoScreenMode ? 1 : 0) . ","
+    j .= """antiFloodMode"":""" . JsonEscapeStr(AntiFloodMode) . ""","
     j .= """localIp"":""" . JsonEscapeStr(GetBestLocalIP()) . ""","
     j .= """tabletPort"":" . (MobileServerPort ? MobileServerPort : 8088) . ","
     j .= """relayUrl"":""" . JsonEscapeStr(TabletRelayHost) . ""","
@@ -11902,7 +12153,7 @@ EnsureAssetsUpToDate() {
         needTpl := true
     else {
         FileRead, chkHtml, *P65001 %tplPath%
-        if (!InStr(chkHtml, "lfilt-FAV"))
+        if (!InStr(chkHtml, "toggle-antiflood-btn"))
             needTpl := true
     }
 
@@ -11947,7 +12198,7 @@ InitAndShowFluentGlassUI() {
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
     if (FileExist(tplPath)) {
         FileRead, chkMainTpl, *P65001 %tplPath%
-        if (!InStr(chkMainTpl, "lfilt-FAV")) {
+        if (!InStr(chkMainTpl, "toggle-antiflood-btn")) {
             if (A_IsCompiled) {
                 try FileInstall, assets\fluent_template.html, %A_Temp%\fluent_template.html, 1
                 tplPath := A_Temp . "\fluent_template.html"
@@ -12407,6 +12658,18 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
         GuiControl, 1:, OnlyInGameChk, %OnlyInGameMode%
         Gosub, ToggleOnlyInGameMode
         RefreshFluentWebData()
+        Return
+    }
+    if (action = "toggle_antiflood_mode") {
+        AntiFloodMode := (AntiFloodMode = "interrupt") ? "queue" : "interrupt"
+        for idx, iniPath in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+            EnsureIniUnicode(iniPath)
+            IniWrite, %AntiFloodMode%, %iniPath%, Settings, AntiFloodMode
+        }
+        RefreshFluentWebData()
+        PlaySafeBeep(920, 90)
+        modeLabel := (AntiFloodMode = "interrupt") ? "⚡ Прерывать предыдущий бинд" : "⏳ Ставить бинды в очередь"
+        TrayTip, 🔊 Умный анти-флуд, Режим изменён: %modeLabel%, 2, 1
         Return
     }
     if (action = "toggle_autoscreen") {

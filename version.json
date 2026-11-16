@@ -1,15 +1,15 @@
 {
-  "version_code": 278,
-  "version": "2.7.8",
+  "version_code": 279,
+  "version": "2.7.9",
   "release_date": "2026-11-16",
-  "title": "Обновление v2.7.8: Избранные статьи (★) и автообновление шаблона интерфейса",
-  "changelog": "- ⭐ Исправлено автообновление HTML-шаблона Fluent UI для отображения избранных статей (★) и фильтра\n- 📌 Кнопки ☆/★ в базе законов и калькуляторе Alt+F1\n- 💾 Сохранение избранного в профиль",
+  "title": "Обновление v2.7.9: Умный анти-флуд (очередь), тег {paramcmd} и озвучка статей /st",
+  "changelog": "- 🔊 Умный анти-флуд и очередь отправки биндов (переключение: Очередь / Прерывать предыдущий)\n- ⚡ Тег {paramcmd} для своих команд с аргументами (напр. /мг текст)\n- 📢 Поддержка кастомной озвучки статей с тегами {storig}, {stnpa}, {stresult}, {stsy}, {styr} (пример /st 5.8)",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "dc7420f9eed155eb4e1d58e2d92a7f901731262954fbddeec5f34d51d020ac5d",
-  "exe_signature": "oUn6xcV2UzgSMjoSpXbrhR3h+3GTFVzWCuZht2UKkkHoy/22XsicnL0EF6oAxF6mN9dnwm68S2FZLEviOp31TNbB6ClEEJKK//atCeeDMM2XYkVdu1PDS7kKSrf7gbSJsqGHKumboUv4z9G1l57LCnR4tfrMLBouldRLXRggwXY7Mx0wg/zMYVvkpkCY2nL4NqSpJyqoDGrSMVG5ur/StSj8+i4yHeMCvpu3MtF5gXSgBgt26v0y27sHSwytHQQxBL9AiLf/bwVYT55ZABvd55f1pIyVbrbNe8FPxy1fWsl/rnemxzzkh0EWs5B1/EcmN7gULTKi6pnf9qohtjrjVw==",
-  "ahk_sha256": "b9697afb0335421998272f3b8affba2c498c55b910a01affaede0e1db35a3365",
-  "ahk_signature": "xZdqZ7Nwvi9IX1hj2Ve+M0EVMynwuh4YxVDRCj8KaLFNg8Nolaou35NprYawUKYTwC6y1NtyDMAh28fnt8c8bFojdplnqhvW66n/Oi6CuHzQiUscBNtYsyKu2S3RUXP6cxe2kKMWlvnvVyNaceUym+TUzFOx+njh/U1hohQInH+NekrJ/Wy7dg/Xt6pEiXeuyIDJIrdkACXI6l2KJQzDbj7AEVvpFZwqN3E8tsVAitMvmPeHPqi0Ex3f4PmleMmqg3mFRpccCfiRyIufsvHu7RVJ/JOL+s0EvJ4k9Sb34c0Qw9iwsmUtrIUpUZ9G0/JDQzDwAhJpIiaABj9YZP38Bg=="
+  "exe_sha256": "508f66a79a40408d8198cf375f644c29b9c3176f57c8158602bb1f6952aa3267",
+  "exe_signature": "GablzKFZ4L7T9ef/mjEtnQh9lofQsvN29lsSjpTojoBdFsOwDcOmV4pzQMjb9tkAYhPO7oX5TLOWy1WD0gEbmVgDs64FatT2uTRijpBsaVKOY6N+2ObhDqccjN98sYTqOxtvkkQZt3XR5F8/vgp5Ybu+ZfazBsJeW356Z9sPxkd7UIOuRrcRAd3qQhkEdc0otlvk2mE57OMS//02UQPmEHq5y8loxoqkFMVKUQ47vbgygWqNFs52xZHfeFg66j3p3E/oTUoNOMoSM6HAGglWI8QS3ypWJJdU8GgLtg8PCu6TRXOZ4lDjBY8dSTHFz0Sh2E/mQiOBVwNGFYE1wUVz0A==",
+  "ahk_sha256": "5b54d02663314e9b91f8f1ad384a9a364af666c1bc793e68c394d3549c3867eb",
+  "ahk_signature": "JyiSRK425NK4N9UnNlpi3b8mAabY+WvqFDA3Bl+DfYID3Xrc1XRPT5QZRyLDx3gL+HfvmUVqMH5yXWN6EbxUDPX691MDry2qCe60623bEQNre8cep7JdSemUzDYfWsG/qf1MqS9ZWqMGU8qWFcPd9eQm4Wv0st3r6ltGMihEdYyUOpBw+Tkpwjrw4B7B+uC6hlSqEokF/Ke4nydp4gFcmd/S+WdN6Sw/TnnWK7+xmGkPnKJpy60izLyEJ8LBpNU6lPU24MmO4GAL99mnefTQL3rUpxRJHlNkPOXnYLoghw9EXmnZb06oXDgvKe5x2t+4tkdjbSzOnHoHCTSF+VYrSw=="
 }
