@@ -1,15 +1,15 @@
 {
-  "version_code": 284,
-  "version": "2.8.4",
+  "version_code": 285,
+  "version": "2.8.5",
   "release_date": "2026-11-16",
-  "title": "Обновление v2.8.4: Боковая панель выбора НПА (КоАП / УК / ПДД) для команд /st",
-  "changelog": "- ⚖️ При вводе команды /st 5.8 (или любой вашей команды с тегами {st*}) справа сбоку экрана появляется панель выбора НПА (КоАП, УК РП, ПДД, ФЗоП)\n- 🖱️ Клик по нужному кодексу мгновенно возвращает фокус в игру и озвучивает выбранную статью",
+  "title": "Обновление v2.8.5: Быстрый выбор НПА по Ctrl+Alt+1..6 поверх игры",
+  "changelog": "- ⌨️ Для боковой панели выбора НПА (/st 5.8) добавлены горячие клавиши Ctrl+Alt+1..6 (и Numpad 1..6) без необходимости кликать мышкой\n- 🚫 Окно не перехватывает фокус игры (WS_EX_NOACTIVATE), закрытие по Ctrl+Alt+0 или ✕",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "a81ce4a69ad4fbadbb9fdc3eafecdec75edcdd1402389d84da4d963fb02d470a",
-  "exe_signature": "gRpq+g2tPZmb57MDYhJBTx5tbLqmvIMogJ63MHnfGhGtygg3bJdQQDi0+eTSaRFoEdMv6VU6bJm+YHZk1REkA/cmvxq0IHjh++/0o3bbM9Cu21Vl7qqIABjgGRGxdJu0BDvMwoEpqqyi6F11O1InnG4QZ0ziGLl15LQ4GkEX6Fx0fFHjllIsreUM+9o9bu7pxHB3t9oyEQTHgEmXr8YCyOjhfMuMhXCZYSbi9rC2NjsGMPQiXL6a4N18WfILstnocRP7oO7/sSI06vLHaKMpJM9C8pkJDncCO56MxXVHb80DcGEdjtWSlTcPSol4E/vYVhz92M/vsBfoGUgX50vHwg==",
-  "ahk_sha256": "01215df76c1acf9ac6945f751b160516cacb6abf6fffcc365597567ef5a8fd36",
-  "ahk_signature": "DZifVkMQpJR1srtlZiAtIpBY1bQ/7oTs/EFkJb6P3qkifXg8vfYyOAjyWL0CS+hRmcp003F37Ip1BWjfRf3dqIS4EWBxrCEa58qRJTGQoIshoqQJZvGk8lbGFO3JRGhUxG5roj5cEaFIa3yK2TA4YUEZS5Y0lJSE/7QTe7+wucoLFekEOFZrPyMJvBc8lDJHjQyYCECCXY2Ios0Yo3M9MKr19zc1gx4/SY8jpbHyHRW83xWn8P05/YhR6PdHiXhuWpY/qzDNDHW3vOJp19wk1fTLX30Fe0SXC5eRgzuU4QwIProBlegRUYJG4Ai+BdcDcLdLuIWcGcTWZVYEMDormQ=="
+  "exe_sha256": "82ea79025f713022c648e02b401aa9ca997df9482273a34b5238655b9ad56fb1",
+  "exe_signature": "ibUJjfevrY4S9gMlTcLnTg62S8B8gnhcCcT2S9eAC0o8OKbARMV1x/Qp8YRfa7SAfYZEYCLtx27Mgva/Lm39lv6SC32zgFbaDx+0zUYcjLJ/LdpI6jMruQuK4NsnxmKPdEsOjEwR0Q8VNFgE5W87sMzJqiKzhSQ/VuFuMdYzKcfsutczPLT2rA71BYI4qE1ZOJkIyz5LuLfLQOoEpdGixuZlJVwDkMb43w0tHNh9tRnmgHWAEeKipi46zyhvqVGi90/ECPRD1gPWRlhBZMmpUUINvoPWdPEq7A1PkUhpdFH/dwCJjf63XkaNyYd829ozPPTtdKfzgp3WMXnb7tMVeA==",
+  "ahk_sha256": "683c6c636bdba425453619e41640d0e5e4e895bd1a95ff3cf18f5575ad3fd3c8",
+  "ahk_signature": "fKitOcbMFM9DyMBupOHFctCmxkgT/+G7n9YBrAX1fTmstEOHr++Jp43UoCkFjbKQF7ffo0fV8ZrnBoP5EN2ySm09Dh31QWuOMrz6xRilcOuP/AjtHK+0YZL2lZSkN0AQx+kkhYLGFAAY8/4O9rYqClHdtqTlseLXEc4bXq/WQEy9k8SZEcGZt1AbfpKsEj3e9J7FQsvgwj84eKRigHlSuzFkPVp2W8JaW1w/TLybWjAVRx8ZlxFKaObTTb5Hozrd3w3XZed31rLRdS+lR7rh3dmHcCNuVKMh9Pg4j4tJveSLiErWxOR/dVuTM/NRB3qtHCO6iDN+r+vynMQC7nMvfw=="
 }

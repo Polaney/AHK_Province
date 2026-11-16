@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.8.4"
-global AppVersionCode       := 284
+global AppNumericVersion    := "2.8.5"
+global AppVersionCode       := 285
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.4") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.5") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.4") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.5") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -1966,6 +1966,40 @@ ResolveAllArticlesForCustomTag(argStr, ByRef explicitCodeOut) {
     return matches
 }
 
+RegisterStNpaHotkeys(cnt) {
+    Loop, 6 {
+        idx := A_Index
+        if (idx <= cnt) {
+            fn := Func("PickStNpaByHotkey").Bind(idx)
+            try Hotkey, ^!%idx%, %fn%, On
+            try Hotkey, ^!Numpad%idx%, %fn%, On
+        } else {
+            try Hotkey, ^!%idx%, Off
+            try Hotkey, ^!Numpad%idx%, Off
+        }
+    }
+    fnEsc := Func("CloseStNpaPicker")
+    try Hotkey, ^!0, %fnEsc%, On
+}
+
+UnregisterStNpaHotkeys() {
+    Loop, 6 {
+        idx := A_Index
+        try Hotkey, ^!%idx%, Off
+        try Hotkey, ^!Numpad%idx%, Off
+    }
+    try Hotkey, ^!0, Off
+}
+
+CloseStNpaPicker() {
+    UnregisterStNpaHotkeys()
+    Gui, 17:Destroy
+}
+
+PickStNpaByHotkey(pickIdx) {
+    OnStChoiceWebAction("pick", pickIdx)
+}
+
 ShowStNpaSidePicker(BindIdx, paramStr, matches) {
     global StChoiceWB, StChoiceHwnd, PendingStBindIdx, PendingStParam, PendingStMatches, PendingStPrevWin
     PendingStBindIdx := BindIdx
@@ -1993,19 +2027,19 @@ ShowStNpaSidePicker(BindIdx, paramStr, matches) {
     }
 
     cnt := matches.MaxIndex()
-    winH := 88 + (cnt * 76)
-    if (winH > 540)
-        winH := 540
-    posX := A_ScreenWidth - 385
+    winH := 92 + (cnt * 82)
+    if (winH > 560)
+        winH := 560
+    posX := A_ScreenWidth - 395
     posY := Round((A_ScreenHeight - winH) / 2)
 
     Gui, 17:Destroy
-    Gui, 17:+HwndStChoiceHwnd +AlwaysOnTop -Caption +Border +ToolWindow
+    Gui, 17:+HwndStChoiceHwnd +AlwaysOnTop -Caption +Border +ToolWindow +E0x08000000
     Gui, 17:Color, 070B14
     Gui, 17:Margin, 0, 0
-    Gui, 17:Add, ActiveX, x0 y0 w365 h%winH% vStChoiceWB, Shell.Explorer
+    Gui, 17:Add, ActiveX, x0 y0 w375 h%winH% vStChoiceWB, Shell.Explorer
     StChoiceWB.Silent := true
-    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=284_" . A_TickCount
+    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=285_" . A_TickCount
     StChoiceWB.Navigate(navUrl)
 
     startWait := A_TickCount
@@ -2016,20 +2050,21 @@ ShowStNpaSidePicker(BindIdx, paramStr, matches) {
         StChoiceWB.document.parentWindow.ahk_call := Func("OnStChoiceWebAction")
     }
 
-    Gui, 17:Show, x%posX% y%posY% w365 h%winH% NoActivate, Выбор НПА | АХК УГИБДД
+    RegisterStNpaHotkeys(cnt)
+    Gui, 17:Show, x%posX% y%posY% w375 h%winH% NoActivate, Выбор НПА | АХК УГИБДД
 }
 
 OnStChoiceWebAction(action, arg1 := "") {
     global StChoiceHwnd, PendingStBindIdx, PendingStParam, PendingStMatches, PendingStPrevWin
     if (action = "close") {
-        Gui, 17:Destroy
+        CloseStNpaPicker()
         Return
     }
     if (action = "pick") {
         pickIdx := arg1 + 0
         if (pickIdx > 0 && IsObject(PendingStMatches) && pickIdx <= PendingStMatches.MaxIndex()) {
             chosenArt := PendingStMatches[pickIdx]
-            Gui, 17:Destroy
+            CloseStNpaPicker()
             if (PendingStPrevWin && WinExist("ahk_id " . PendingStPrevWin)) {
                 WinActivate, ahk_id %PendingStPrevWin%
                 Sleep, 60
@@ -2076,7 +2111,7 @@ body { background:#070B14; color:#E6EDF3; border:1px solid rgba(88,166,255,0.45)
     <button class="cls" onclick="if(window.ahk_call)ahk_call('close')">✕</button>
 </div>
 <div class="list" id="list"></div>
-<div class="foot">Нажмите на нужный кодекс для озвучки</div>
+<div class="foot">Нажмите <b>Ctrl+Alt+1..6</b> или кликните мышкой • <b>Ctrl+Alt+0</b> — отмена</div>
 <script>
 var items = __ITEMS__;
 var box = document.getElementById('list');
@@ -2090,7 +2125,8 @@ for (var i = 0; i < items.length; i++) {
     var metaTxt = (m.sy && m.sy !== 'без штрафа') ? m.sy : '';
     if (m.yr && m.yr !== '0') metaTxt += (metaTxt ? ' • ' : '') + 'Розыск: ' + m.yr;
     html.push('<div class="item" onclick="if(window.ahk_call)ahk_call(\'pick\', \'' + m.idx + '\')">');
-    html.push('<div class="top"><span class="badge ' + bc + '">' + m.npa + ' • ст. ' + m.orig + '</span><span class="meta">' + metaTxt + '</span></div>');
+    html.push('<div class="top"><span class="badge ' + bc + '">' + m.npa + ' • ст. ' + m.orig + '</span><span style="background:rgba(88,166,255,0.2); border:1px solid rgba(88,166,255,0.45); color:#79C0FF; padding:2px 6px; border-radius:5px; font-family:Consolas,monospace; font-size:10.5px; font-weight:700;">Ctrl+Alt+' + m.idx + '</span></div>');
+    if (metaTxt) html.push('<div class="meta" style="margin-bottom:3px;">' + metaTxt + '</div>');
     html.push('<div class="desc">' + m.desc + '</div>');
     html.push('</div>');
 }
@@ -11892,8 +11928,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.8.4"
-global AppVersionCode       := 284
+global AppNumericVersion    := "2.8.5"
+global AppVersionCode       := 285
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11905,8 +11941,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.4"
-        AppVersionCode       := 284
+        AppNumericVersion    := "2.8.5"
+        AppVersionCode       := 285
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11934,8 +11970,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.4"
-        AppVersionCode       := 284
+        AppNumericVersion    := "2.8.5"
+        AppVersionCode       := 285
     }
 
     if (!IsSilent)
@@ -14490,7 +14526,7 @@ OnPrivacyConsentWebAction(action, arg1 := "") {
 
 BuildPrivacyConsentHtml() {
     global AppNumericVersion
-    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.4"
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.5"
     html =
     ( %
 <!-- saved from url=(0016)http://localhost -->
