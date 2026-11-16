@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.8.2"
-global AppVersionCode       := 282
+global AppNumericVersion    := "2.8.3"
+global AppVersionCode       := 283
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.2") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.3") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.2") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.3") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -11663,8 +11663,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.8.2"
-global AppVersionCode       := 282
+global AppNumericVersion    := "2.8.3"
+global AppVersionCode       := 283
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11676,8 +11676,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.2"
-        AppVersionCode       := 282
+        AppNumericVersion    := "2.8.3"
+        AppVersionCode       := 283
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11705,8 +11705,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.2"
-        AppVersionCode       := 282
+        AppNumericVersion    := "2.8.3"
+        AppVersionCode       := 283
     }
 
     if (!IsSilent)
@@ -11788,32 +11788,180 @@ CheckForUpdates(IsSilent := 1) {
     }
 }
 
+global UpdateWB, UpdateGuiHwnd
+
 ShowUpdateDialog(NewVer, NewTitle, NewChangelog, DownUrl) {
-    global
+    global UpdateWB, UpdateGuiHwnd, AppNumericVersion
+    SetBrowserEmulationIE11()
+
+    initObj := "{"
+    initObj .= """curVer"":""" . JsonEscapeStr(AppNumericVersion) . ""","
+    initObj .= """newVer"":""" . JsonEscapeStr(NewVer) . ""","
+    initObj .= """title"":""" . JsonEscapeStr(NewTitle) . ""","
+    initObj .= """changelog"":""" . JsonEscapeStr(NewChangelog) . """"
+    initObj .= "}"
+
+    htmlContent := BuildUpdateDialogHtml(initObj)
+    tmpHtml := A_Temp . "\gibdd_update_dialog.html"
+    FileDelete, %tmpHtml%
+    fObj := FileOpen(tmpHtml, "w", "UTF-8")
+    if (IsObject(fObj)) {
+        fObj.Write(htmlContent)
+        fObj.Close()
+    }
+
     Gui, 7:Destroy
-    Gui, 7:Color, 121622, 1B2234
-    Gui, 7:Font, S11 C58A6FF Bold, Segoe UI
-    Gui, 7:Add, Text, x16 y12 w568 h26, 🚀 Доступно обновление: v%NewVer% (текущая: v%AppNumericVersion%)
-    Gui, 7:Font, S10 CFFB84D Bold, Segoe UI
-    Gui, 7:Add, Text, x16 y40 w568 h20, % NewTitle
-    Gui, 7:Font, S9 CE6EDF3 Norm, Segoe UI
-    Gui, 7:Add, Edit, x16 y66 w568 h175 ReadOnly Background161D2E cE6EDF3, % NewChangelog
-    Gui, 7:Font, S9 C8B949E Norm, Segoe UI
-    Gui, 7:Add, Text, x16 y248 w568 h20 vUpdateStatusTxt, Обновление будет загружено и установлено автоматически.
-    Gui, 7:Font, S10 CE6EDF3 Bold, Segoe UI
-    Gui, 7:Add, Button, x16 y274 w276 h38 vBtnUpdateNow gStartUpdateInstallation, ⚡ Обновить сейчас
-    Gui, 7:Add, Button, x308 y274 w276 h38 gCloseUpdateDialog, ⏱️ Напомнить позже
-    Gui, 7:Show, w600 h324, AHK УГИБДД — Доступно обновление
+    Gui, 7:+HwndUpdateGuiHwnd -Caption +Border
+    Gui, 7:Color, 070B14
+    Gui, 7:Margin, 0, 0
+    Gui, 7:Add, ActiveX, x0 y0 w620 h460 vUpdateWB, Shell.Explorer
+    UpdateWB.Silent := true
+    navUrl := "file:///" . StrReplace(tmpHtml, "\", "/") . "?v=283_" . A_TickCount
+    UpdateWB.Navigate(navUrl)
+
+    startWait := A_TickCount
+    while (UpdateWB.ReadyState != 4 && (A_TickCount - startWait < 2000))
+        Sleep, 15
+
+    try {
+        UpdateWB.document.parentWindow.ahk_call := Func("OnUpdateWebAction")
+    }
+
+    Gui, 7:Show, w620 h460, АХК УГИБДД — Доступно обновление
+}
+
+OnUpdateWebAction(action) {
+    global UpdateGuiHwnd
+    if (action = "drag") {
+        PostMessage, 0xA1, 2,,, ahk_id %UpdateGuiHwnd%
+        Return
+    }
+    if (action = "close") {
+        Gui, 7:Destroy
+        Return
+    }
+    if (action = "start_update") {
+        SetUpdateBtnEnabled(false)
+        SetUpdateDialogStatus("⏳ Подключение к серверу обновлений...", 15, 0)
+        SetTimer, PerformUpdateAction, -100
+        Return
+    }
+}
+
+SetUpdateDialogStatus(txt, pct := 0, isError := 0) {
+    global UpdateWB
+    try {
+        if (IsObject(UpdateWB))
+            UpdateWB.document.parentWindow.setUpdateStatus(txt, pct, isError)
+    }
+}
+
+SetUpdateBtnEnabled(isEnabled) {
+    global UpdateWB
+    try {
+        if (IsObject(UpdateWB))
+            UpdateWB.document.parentWindow.setUpdateBtn(isEnabled ? 1 : 0)
+    }
+}
+
+BuildUpdateDialogHtml(initJson) {
+    html =
+    ( %
+<!-- saved from url=(0016)http://localhost -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta charset="utf-8">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',sans-serif; }
+body { background:#070B14; color:#E6EDF3; border:1px solid rgba(88,166,255,0.32); height:460px; display:flex; flex-direction:column; overflow:hidden; }
+.header { padding:14px 18px; background:linear-gradient(135deg,#0E1830 0%,#142342 100%); border-bottom:1px solid rgba(88,166,255,0.25); display:flex; align-items:center; justify-content:space-between; cursor:move; }
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.rocket { width:40px; height:40px; border-radius:10px; background:rgba(88,166,255,0.16); border:1px solid rgba(88,166,255,0.45); display:flex; align-items:center; justify-content:center; font-size:20px; }
+.hdr-title { font-size:15px; font-weight:800; color:#58A6FF; }
+.ver-row { display:flex; align-items:center; gap:8px; margin-top:3px; font-size:12px; }
+.v-old { background:rgba(139,148,158,0.18); color:#8B949E; padding:1px 7px; border-radius:5px; font-family:Consolas,monospace; }
+.v-new { background:rgba(46,160,67,0.22); border:1px solid rgba(126,231,135,0.4); color:#7EE787; padding:1px 8px; border-radius:5px; font-family:Consolas,monospace; font-weight:700; }
+.close-btn { width:28px; height:28px; border-radius:6px; border:1px solid rgba(248,81,73,0.35); background:rgba(248,81,73,0.12); color:#FF7B72; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.close-btn:hover { background:#F85149; color:#FFF; }
+.body { padding:14px 18px; flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.upd-title { font-size:13.5px; font-weight:700; color:#FFB84D; margin-bottom:10px; }
+.changelog-box { flex:1; background:rgba(14,21,38,0.85); border:1px solid rgba(88,166,255,0.22); border-radius:10px; padding:12px 14px; overflow-y:auto; font-size:12.5px; color:#C9D1D9; line-height:1.55; white-space:pre-wrap; }
+.sec-badge { margin-top:10px; padding:7px 11px; border-radius:8px; background:rgba(35,134,54,0.14); border:1px solid rgba(126,231,135,0.28); font-size:11.5px; color:#7EE787; display:flex; align-items:center; gap:8px; }
+.status-wrap { margin-top:10px; }
+.status-txt { font-size:11.5px; color:#8B949E; margin-bottom:5px; }
+.prog-bg { height:6px; background:#161D2E; border-radius:4px; overflow:hidden; }
+.prog-bar { height:100%; width:0%; background:linear-gradient(90deg,#1F6FEB,#58A6FF,#7EE787); transition:width 0.25s; }
+.footer { padding:12px 18px; border-top:1px solid rgba(88,166,255,0.2); background:#0A101E; display:flex; gap:12px; }
+.btn { flex:1; height:40px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-upd { background:linear-gradient(135deg,#238636 0%,#2EA043 100%); color:#FFF; }
+.btn-upd:hover { background:linear-gradient(135deg,#2EA043 0%,#3FB950 100%); }
+.btn-upd:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-later { background:rgba(88,166,255,0.1); border:1px solid rgba(88,166,255,0.3); color:#C9D1D9; max-width:190px; }
+.btn-later:hover { background:rgba(88,166,255,0.2); color:#FFF; }
+</style>
+</head>
+<body>
+<div class="header" onmousedown="if(window.ahk_call)ahk_call('drag')">
+    <div class="hdr-left">
+        <div class="rocket">🚀</div>
+        <div>
+            <div class="hdr-title">Доступно новое обновление АХК УГИБДД</div>
+            <div class="ver-row">
+                <span class="v-old" id="v-cur">v2.8.2</span>
+                <span style="color:#58A6FF;">➔</span>
+                <span class="v-new" id="v-new">v2.8.3</span>
+            </div>
+        </div>
+    </div>
+    <button class="close-btn" onmousedown="event.stopPropagation()" onclick="if(window.ahk_call)ahk_call('close')">✕</button>
+</div>
+<div class="body">
+    <div class="upd-title" id="u-title"></div>
+    <div class="changelog-box" id="u-log"></div>
+    <div class="sec-badge">🔐 Защищённая загрузка: подлинность файла проверяется цифровой подписью RSA-SHA256</div>
+    <div class="status-wrap">
+        <div class="status-txt" id="u-status">Готово к автоматической загрузке и установке.</div>
+        <div class="prog-bg"><div class="prog-bar" id="u-prog"></div></div>
+    </div>
+</div>
+<div class="footer">
+    <button class="btn btn-upd" id="btn-upd" onclick="if(window.ahk_call)ahk_call('start_update')">⚡ Обновить сейчас</button>
+    <button class="btn btn-later" onclick="if(window.ahk_call)ahk_call('close')">⏱️ Напомнить позже</button>
+</div>
+<script>
+var D = __INIT_JSON__;
+document.getElementById('v-cur').innerText = 'v' + (D.curVer || '');
+document.getElementById('v-new').innerText = 'v' + (D.newVer || '');
+document.getElementById('u-title').innerText = D.title || 'Список изменений';
+document.getElementById('u-log').innerText = D.changelog || '';
+function setUpdateStatus(txt, pct, isErr) {
+    var s = document.getElementById('u-status');
+    var p = document.getElementById('u-prog');
+    if (s) {
+        s.innerText = txt;
+        s.style.color = isErr ? '#FF7B72' : '#79C0FF';
+    }
+    if (p && pct !== undefined) {
+        p.style.width = pct + '%';
+        p.style.background = isErr ? '#F85149' : 'linear-gradient(90deg,#1F6FEB,#58A6FF,#7EE787)';
+    }
+}
+function setUpdateBtn(en) {
+    var b = document.getElementById('btn-upd');
+    if (b) b.disabled = !en;
+}
+</script>
+</body>
+</html>
+    )
+    html := StrReplace(html, "__INIT_JSON__", initJson)
+    return html
 }
 
 CloseUpdateDialog:
 Gui, 7:Destroy
-Return
-
-StartUpdateInstallation:
-GuiControl, 7:Disable, BtnUpdateNow
-GuiControl, 7:, UpdateStatusTxt, ⏳ Загрузка обновления с сервера...
-SetTimer, PerformUpdateAction, -100
 Return
 
 PerformUpdateAction:
@@ -11856,8 +12004,8 @@ PerformDownloadAndUpdate() {
 
     if (!success) {
         FileDelete, %tempFile%
-        GuiControl, 7:Enable, BtnUpdateNow
-        GuiControl, 7:, UpdateStatusTxt, ❌ Ошибка скачивания. Проверьте интернет или скачайте вручную.
+        SetUpdateBtnEnabled(true)
+        SetUpdateDialogStatus("❌ Ошибка скачивания. Проверьте интернет или скачайте вручную.", 100, 1)
         MsgBox, 16, Ошибка загрузки, Не удалось скачать файл обновления.`nПроверьте подключение к сети или скачайте архив вручную: vk.ru/polaneychick
         Return
     }
@@ -11865,15 +12013,15 @@ PerformDownloadAndUpdate() {
     ; -------------------------------------------------------------
     ; КРИПТОГРАФИЧЕСКАЯ ПРОВЕРКА ЦИФРОВОЙ ПОДПИСИ ОБНОВЛЕНИЯ (RSA-SHA256)
     ; -------------------------------------------------------------
-    GuiControl, 7:, UpdateStatusTxt, 🔐 Проверка цифровой подписи RSA...
+    SetUpdateDialogStatus("🔐 Проверка цифровой подписи RSA-SHA256...", 75, 0)
     expectedHash := A_IsCompiled ? PendingUpdateExeHash : PendingUpdateAhkHash
     expectedSig  := A_IsCompiled ? PendingUpdateExeSig  : PendingUpdateAhkSig
 
     if (expectedHash != "" && expectedSig != "") {
         if (!VerifyUpdateSignature(tempFile, expectedHash, expectedSig)) {
             FileDelete, %tempFile%
-            GuiControl, 7:Enable, BtnUpdateNow
-            GuiControl, 7:, UpdateStatusTxt, ❌ Ошибка: Недействительная цифровая подпись!
+            SetUpdateBtnEnabled(true)
+            SetUpdateDialogStatus("❌ Ошибка безопасности: недействительная цифровая подпись!", 100, 1)
             MsgBox, 16, Ошибка безопасности, ⛔ ВНИМАНИЕ: Цифровая подпись обновления недействительна!`n`nФайл не прошёл криптографическую проверку (возможно повреждён или подменён на сервере).`nВ целях вашей безопасности установка и запуск отменены!
             Return
         }
@@ -11882,7 +12030,7 @@ PerformDownloadAndUpdate() {
     currentPath := A_ScriptFullPath
 
     if (A_IsCompiled) {
-        GuiControl, 7:, UpdateStatusTxt, ✅ Обновление загружено! Замена файла и перезапуск...
+        SetUpdateDialogStatus("✅ Подпись подтверждена! Замена файла и перезапуск...", 100, 0)
         Sleep, 300
 
         ; Создаём надёжный фоновый VBS-скрипт (полная поддержка кириллицы UTF-16, без мигания окон и сбоев timeout)
@@ -14113,7 +14261,7 @@ OnPrivacyConsentWebAction(action, arg1 := "") {
 
 BuildPrivacyConsentHtml() {
     global AppNumericVersion
-    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.2"
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.3"
     html =
     ( %
 <!-- saved from url=(0016)http://localhost -->
