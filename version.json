@@ -1,15 +1,15 @@
 {
-  "version_code": 277,
-  "version": "2.7.7",
+  "version_code": 278,
+  "version": "2.7.8",
   "release_date": "2026-11-16",
-  "title": "Обновление v2.7.7: Избранные статьи КоАП/УК/ПДД (★)",
-  "changelog": "- ⭐ Добавлено Избранное для статей КоАП, УК РП, ПДД и ФЗоП в базе и в калькуляторе (Alt+F1)\n- 📌 Закрепление избранных статей наверху списка и отдельный быстрый фильтр\n- 💾 Автосохранение списка избранных статей в профиль (gibdd.egl и gibdd_profile.ini)",
+  "title": "Обновление v2.7.8: Избранные статьи (★) и автообновление шаблона интерфейса",
+  "changelog": "- ⭐ Исправлено автообновление HTML-шаблона Fluent UI для отображения избранных статей (★) и фильтра\n- 📌 Кнопки ☆/★ в базе законов и калькуляторе Alt+F1\n- 💾 Сохранение избранного в профиль",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "8ca68f37d250feb72fe1958a083eb0fba1d2a3a0c813d30b02bddf3b48f8c066",
-  "exe_signature": "XNZWJxqlBMS4bJHJAErqUHgL35ZDvZEjM23XPaumw+E5SkMaVp98atM4nLMMSr9M3gxA+1+I7kUxHGiDJkGYBp6wn160VoBM1404t4ZmaLnHkLsfAIezzKJ2UaF4peq2SbqVgtDuXxwAJopwcB0gRqn4p+8hFTzf/RASB6oKrRIb5cJV0u2mLfXLzWfiKRFmdKd+S8gRs94OlM/veL/AQREZ1AEubgoaS/kJmWNXU3FBL1QNv/ZltBpCoH9Tm+zjPEb9SzdmdquhCq613fP4IQUO89i6LvmwIS+k0UDluayKkKAb8E1x6N2rwOK5+tKAUuGXktyLXoNDKC/d9zYftg==",
-  "ahk_sha256": "f9c634027626dc45185683ce7598c98e70eed4fc5bf3a9bdf1f313914b3dabd5",
-  "ahk_signature": "nQQNB1DHJ9XVnzErBNIkuznvKm1nvjF218a46HOOlPeeuji81peXOd9VOV0bQFwJwKlYC91d5W1vyze5GlKOtQTJXOkmvYilKfEmAL7iHOQbAVtyLgqJNhy+XQtQY4/enqzw5DQZc436DuUjt7QfyUCj03KR58sD7QxvMnFyY0NmjFVlN6tba+FM/qRGlBvyYsoyEThvG9PgdfPOJn00Q+jEQx+mTTnhIcArkiZK2eAuerAl9i4BbKC/KYe15oxfxDyd+SlBvA4rv8cNPloLXNqBtFpTL4CiPlI4zDB6RYieryZwPi2Y7T2y7FkIblv2hx8LgcGkqpWSVujj6YWirQ=="
+  "exe_sha256": "dc7420f9eed155eb4e1d58e2d92a7f901731262954fbddeec5f34d51d020ac5d",
+  "exe_signature": "oUn6xcV2UzgSMjoSpXbrhR3h+3GTFVzWCuZht2UKkkHoy/22XsicnL0EF6oAxF6mN9dnwm68S2FZLEviOp31TNbB6ClEEJKK//atCeeDMM2XYkVdu1PDS7kKSrf7gbSJsqGHKumboUv4z9G1l57LCnR4tfrMLBouldRLXRggwXY7Mx0wg/zMYVvkpkCY2nL4NqSpJyqoDGrSMVG5ur/StSj8+i4yHeMCvpu3MtF5gXSgBgt26v0y27sHSwytHQQxBL9AiLf/bwVYT55ZABvd55f1pIyVbrbNe8FPxy1fWsl/rnemxzzkh0EWs5B1/EcmN7gULTKi6pnf9qohtjrjVw==",
+  "ahk_sha256": "b9697afb0335421998272f3b8affba2c498c55b910a01affaede0e1db35a3365",
+  "ahk_signature": "xZdqZ7Nwvi9IX1hj2Ve+M0EVMynwuh4YxVDRCj8KaLFNg8Nolaou35NprYawUKYTwC6y1NtyDMAh28fnt8c8bFojdplnqhvW66n/Oi6CuHzQiUscBNtYsyKu2S3RUXP6cxe2kKMWlvnvVyNaceUym+TUzFOx+njh/U1hohQInH+NekrJ/Wy7dg/Xt6pEiXeuyIDJIrdkACXI6l2KJQzDbj7AEVvpFZwqN3E8tsVAitMvmPeHPqi0Ex3f4PmleMmqg3mFRpccCfiRyIufsvHu7RVJ/JOL+s0EvJ4k9Sb34c0Qw9iwsmUtrIUpUZ9G0/JDQzDwAhJpIiaABj9YZP38Bg=="
 }

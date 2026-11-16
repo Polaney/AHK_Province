@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.7"
-global AppVersionCode       := 277
+global AppNumericVersion    := "2.7.8"
+global AppVersionCode       := 278
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -358,11 +358,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.7") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.8") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.7") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.8") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -11322,8 +11322,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.7"
-global AppVersionCode       := 277
+global AppNumericVersion    := "2.7.8"
+global AppVersionCode       := 278
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11335,8 +11335,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.7"
-        AppVersionCode       := 277
+        AppNumericVersion    := "2.7.8"
+        AppVersionCode       := 278
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11364,8 +11364,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.7"
-        AppVersionCode       := 277
+        AppNumericVersion    := "2.7.8"
+        AppVersionCode       := 278
     }
 
     if (!IsSilent)
@@ -11902,7 +11902,7 @@ EnsureAssetsUpToDate() {
         needTpl := true
     else {
         FileRead, chkHtml, *P65001 %tplPath%
-        if (!InStr(chkHtml, "sgu-cards-container"))
+        if (!InStr(chkHtml, "lfilt-FAV"))
             needTpl := true
     }
 
@@ -11945,6 +11945,17 @@ InitAndShowFluentGlassUI() {
     EnsureAssetsUpToDate()
 
     tplPath := A_ScriptDir . "\assets\fluent_template.html"
+    if (FileExist(tplPath)) {
+        FileRead, chkMainTpl, *P65001 %tplPath%
+        if (!InStr(chkMainTpl, "lfilt-FAV")) {
+            if (A_IsCompiled) {
+                try FileInstall, assets\fluent_template.html, %A_Temp%\fluent_template.html, 1
+                tplPath := A_Temp . "\fluent_template.html"
+            } else {
+                DownloadSingleBinaryFile("https://mvd-province.ru/assets/fluent_template.html", tplPath)
+            }
+        }
+    }
     if (!FileExist(tplPath) && A_IsCompiled) {
         if (!FileExist(A_ScriptDir . "\assets"))
             FileCreateDir, %A_ScriptDir%\assets
