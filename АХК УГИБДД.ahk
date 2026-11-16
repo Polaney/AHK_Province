@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.8.5"
-global AppVersionCode       := 285
+global AppNumericVersion    := "2.8.6"
+global AppVersionCode       := 286
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.5") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.6") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.5") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.6") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -2338,6 +2338,47 @@ FormatCustomBindLine(rawLine, paramStr := "", artObj := "") {
     return formatted
 }
 
+SplitChatLineByWords(longText, maxLen := 100) {
+    t := Trim(longText)
+    res := []
+    if (t = "")
+        return res
+    if (StrLen(t) <= maxLen) {
+        res.Push(t)
+        return res
+    }
+    words := StrSplit(t, " ")
+    cur := ""
+    for i, w in words {
+        if (w = "")
+            Continue
+        if (cur = "") {
+            if (StrLen(w) > maxLen) {
+                Loop, % Ceil(StrLen(w) / maxLen) {
+                    res.Push(SubStr(w, (A_Index - 1) * maxLen + 1, maxLen))
+                }
+            } else {
+                cur := w
+            }
+        } else if (StrLen(cur) + 1 + StrLen(w) <= maxLen) {
+            cur .= " " . w
+        } else {
+            res.Push(cur)
+            if (StrLen(w) > maxLen) {
+                Loop, % Ceil(StrLen(w) / maxLen) {
+                    res.Push(SubStr(w, (A_Index - 1) * maxLen + 1, maxLen))
+                }
+                cur := ""
+            } else {
+                cur := w
+            }
+        }
+    }
+    if (cur != "")
+        res.Push(cur)
+    return res
+}
+
 ExecuteCustomBind(BindIdx, paramStr := "", chosenArtObj := "") {
     global CustomBindsDB, AbortBindFlag, OnlyInGameMode, IsBindExecuting, BindQueue
     if (OnlyInGameMode && !IsGameActive())
@@ -2366,35 +2407,38 @@ ExecuteCustomBind(BindIdx, paramStr := "", chosenArtObj := "") {
         artObj := (allMatches.MaxIndex() >= 1) ? allMatches[1] : ResolveArticleForCustomTag(paramStr)
     }
 
-    lines := StrSplit(b.Lines, "|")
+    rawLines := StrSplit(b.Lines, "|")
+    sendChunks := []
+    for _, singleLine in rawLines {
+        formattedLine := FormatCustomBindLine(Trim(singleLine), paramStr, artObj)
+        if (formattedLine = "")
+            Continue
+        wrappedParts := SplitChatLineByWords(formattedLine, 100)
+        for __, part in wrappedParts {
+            sendChunks.Push(part)
+        }
+    }
+
     delayMs := (b.Delay > 100) ? b.Delay : 1200
 
-    for idx, singleLine in lines {
+    for idx, chunkToSend in sendChunks {
         if (AbortBindFlag) {
             AbortBindFlag := 0
             IsBindExecuting := 0
             TrayTip, ⛔ Отыгровка отменена, Пользовательский бинд прерван., 2, 2
             Return
         }
-        textToSend := FormatCustomBindLine(Trim(singleLine), paramStr, artObj)
-        if (textToSend = "")
-            Continue
-
-        if (idx = 1) {
-            Send, {F6}
-            SmartSleep(350)
-            Send, %textToSend%{Enter}
-        } else {
+        if (idx > 1) {
             SmartSleep(delayMs)
             if (AbortBindFlag) {
                 AbortBindFlag := 0
                 IsBindExecuting := 0
                 Return
             }
-            Send, {F6}
-            SmartSleep(350)
-            Send, %textToSend%{Enter}
         }
+        Send, {F6}
+        SmartSleep(350)
+        Send, %chunkToSend%{Enter}
     }
     IsBindExecuting := 0
     TriggerSmartScreenshot("Свой бинд: " . b.Name)
@@ -2455,7 +2499,8 @@ ShowCustomBindEditor() {
     initObj .= """name"":""" . JsonEscapeStr(CustomBindNameVal) . ""","
     initObj .= """trigger"":""" . JsonEscapeStr(CustomBindTriggerVal) . ""","
     initObj .= """delay"":" . (CustomBindDelayVal + 0 > 0 ? CustomBindDelayVal + 0 : 1200) . ","
-    initObj .= """lines"":""" . JsonEscapeStr(CustomBindLinesVal) . ""","
+    normLinesForJson := StrReplace(StrReplace(CustomBindLinesVal, "`r`n", "|"), "`n", "|")
+    initObj .= """lines"":""" . JsonEscapeStr(normLinesForJson) . ""","
     initObj .= """fio"":""" . JsonEscapeStr(Fio1) . ""","
     initObj .= """rank"":""" . JsonEscapeStr(Rank) . ""","
     initObj .= """znak"":""" . JsonEscapeStr(Znak) . ""","
@@ -2644,7 +2689,7 @@ document.getElementById('hdr-title').innerText = D.title || 'Конструкт�
 document.getElementById('b-name').value = D.name || '';
 document.getElementById('b-trig').value = D.trigger || '';
 document.getElementById('b-delay').value = D.delay || 1200;
-document.getElementById('b-lines').value = D.lines || '';
+document.getElementById('b-lines').value = (D.lines || '').split('|').join('\n');
 
 function ins(tag) {
     var el = document.getElementById('b-lines');
@@ -11928,8 +11973,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.8.5"
-global AppVersionCode       := 285
+global AppNumericVersion    := "2.8.6"
+global AppVersionCode       := 286
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11941,8 +11986,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.5"
-        AppVersionCode       := 285
+        AppNumericVersion    := "2.8.6"
+        AppVersionCode       := 286
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11970,8 +12015,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.5"
-        AppVersionCode       := 285
+        AppNumericVersion    := "2.8.6"
+        AppVersionCode       := 286
     }
 
     if (!IsSilent)
@@ -14526,7 +14571,7 @@ OnPrivacyConsentWebAction(action, arg1 := "") {
 
 BuildPrivacyConsentHtml() {
     global AppNumericVersion
-    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.5"
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.6"
     html =
     ( %
 <!-- saved from url=(0016)http://localhost -->
