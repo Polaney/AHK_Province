@@ -1595,6 +1595,7 @@ html, body {
                 <div class="search-bar-wrap">
                     <input type="text" id="law-search-input" class="search-input" placeholder="🔎 Введите статью, слово или нарушение (например: тонировка, 5.2, встречка, взятка, оружие)..." onkeyup="renderLawsTable()">
                     <button class="filter-pill active" id="lfilt-ALL" onclick="setLawFilter('ALL')">Все</button>
+                    <button class="filter-pill" id="lfilt-FAV" onclick="setLawFilter('FAV')" style="border-color:rgba(255,184,77,0.45); color:#FFB84D;">⭐ Избранное</button>
                     <button class="filter-pill" id="lfilt-КоАП" onclick="setLawFilter('КоАП')">📕 КоАП</button>
                     <button class="filter-pill" id="lfilt-УКРП" onclick="setLawFilter('УКРП')">📙 УК РП</button>
                     <button class="filter-pill" id="lfilt-ФЗоП" onclick="setLawFilter('ФЗоП')">📘 ФЗоП</button>
@@ -1606,6 +1607,7 @@ html, body {
                     <table class="fluent-table">
                         <thead>
                             <tr>
+                                <th style="width:38px; text-align:center;" title="Избранное">★</th>
                                 <th style="width:85px;">Кодекс</th>
                                 <th style="width:80px;">Статья</th>
                                 <th style="width:110px;">Команда</th>
@@ -1775,7 +1777,8 @@ html, body {
         <div style="display:flex; align-items:center; margin-bottom:10px;">
             <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
             <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
-                <option value="ALL">Все кодексы</option>
+                <option value="ALL">Все кодексы (сначала ★)</option>
+                <option value="FAV">⭐ Только избранное</option>
                 <option value="КоАП">КоАП РП</option>
                 <option value="УКРП">УК РП</option>
                 <option value="ПДД">ПДД РП</option>
@@ -1792,6 +1795,7 @@ html, body {
             <table class="fluent-table">
                 <thead>
                     <tr>
+                        <th style="width:36px; text-align:center;" title="Избранное">★</th>
                         <th style="width:40px; text-align:center;">✓</th>
                         <th style="width:70px;">Статья</th>
                         <th style="width:65px;">Кодекс</th>
@@ -2103,7 +2107,8 @@ html, body {
         <div style="display:flex; align-items:center; margin-bottom:10px;">
             <input type="text" id="calc-search" class="fluent-input" style="flex:1; margin-right:10px;" placeholder="🔎 Поиск по номеру статьи, слову (напр. 'тонировка', '5.1', 'красный')..." oninput="filterCalcArticles()">
             <select id="calc-filter-code" class="fluent-select" style="width:170px; margin-right:10px;" onchange="filterCalcArticles()">
-                <option value="ALL">Все кодексы</option>
+                <option value="ALL">Все кодексы (сначала ★)</option>
+                <option value="FAV">⭐ Только избранное</option>
                 <option value="КоАП">КоАП РП</option>
                 <option value="УКРП">УК РП</option>
                 <option value="ПДД">ПДД РП</option>
@@ -2120,6 +2125,7 @@ html, body {
             <table class="fluent-table">
                 <thead>
                     <tr>
+                        <th style="width:36px; text-align:center;" title="Избранное">★</th>
                         <th style="width:40px; text-align:center;">✓</th>
                         <th style="width:70px;">Статья</th>
                         <th style="width:65px;">Кодекс</th>
@@ -2420,6 +2426,38 @@ html, body {
 var APP_DATA = /*__AHK_INITIAL_DATA__*/ {};
 var currentLawFilter = 'ALL';
 var selectedCalcCmds = {};
+var favoriteArticlesMap = {};
+
+function syncFavoritesFromAppData() {
+    favoriteArticlesMap = {};
+    if (APP_DATA && APP_DATA.favorites && APP_DATA.favorites.length) {
+        for (var i = 0; i < APP_DATA.favorites.length; i++) {
+            favoriteArticlesMap[APP_DATA.favorites[i]] = true;
+        }
+    }
+}
+
+function toggleFavArticle(cmdStr, ev) {
+    if (ev) stopProp(ev);
+    if (!cmdStr) return;
+    if (favoriteArticlesMap[cmdStr]) {
+        delete favoriteArticlesMap[cmdStr];
+        showToast('☆ Убрано из избранного');
+    } else {
+        favoriteArticlesMap[cmdStr] = true;
+        showToast('⭐ Добавлено в избранное');
+    }
+    if (APP_DATA) {
+        var arr = [];
+        for (var k in favoriteArticlesMap) {
+            if (favoriteArticlesMap.hasOwnProperty(k) && favoriteArticlesMap[k]) arr.push(k);
+        }
+        APP_DATA.favorites = arr;
+    }
+    callAhk('toggle_fav_article', cmdStr);
+    filterCalcArticles();
+    renderLawsTable();
+}
 var lastKnownTargetId = '';
 
 function callAhk(action, arg1, arg2) {
@@ -2525,21 +2563,36 @@ function filterCalcArticles() {
     var tbody = document.getElementById('calc-articles-tbody');
     if (!tbody || !APP_DATA.articles) return;
 
-    var list = APP_DATA.articles;
+    var list = APP_DATA.articles.slice();
+    if (code === 'ALL') {
+        list.sort(function(x, y) {
+            var fx = favoriteArticlesMap[x.cmd] ? 1 : 0;
+            var fy = favoriteArticlesMap[y.cmd] ? 1 : 0;
+            return fy - fx;
+        });
+    }
+
     var html = [];
     for (var i = 0; i < list.length; i++) {
         var a = list[i];
-        if (code !== 'ALL' && a.code !== code) continue;
+        var isFav = !!favoriteArticlesMap[a.cmd];
+        if (code === 'FAV') {
+            if (!isFav) continue;
+        } else if (code !== 'ALL' && a.code !== code) {
+            continue;
+        }
         if (q) {
             var hay = (a.code + ' ' + a.num + ' ' + a.cmd + ' ' + a.sanction + ' ' + a.desc).toLowerCase();
             if (hay.indexOf(q) === -1) continue;
         }
 
         var isChecked = !!selectedCalcCmds[a.cmd];
-        var rowBg = isChecked ? ' style="background:rgba(56,139,253,0.18);"' : '';
+        var rowBg = isChecked ? ' style="background:rgba(56,139,253,0.18);"' : (isFav ? ' style="background:rgba(255,184,77,0.06);"' : '');
         var bClass = (a.code === 'КоАП') ? 'koap' : ((a.code === 'УКРП' || a.code === 'УК') ? 'uk' : ((a.code === 'ФЗоП') ? 'fzop' : 'pdd'));
+        var starHtml = '<span onclick="toggleFavArticle(\'' + a.cmd + '\', event)" title="' + (isFav ? 'Убрать из избранного' : 'В избранное') + '" style="cursor:pointer; font-size:15px; color:' + (isFav ? '#FFB84D' : '#484F58') + ';">' + (isFav ? '★' : '☆') + '</span>';
 
         html.push('<tr' + rowBg + ' onclick="toggleCalcArticle(\'' + a.cmd + '\')" style="cursor:pointer;">');
+        html.push('<td style="text-align:center;">' + starHtml + '</td>');
         html.push('<td style="text-align:center;"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onclick="stopProp(event); toggleCalcArticle(\'' + a.cmd + '\');"></td>');
         html.push('<td style="font-weight:700; color:#FFB84D; font-family:Consolas,monospace;">' + a.num + '</td>');
         html.push('<td><span class="code-badge ' + bClass + '">' + a.code + '</span></td>');
@@ -2547,6 +2600,10 @@ function filterCalcArticles() {
         html.push('<td style="color:#C9D1D9; font-size:11.5px;">' + a.sanction + '</td>');
         html.push('<td style="color:#E6EDF3; font-size:11.5px;">' + a.desc + '</td>');
         html.push('</tr>');
+    }
+
+    if (html.length === 0 && code === 'FAV') {
+        html.push('<tr><td colspan="7" style="text-align:center; color:#8B949E; padding:26px;">⭐ В избранном пока пусто. Нажмите на ☆ слева от любой нужной статьи, чтобы закрепить её здесь!</td></tr>');
     }
 
     tbody.innerHTML = html.join('');
@@ -3162,7 +3219,7 @@ function saveProfileModal() {
 
 function setLawFilter(code) {
     currentLawFilter = code;
-    var codes = ['ALL', 'КоАП', 'УКРП', 'ФЗоП', 'ПДД'];
+    var codes = ['ALL', 'FAV', 'КоАП', 'УКРП', 'ФЗоП', 'ПДД'];
     for (var i = 0; i < codes.length; i++) {
         var el = document.getElementById('lfilt-' + codes[i]);
         if (el) el.className = (codes[i] === code) ? 'filter-pill active' : 'filter-pill';
@@ -3176,11 +3233,24 @@ function renderLawsTable() {
     var qEl = document.getElementById('law-search-input');
     var q = qEl ? qEl.value.toLowerCase() : '';
     var html = [];
-    var list = APP_DATA.articles;
+    var list = APP_DATA.articles.slice();
+
+    if (currentLawFilter === 'ALL') {
+        list.sort(function(x, y) {
+            var fx = favoriteArticlesMap[x.cmd] ? 1 : 0;
+            var fy = favoriteArticlesMap[y.cmd] ? 1 : 0;
+            return fy - fx;
+        });
+    }
 
     for (var i = 0; i < list.length; i++) {
         var a = list[i];
-        if (currentLawFilter !== 'ALL' && a.code !== currentLawFilter) continue;
+        var isFav = !!favoriteArticlesMap[a.cmd];
+        if (currentLawFilter === 'FAV') {
+            if (!isFav) continue;
+        } else if (currentLawFilter !== 'ALL' && a.code !== currentLawFilter) {
+            continue;
+        }
         if (q !== '') {
             var hay = (a.code + ' ' + a.num + ' ' + a.cmd + ' ' + a.sanction + ' ' + a.desc).toLowerCase();
             if (hay.indexOf(q) === -1) continue;
@@ -3190,7 +3260,11 @@ function renderLawsTable() {
         else if (a.code === 'ФЗоП') bClass = 'fzop';
         else if (a.code === 'ПДД') bClass = 'pdd';
 
-        html.push('<tr>');
+        var starHtml = '<span onclick="toggleFavArticle(\'' + a.cmd + '\', event)" title="' + (isFav ? 'Убрать из избранного' : 'В избранное') + '" style="cursor:pointer; font-size:16px; color:' + (isFav ? '#FFB84D' : '#484F58') + ';">' + (isFav ? '★' : '☆') + '</span>';
+        var rowStyle = isFav ? ' style="background:rgba(255,184,77,0.06);"' : '';
+
+        html.push('<tr' + rowStyle + '>');
+        html.push('<td style="text-align:center;">' + starHtml + '</td>');
         html.push('<td><span class="code-badge ' + bClass + '">' + a.code + '</span></td>');
         html.push('<td style="font-weight:700; color:#FFF;">ст. ' + a.num + '</td>');
         html.push('<td><span class="bind-key cmd" onclick="copyCmd(\'' + a.cmd + '\')">' + a.cmd + '</span></td>');
@@ -3198,6 +3272,11 @@ function renderLawsTable() {
         html.push('<td style="color:#C9D1D9;">' + a.desc + '</td>');
         html.push('</tr>');
     }
+
+    if (html.length === 0 && currentLawFilter === 'FAV') {
+        html.push('<tr><td colspan="6" style="text-align:center; color:#8B949E; padding:28px;">⭐ Список избранных статей пока пуст. Нажмите ☆ слева от любой статьи, чтобы добавить её сюда!</td></tr>');
+    }
+
     tbody.innerHTML = html.join('');
 }
 
@@ -3382,6 +3461,7 @@ function onSfxVolumeChange(val) {
 }
 
 function initDashboard() {
+    syncFavoritesFromAppData();
     if (!APP_DATA || !APP_DATA.profile) return;
     var p = APP_DATA.profile;
 

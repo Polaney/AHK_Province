@@ -1,15 +1,15 @@
 {
-  "version_code": 276,
-  "version": "2.7.6",
-  "release_date": "2026-11-12",
-  "title": "Обновление безопасности v2.7.6: Цифровая подпись RSA-SHA256, приватность и анонимный Client ID",
-  "changelog": "- 🔐 Добавлена сквозная цифровая подпись обновлений RSA-SHA256: защита от подмены и подделки\\n- 🛡️ 100% приватность: полный отказ от сбора HWID/MachineGuid Windows, случайный Client UUID\\n- 🔄 Возможность сброса и перегенерации Client ID в настройках профиля\\n- 📜 Окно подтверждения отправки данных при старте (с возможностью полного оффлайн-режима)\\n- ⚡ Оптимизация сети: отказ от ежеминутных фоновых heartbeat-запросов, фиксация старта и завершения сессии",
+  "version_code": 277,
+  "version": "2.7.7",
+  "release_date": "2026-11-16",
+  "title": "Обновление v2.7.7: Избранные статьи КоАП/УК/ПДД (★)",
+  "changelog": "- ⭐ Добавлено Избранное для статей КоАП, УК РП, ПДД и ФЗоП в базе и в калькуляторе (Alt+F1)\n- 📌 Закрепление избранных статей наверху списка и отдельный быстрый фильтр\n- 💾 Автосохранение списка избранных статей в профиль (gibdd.egl и gibdd_profile.ini)",
   "download_url": "https://mvd-province.ru/download/exe",
   "download_mirror": "http://152.234.229.245:3000/download/exe",
   "ahk_url": "https://mvd-province.ru/download/ahk",
   "ahk_mirror": "http://152.234.229.245:3000/download/ahk",
-  "exe_sha256": "e2800c2222221b6be7799f5a63491051dbae424b8cf80d3571864631c8b0c463",
-  "exe_signature": "P/kNniyQk8lB083ALQ5MWn1lr7iwKWJ4uXicsIoePj3dfmS6/6cHaHKM/5kW8Qi7g35XHcyqFcwBOZDbCR0nfWckMd+b7GY8eoFr+l3wLQIVqk67pAw2PWIqFDdBgQyuAs8L0/MjzGpD/kV8wzUtJ/EBakLt9NIiHE1jHlUOlXChlrOKdhEP4wRKYTwm3M0gg8pzw7Wbf3tk5l9PVEHnOmcogRS56FhmbFIj8Isrf6pWQ8g5YBMjQ5VxplbZs6VaEM+HzwDZWgiAGfqRWjjEDHqJrEf/cDz8sMcmiy7NEJQKuY9RRjGV4KeJyNwmnqtk5pCXk5FiQgfVsUJBb0zxFw==",
-  "ahk_sha256": "d1d1202ee46e924458c9a8f29ed8a9aee26080b5cb9d1f988481e04d707a5cc3",
-  "ahk_signature": "TOmy+GOgupI3WyK6AZ0fgpHnTgl02UtGJWVREPXbjwbJyGWC4f22pSeBJuf4Tkq4a4fwELtI+b7NBbb9I+CS9qQUuzSeOAWgeXS0Q2aOkSrzTbRGCI1SrY5NiSfBS5eEHu6ZeKCY3srZIJT9pSFZF/W6d9t/5+yEyPpVQOIDLCr22YVV7zA+5XL0/V5Di7ZinIi6jsYebhgp58M9d15BeDqq1U4PjA7A/v/bXhJdDIie7IQo0UmDeAtLIM6N1hG4yuuUZcxeSuo4vf8wtf7Z8EyZel2/wR+gsd1tUnSHQdeWMKtT4JeA/bwJUARR8H6ZqtNCjnVhuxdkAbQERGS4fQ=="
+  "exe_sha256": "8ca68f37d250feb72fe1958a083eb0fba1d2a3a0c813d30b02bddf3b48f8c066",
+  "exe_signature": "XNZWJxqlBMS4bJHJAErqUHgL35ZDvZEjM23XPaumw+E5SkMaVp98atM4nLMMSr9M3gxA+1+I7kUxHGiDJkGYBp6wn160VoBM1404t4ZmaLnHkLsfAIezzKJ2UaF4peq2SbqVgtDuXxwAJopwcB0gRqn4p+8hFTzf/RASB6oKrRIb5cJV0u2mLfXLzWfiKRFmdKd+S8gRs94OlM/veL/AQREZ1AEubgoaS/kJmWNXU3FBL1QNv/ZltBpCoH9Tm+zjPEb9SzdmdquhCq613fP4IQUO89i6LvmwIS+k0UDluayKkKAb8E1x6N2rwOK5+tKAUuGXktyLXoNDKC/d9zYftg==",
+  "ahk_sha256": "f9c634027626dc45185683ce7598c98e70eed4fc5bf3a9bdf1f313914b3dabd5",
+  "ahk_signature": "nQQNB1DHJ9XVnzErBNIkuznvKm1nvjF218a46HOOlPeeuji81peXOd9VOV0bQFwJwKlYC91d5W1vyze5GlKOtQTJXOkmvYilKfEmAL7iHOQbAVtyLgqJNhy+XQtQY4/enqzw5DQZc436DuUjt7QfyUCj03KR58sD7QxvMnFyY0NmjFVlN6tba+FM/qRGlBvyYsoyEThvG9PgdfPOJn00Q+jEQx+mTTnhIcArkiZK2eAuerAl9i4BbKC/KYe15oxfxDyd+SlBvA4rv8cNPloLXNqBtFpTL4CiPlI4zDB6RYieryZwPi2Y7T2y7FkIblv2hx8LgcGkqpWSVujj6YWirQ=="
 }

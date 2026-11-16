@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.7.6"
-global AppVersionCode       := 276
+global AppNumericVersion    := "2.7.7"
+global AppVersionCode       := 277
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -358,11 +358,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.6") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.7") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.6") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.7.7") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -4772,6 +4772,56 @@ AddArticleDB(CodeStr, NumStr, CmdStr, FineNum, SanctionStr, DescStr, RawLinesStr
     ArticlesDB.Push({Code: CodeStr, Num: NumStr, Cmd: CmdStr, Fine: FineNum, Sanction: SanctionStr, Desc: DescStr, RawLines: RawLinesStr})
 }
 
+global FavoriteArticlesMap := {}
+
+LoadFavoriteArticles() {
+    global FavoriteArticlesMap
+    FavoriteArticlesMap := {}
+    rawFav := ""
+    iniPath := A_Temp . "\gibdd.egl"
+    localIni := A_ScriptDir . "\gibdd_profile.ini"
+    if (FileExist(iniPath)) {
+        IniRead, rawFav, %iniPath%, Favorites, List, ERROR
+    }
+    if ((rawFav = "" || rawFav = "ERROR") && FileExist(localIni)) {
+        IniRead, rawFav, %localIni%, Favorites, List, ERROR
+    }
+    if (rawFav != "" && rawFav != "ERROR") {
+        Loop, Parse, rawFav, `,
+        {
+            item := Trim(A_LoopField)
+            if (item != "")
+                FavoriteArticlesMap[item] := 1
+        }
+    }
+}
+
+SaveFavoriteArticles() {
+    global FavoriteArticlesMap
+    listStr := ""
+    for cmdKey, val in FavoriteArticlesMap {
+        if (val = 1) {
+            listStr .= (listStr != "" ? "," : "") . cmdKey
+        }
+    }
+    for idx, targetIni in [A_Temp . "\gibdd.egl", A_ScriptDir . "\gibdd_profile.ini"] {
+        EnsureIniUnicode(targetIni)
+        IniWrite, %listStr%, %targetIni%, Favorites, List
+    }
+}
+
+ToggleFavoriteArticle(cmdStr) {
+    global FavoriteArticlesMap
+    if (cmdStr = "")
+        return
+    if (FavoriteArticlesMap.HasKey(cmdStr) && FavoriteArticlesMap[cmdStr] = 1) {
+        FavoriteArticlesMap.Delete(cmdStr)
+    } else {
+        FavoriteArticlesMap[cmdStr] := 1
+    }
+    SaveFavoriteArticles()
+}
+
 InitBindsCatalog() {
     global BindsDB, ArticlesDB, HotkeyDefs
     BindsDB := []
@@ -4840,6 +4890,7 @@ InitArticlesDB() {
     global ArticlesDB, SelectedArticlesMap
     ArticlesDB := []
     SelectedArticlesMap := {}
+    LoadFavoriteArticles()
     AddArticleDB("КоАП", "1.1", "/коап1.1", 0, "Разъяснение нормы", "Задачами законодательства об административных правонарушениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, охрана здоровья граждан, санитарно-эпидемиологического благополучия населения, защита общественной нравственности, охрана окружающей среды, установленного порядка осуществления государственной власти, общественного порядка и общественной безопасности, собственности, защита законных экономических интересов физических и юридических лиц, общества и государства от административных правонарушений, а также предупреждение административных правонарушений. За соблюдением кодекса следят все служащие Министерства внутренних дел.", "Согласно ст. 1.1 КоАП, Задачами законодательства об административных правонарушениях (далее – настоящий Кодекс) являются защита личности, охрана прав и свобод человека и гражданина, о")
     AddArticleDB("КоАП", "1.2", "/коап1.2", 0, "Разъяснение нормы", "Лица, совершившие административное правонарушение, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхождения, имущественного и должностного положения, места жительства, отношения к религии, убеждений, принадлежности к общественным объединениям, а также других обстоятельств. Незнание закона не освобождает лицо от ответственности.", "Согласно ст. 1.2 КоАП, Лица, совершившие административное правонарушение, равны перед законом. Они подлежат ответственности независимо от пола, расы, национальности, языка, происхожде")
     AddArticleDB("КоАП", "1.3", "/коап1.3", 0, "Разъяснение нормы", "Лицо подлежит ответственности только за те административные правонарушения, в отношении которых установлена его вина.", "Согласно ст. 1.3 КоАП, Лицо подлежит ответственности только за те административные правонарушения, в отношении которых установлена его вина")
@@ -11271,8 +11322,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.7.6"
-global AppVersionCode       := 276
+global AppNumericVersion    := "2.7.7"
+global AppVersionCode       := 277
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11284,8 +11335,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.6"
-        AppVersionCode       := 276
+        AppNumericVersion    := "2.7.7"
+        AppVersionCode       := 277
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11313,8 +11364,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.7.6"
-        AppVersionCode       := 276
+        AppNumericVersion    := "2.7.7"
+        AppVersionCode       := 277
     }
 
     if (!IsSilent)
@@ -11810,6 +11861,19 @@ BuildFluentInitialJson() {
     }
     j .= "],"
 
+    global FavoriteArticlesMap
+    j .= """favorites"":["
+    favIdx := 0
+    for favCmd, favVal in FavoriteArticlesMap {
+        if (favVal = 1) {
+            favIdx++
+            if (favIdx > 1)
+                j .= ","
+            j .= """" . JsonEscapeStr(favCmd) . """"
+        }
+    }
+    j .= "],"
+
     j .= """journal"":["
     for idx, item in JournalEntries {
         if (idx > 1)
@@ -12274,6 +12338,13 @@ OnFluentWebAction(action, arg1 := "", arg2 := "") {
                     }
                 }
             }
+        }
+        Return
+    }
+    if (action = "toggle_fav_article") {
+        if (arg1 != "") {
+            ToggleFavoriteArticle(arg1)
+            PlaySafeBeep(950, 60)
         }
         Return
     }
