@@ -11,8 +11,8 @@ Process, Priority,, Normal
 SetStoreCapsLockMode, Off
 SetWorkingDir %A_ScriptDir%
 FileEncoding UTF-8
-global AppNumericVersion    := "2.8.1"
-global AppVersionCode       := 281
+global AppNumericVersion    := "2.8.2"
+global AppVersionCode       := 282
 global MegaphoneCooldownConfig := 8
 global ChaseDeptMode     := "AUTO"
 global SfxVolume         := 80
@@ -365,11 +365,11 @@ PlaySafeBeep(freq := 750, dur := 120) {
 UpdateGenderVariables() {
     global Gender, Vers, AppNumericVersion, Ok1, Ok2, Ok3, Ok4, Ok5, Ok6, Ok7, Ok8, Ok9, Ok10, Ok11, Pol, Gend
     if (Gender = "Я девочка") {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.1") . "ж"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.2") . "ж"
         Ok1 := "а", Ok2 := "ла", Ok3 := "ась", Ok4 := "цы", Ok5 := "ца", Ok6 := "це", Ok7 := "ла", Ok8 := "ела", Ok9 := "есла", Ok10 := "цей", Ok11 := "екла"
         Pol := "👩‍⚕️", Gend := "женский"
     } else {
-        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.1") . "м"
+        Vers := (AppNumericVersion != "" ? AppNumericVersion : "2.8.2") . "м"
         Ok1 := "", Ok2 := "", Ok3 := "ся", Ok4 := "ка", Ok5 := "к", Ok6 := "ке", Ok7 := "ёл", Ok8 := "ёл", Ok9 := "ёс", Ok10 := "ком", Ok11 := "ёк"
         Pol := "👨‍⚕️", Gend := "мужской"
     }
@@ -1968,14 +1968,16 @@ RegisterAllCustomBinds() {
         if (trig = "")
             Continue
         if (SubStr(trig, 1, 1) = "/") {
-            try Hotstring(":*:" . trig, "ExecuteCustomBindFromHotstring", "Off")
-            try Hotstring(":B0:" . trig, "ExecuteCustomBindParamHotstring", "Off")
+            try Hotstring(":*X:" . trig, "", "Off")
+            try Hotstring(":B0X:" . trig, "", "Off")
             if (!b.Active)
                 Continue
             if (HasBindParams(b.Lines)) {
-                try Hotstring(":B0:" . trig, "ExecuteCustomBindParamHotstring", "On")
+                fnP := Func("ExecuteCustomBindParamHotstringFn").Bind(idx, trig)
+                try Hotstring(":B0X:" . trig, fnP, "On")
             } else {
-                try Hotstring(":*:" . trig, "ExecuteCustomBindFromHotstring", "On")
+                fnS := Func("ExecuteCustomBindSimpleFn").Bind(idx)
+                try Hotstring(":*X:" . trig, fnS, "On")
             }
         } else if (b.Active) {
             try {
@@ -1986,41 +1988,27 @@ RegisterAllCustomBinds() {
     }
 }
 
-ExecuteCustomBindFromHotstring:
-matchTrigger := Trim(A_ThisHotkey)
-matchTrigger := StrReplace(matchTrigger, ":*:", "")
-for idx, b in CustomBindsDB {
-    if (b.Active && Trim(b.Trigger) = matchTrigger) {
-        EnqueueCustomBind(idx, "")
-        Break
-    }
+ExecuteCustomBindSimpleFn(idx) {
+    EnqueueCustomBind(idx, "")
 }
-Return
 
-ExecuteCustomBindParamHotstring:
-matchTrigger := Trim(A_ThisHotkey)
-matchTrigger := StrReplace(matchTrigger, ":B0:", "")
-ih := InputHook("V", "{Enter}{Escape}")
-ih.Start()
-ih.Wait()
-if (ih.EndKey = "Escape") {
-    Send, {Escape}
-    Return
-}
-paramText := ih.Input
-; Стираем введённый в игре триггер + пробел/EndChar + аргумент
-delCount := StrLen(matchTrigger) + 1 + StrLen(paramText)
-Send, {BS %delCount%}
-Sleep, 30
-Send, {Escape}
-Sleep, 50
-for idx, b in CustomBindsDB {
-    if (b.Active && Trim(b.Trigger) = matchTrigger) {
-        EnqueueCustomBind(idx, Trim(paramText))
-        Break
+ExecuteCustomBindParamHotstringFn(idx, matchTrigger) {
+    ih := InputHook("V", "{Enter}{Escape}")
+    ih.Start()
+    ih.Wait()
+    if (ih.EndKey = "Escape") {
+        Send, {Escape}
+        Return
     }
+    paramText := ih.Input
+    ; Стираем введённый в игре триггер + пробел/EndChar + аргумент
+    delCount := StrLen(matchTrigger) + 1 + StrLen(paramText)
+    Send, {BS %delCount%}
+    Sleep, 30
+    Send, {Escape}
+    Sleep, 50
+    EnqueueCustomBind(idx, Trim(paramText))
 }
-Return
 
 EnqueueCustomBind(BindIdx, paramStr := "") {
     global BindQueue, IsBindExecuting, AntiFloodMode, AbortBindFlag, CustomBindsDB, OnlyInGameMode
@@ -11675,8 +11663,8 @@ Return
 ; =================================================================================================
 ; СИСТЕМА АВТООБНОВЛЕНИЯ (CLOUD VPS RELAY + GITHUB RAW & RELEASES)
 ; =================================================================================================
-global AppNumericVersion    := "2.8.1"
-global AppVersionCode       := 281
+global AppNumericVersion    := "2.8.2"
+global AppVersionCode       := 282
 global UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
 global UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
 global UpdateCdnUrl         := "https://cdn.jsdelivr.net/gh/Polaney/AHK_Province@main/version.json"
@@ -11688,8 +11676,8 @@ InitAutoUpdater() {
     global AppNumericVersion, AppVersionCode, UpdatePrimaryUrl, UpdateGithubRawUrl, UpdateCdnUrl
     global PendingUpdateUrl, PendingUpdateMirror, PendingUpdateVer
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.1"
-        AppVersionCode       := 281
+        AppNumericVersion    := "2.8.2"
+        AppVersionCode       := 282
     }
     UpdatePrimaryUrl     := "https://mvd-province.ru/api/version"
     UpdateGithubRawUrl   := "https://raw.githubusercontent.com/Polaney/AHK_Province/main/version.json"
@@ -11717,8 +11705,8 @@ CheckForUpdates(IsSilent := 1) {
     if (UpdatePrimaryUrl = "")
         UpdatePrimaryUrl   := "https://mvd-province.ru/api/version"
     if (AppNumericVersion = "" || AppVersionCode = "") {
-        AppNumericVersion    := "2.8.1"
-        AppVersionCode       := 281
+        AppNumericVersion    := "2.8.2"
+        AppVersionCode       := 282
     }
 
     if (!IsSilent)
@@ -14125,7 +14113,7 @@ OnPrivacyConsentWebAction(action, arg1 := "") {
 
 BuildPrivacyConsentHtml() {
     global AppNumericVersion
-    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.1"
+    verStr := (AppNumericVersion != "") ? AppNumericVersion : "2.8.2"
     html =
     ( %
 <!-- saved from url=(0016)http://localhost -->
